@@ -109,67 +109,93 @@ export default function HomeworkList({ homework, onUpdate, token, loadingExterna
     return `${days} days left`;
   };
 
+  const totalHomework = homework.length;
+  const pendingCount = homework.filter(h => h.status !== 'completed' && h.status !== 'submitted').length;
+  const completedCount = homework.filter(h => h.status === 'completed' || h.status === 'submitted').length;
+  const overdueCount = homework.filter(h => isOverdue(h.dueDate, h.status)).length;
+  const dueSoonCount = homework.filter(h => {
+    const diff = new Date(h.dueDate).getTime() - new Date().getTime();
+    return diff <= 3 * 24 * 60 * 60 * 1000 && diff >= -24 * 60 * 60 * 1000 && h.status !== 'completed' && h.status !== 'submitted';
+  }).length;
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-hero-mobile md:text-section-title font-bold text-white">📚 Homework & To-Do</h2>
-          <p className="text-body-sm text-muted-ink mt-1">Track your assignments and tasks</p>
+          <p className="text-micro text-muted-ink uppercase tracking-wide">Task 06</p>
+          <h2 className="text-hero-mobile md:text-section-title font-bold text-white">Homework & To-Do</h2>
+          <p className="text-body-sm text-muted-ink mt-1">Stay organized with a live feed of every assignment</p>
         </div>
-        <button
-          onClick={() => void fetchHomework()}
-          disabled={isFetching || loadingExternal}
-          className="px-4 py-2 rounded-xl text-body-sm font-medium bg-panel-elevated text-slate-200 hover:bg-slate-700 transition-all disabled:opacity-60"
-        >
-          {isFetching || loadingExternal ? 'Refreshing…' : 'Refresh'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => void fetchHomework()}
+            disabled={isFetching || loadingExternal}
+            className="px-4 py-2 rounded-xl text-body-sm font-medium bg-panel-elevated/80 border border-card-border text-slate-200 hover:bg-slate-700 transition-all disabled:opacity-60"
+          >
+            {isFetching || loadingExternal ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: 'Total Assignments', value: totalHomework, helper: 'Synced from teachers', icon: '📚' },
+          { label: 'Due Soon', value: dueSoonCount, helper: 'Next 3 days', icon: '⏰' },
+          { label: 'Completed', value: completedCount, helper: 'Turned in or done', icon: '✅' },
+          { label: 'Overdue', value: overdueCount, helper: 'Past due date', icon: '⚠️', highlight: overdueCount > 0 },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className={`rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/0 p-4 shadow-card backdrop-blur-lg ${
+              stat.highlight ? 'ring-1 ring-red-400/40' : ''
+            }`}
+          >
+            <div className="flex items-center justify-between text-muted-ink text-body-sm">
+              <span>{stat.label}</span>
+              <span>{stat.icon}</span>
+            </div>
+            <p className={`text-3xl font-semibold mt-2 ${stat.highlight ? 'text-red-300' : 'text-white'}`}>{stat.value}</p>
+            <p className="text-body-xs text-muted-ink mt-1">{stat.helper}</p>
+          </div>
+        ))}
       </div>
 
       {/* Filters & Sort */}
-      <div className="flex flex-wrap gap-3 items-center bg-panel p-4 rounded-2xl shadow-card border border-card-border">
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-xl text-body-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight ${
-              filter === 'all' 
-                ? 'bg-gradient-to-r from-primary-from to-primary-to text-white shadow-card' 
-                : 'bg-panel-elevated text-slate-300 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            All ({homework.length})
-          </button>
-          <button
-            onClick={() => setFilter('pending')}
-            className={`px-4 py-2 rounded-xl text-body-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight ${
-              filter === 'pending' 
-                ? 'bg-gradient-to-r from-primary-from to-primary-to text-white shadow-card' 
-                : 'bg-panel-elevated text-slate-300 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            Pending ({homework.filter(h => h.status !== 'completed' && h.status !== 'submitted').length})
-          </button>
-          <button
-            onClick={() => setFilter('completed')}
-            className={`px-4 py-2 rounded-xl text-body-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight ${
-              filter === 'completed' 
-                ? 'bg-gradient-to-r from-primary-from to-primary-to text-white shadow-card' 
-                : 'bg-panel-elevated text-slate-300 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            Completed ({homework.filter(h => h.status === 'completed' || h.status === 'submitted').length})
-          </button>
+      <div className="flex flex-wrap gap-3 items-center bg-panel/80 p-4 rounded-2xl shadow-card border border-card-border backdrop-blur-xl">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: 'all', label: 'All', count: totalHomework, icon: '🗂️' },
+            { id: 'pending', label: 'Pending', count: pendingCount, icon: '⚙️' },
+            { id: 'completed', label: 'Completed', count: completedCount, icon: '✅' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setFilter(tab.id as typeof filter)}
+              className={`px-4 py-2 rounded-xl text-body-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight flex items-center gap-2 ${
+                filter === tab.id
+                  ? 'bg-gradient-to-r from-primary-from to-primary-to text-white shadow-card'
+                  : 'bg-panel-elevated text-slate-300 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              {tab.label} ({tab.count})
+            </button>
+          ))}
         </div>
         <div className="ml-auto flex gap-2 items-center">
-          <span className="text-body-sm text-muted-ink">Sort by:</span>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-3 py-2 bg-panel-elevated border border-card-border text-white rounded-xl text-body-sm focus:outline-none focus:ring-2 focus:ring-discrete-highlight"
-          >
-            <option value="dueDate">Due Date</option>
-            <option value="priority">Priority</option>
-          </select>
+          <span className="text-body-sm text-muted-ink">Sort by</span>
+          <div className="flex items-center gap-2 rounded-xl bg-panel-elevated px-3 py-1.5 border border-card-border text-body-sm">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="bg-transparent text-white focus:outline-none"
+            >
+              <option value="dueDate">Due Date</option>
+              <option value="priority">Priority</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -191,15 +217,16 @@ export default function HomeworkList({ homework, onUpdate, token, loadingExterna
           sortedHomework.map(hw => (
             <div
               key={hw.id}
-              className={`bg-panel rounded-2xl p-5 shadow-card border border-card-border border-l-4 transition-all duration-200 hover:shadow-card-hover ${
+              className={`relative overflow-hidden rounded-2xl p-5 shadow-card border border-card-border/80 transition-all duration-200 hover:shadow-card-hover ${
                 isOverdue(hw.dueDate, hw.status)
-                  ? 'border-l-red-500'
+                  ? 'ring-1 ring-red-500/40'
                   : hw.status === 'completed' || hw.status === 'submitted'
-                  ? 'border-l-accent-green opacity-75'
-                  : 'border-l-primary-to'
+                  ? 'opacity-80'
+                  : 'ring-1 ring-primary-to/40'
               }`}
             >
-              <div className="flex items-start gap-4">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/0" />
+              <div className="relative flex items-start gap-4">
                 {/* Checkbox */}
                 <label className="relative flex items-center cursor-pointer group mt-1">
                   <input
@@ -228,9 +255,12 @@ export default function HomeworkList({ homework, onUpdate, token, loadingExterna
                       </h3>
                       <p className="text-body-sm text-muted-ink mt-1">{hw.subject} • {hw.teacherName}</p>
                     </div>
-                    <div className="flex gap-2 items-center">
+                    <div className="flex flex-col items-end gap-2 text-right">
                       <span className={`px-3 py-1 rounded-full text-micro font-semibold border ${getPriorityColor(hw.priority)}`}>
                         {hw.priority.toUpperCase()}
+                      </span>
+                      <span className="text-body-xs text-muted-ink flex items-center gap-1">
+                        📅 {new Date(hw.dueDate).toLocaleDateString()}
                       </span>
                     </div>
                   </div>

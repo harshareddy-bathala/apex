@@ -1,8 +1,25 @@
+from collections import defaultdict
 from typing import Dict
 
-from google.adk.memory import InMemorySessionService, MemoryBank
+try:
+    from google.adk.memory import InMemorySessionService, MemoryBank
+except ImportError:  # pragma: no cover - ADK 0.3 compatibility shim.
+    from google.adk.sessions import InMemorySessionService  # type: ignore
 
-session_service = InMemorySessionService(id_field="student_id")
+    class MemoryBank:
+        """Minimal in-memory store used when ADK MemoryBank is unavailable."""
+
+        def __init__(self, name: str):
+            self.name = name
+            self._memories: Dict[str, list[str]] = defaultdict(list)
+
+        def add_memory(self, student_id: str, memory: str) -> None:
+            self._memories[student_id].append(memory)
+
+try:
+    session_service = InMemorySessionService(id_field="student_id")
+except TypeError:  # pragma: no cover - older ADK signature has no kwargs.
+    session_service = InMemorySessionService()
 memory_bank = MemoryBank(name="student_long_term")
 
 

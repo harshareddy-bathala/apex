@@ -52,17 +52,17 @@ const Navigation: React.FC<NavigationProps> = ({
   ];
 
   return (
-    <nav className="bg-panel border-b border-card-border sticky top-0 z-40 shadow-subtle">
+    <nav className="sticky top-0 z-40 backdrop-blur-2xl bg-[rgba(4,8,21,0.85)]/70 border-b border-white/5 shadow-[0_10px_60px_rgba(4,8,21,0.65)]">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo and Brand */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-from to-primary-to rounded-xl flex items-center justify-center text-white font-bold shadow-card p-2">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#22d3ee] flex items-center justify-center text-white font-semibold shadow-lg ring-1 ring-white/10 overflow-hidden">
               {authUser.photoURL ? (
                 <img 
                   src={authUser.photoURL} 
                   alt={authUser.name} 
-                  className="w-full h-full rounded-xl object-cover" 
+                  className="w-full h-full object-cover" 
                 />
               ) : (
                 <img 
@@ -73,8 +73,15 @@ const Navigation: React.FC<NavigationProps> = ({
               )}
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-white font-semibold text-body">Student Mentor AI</h1>
-              <p className="text-micro text-muted-ink">Hey, {profile.name.split(' ')[0]}!</p>
+              <h1
+                className="text-lg text-white font-semibold tracking-tight"
+                style={{ fontFamily: 'Space Grotesk, Inter, sans-serif' }}
+              >
+                Student Mentor AI
+              </h1>
+              <p className="text-xs text-white/60">
+                Hey, {profile.name.split(' ')[0]}!
+              </p>
             </div>
           </div>
 
@@ -85,10 +92,10 @@ const Navigation: React.FC<NavigationProps> = ({
               <button
                 key={item.id}
                 onClick={() => onViewChange(item.id)}
-                className={`px-4 py-2 rounded-xl text-body-sm font-medium transition-all duration-200 flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-discrete-highlight ${
+                className={`px-4 py-2 rounded-2xl text-sm font-medium transition-all duration-200 flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22d3ee]/60 border ${
                   currentView === item.id
-                    ? 'bg-gradient-to-r from-primary-from to-primary-to text-white shadow-card'
-                    : 'text-slate-300 hover:text-white hover:bg-panel-elevated'
+                    ? 'text-white bg-gradient-to-r from-[#7c3aed] to-[#22d3ee] border-transparent shadow-[0_10px_30px_rgba(124,58,237,0.35)]'
+                    : 'text-white/70 border-white/5 hover:text-white hover:bg-white/5'
                 }`}
                 aria-label={`View ${item.label}`}
                 aria-current={currentView === item.id ? 'page' : undefined}
@@ -102,10 +109,10 @@ const Navigation: React.FC<NavigationProps> = ({
             {!hasTodayCheckIn && (
               <button
                 onClick={onCheckInClick}
-                className="px-4 py-2 bg-gradient-to-r from-accent-green to-primary-to hover:from-accent-green/90 hover:to-primary-to/90 text-white rounded-xl text-body-sm font-medium transition-all duration-200 shadow-card hover:shadow-card-hover flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-accent-green"
+                className="px-4 py-2 rounded-2xl text-sm font-semibold text-white shadow-[0_10px_35px_rgba(34,211,238,0.35)] bg-gradient-to-r from-[#22d3ee] to-[#14b8a6] hover:from-[#67e8f9] hover:to-[#2dd4bf] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22d3ee]/60 flex items-center gap-2"
                 aria-label="Complete daily check-in"
               >
-                <span>✓</span>
+                <span className="animate-pulse">✓</span>
                 <span className="hidden sm:inline">Check In</span>
               </button>
             )}
@@ -113,7 +120,7 @@ const Navigation: React.FC<NavigationProps> = ({
             {/* Report Button */}
             <button
               onClick={onReportClick}
-              className="px-4 py-2 bg-gradient-to-r from-primary-from to-primary-to hover:from-primary-from/90 hover:to-primary-to/90 text-white rounded-xl text-body-sm font-medium transition-all duration-200 shadow-card hover:shadow-card-hover flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-discrete-highlight"
+              className="px-4 py-2 rounded-2xl text-sm font-medium text-white bg-white/10 border border-white/10 hover:bg-white/15 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 flex items-center gap-2"
               aria-label="View progress report"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -125,7 +132,7 @@ const Navigation: React.FC<NavigationProps> = ({
             {/* User Menu */}
             <div className="relative group">
               <button 
-                className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-green to-primary-to flex items-center justify-center text-white font-semibold shadow-card hover:shadow-card-hover transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight"
+                className="w-11 h-11 rounded-full bg-gradient-to-br from-[#7c3aed] to-[#22d3ee] flex items-center justify-center text-white font-semibold shadow-[0_10px_35px_rgba(124,58,237,0.35)] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 aria-label="User menu"
                 aria-haspopup="true"
               >
@@ -134,18 +141,18 @@ const Navigation: React.FC<NavigationProps> = ({
               
               {/* Dropdown Menu */}
               <div 
-                className="absolute right-0 mt-2 w-56 bg-panel rounded-xl shadow-hero border border-card-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden"
+                className="absolute right-0 mt-3 w-60 glass-card rounded-2xl shadow-[0_25px_60px_rgba(2,6,23,0.7)] border border-white/10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden"
                 role="menu"
                 aria-label="User menu options"
               >
-                <div className="p-3 border-b border-card-border bg-panel-elevated">
-                  <p className="text-body-sm font-medium text-white truncate">{authUser.name || authUser.email}</p>
-                  <p className="text-micro text-muted-ink truncate">{authUser.email}</p>
+                <div className="p-4 border-b border-white/5 bg-white/5">
+                  <p className="text-sm font-medium text-white truncate">{authUser.name || authUser.email}</p>
+                  <p className="text-xs text-white/60 truncate">{authUser.email}</p>
                 </div>
                 
                 <button
                   onClick={onEditProfile}
-                  className="w-full text-left px-4 py-3 text-body-sm text-slate-300 hover:bg-panel-elevated hover:text-white transition-colors focus:outline-none focus:bg-panel-elevated focus:text-white flex items-center gap-2"
+                  className="w-full text-left px-4 py-3 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors focus:outline-none focus:bg-white/10 flex items-center gap-3"
                   role="menuitem"
                 >
                   <span className="text-lg">🧑‍🎓</span>
@@ -154,7 +161,7 @@ const Navigation: React.FC<NavigationProps> = ({
 
                 <button
                   onClick={onEditGoals}
-                  className="w-full text-left px-4 py-3 text-body-sm text-slate-300 hover:bg-panel-elevated hover:text-white transition-colors focus:outline-none focus:bg-panel-elevated focus:text-white flex items-center gap-2"
+                  className="w-full text-left px-4 py-3 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors focus:outline-none focus:bg-white/10 flex items-center gap-3"
                   role="menuitem"
                 >
                   <span className="text-lg">🎯</span>
@@ -163,7 +170,7 @@ const Navigation: React.FC<NavigationProps> = ({
                 
                 <button
                   onClick={onLogout}
-                  className="w-full text-left px-4 py-3 text-body-sm text-red-400 hover:bg-panel-elevated hover:text-red-300 transition-colors rounded-b-xl focus:outline-none focus:bg-panel-elevated flex items-center gap-2"
+                  className="w-full text-left px-4 py-3 text-sm text-[#fb7185] hover:bg-[#fb7185]/10 hover:text-[#fecdd3] transition-colors focus:outline-none focus:bg-[#fb7185]/15 flex items-center gap-3"
                   role="menuitem"
                 >
                   <span className="text-lg">🚪</span>

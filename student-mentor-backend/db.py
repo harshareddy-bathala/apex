@@ -1,6 +1,6 @@
 import os
 from functools import lru_cache
-from typing import Any, Dict
+from typing import Dict
 
 from google.cloud import firestore
 
@@ -26,7 +26,7 @@ def get_firestore_client() -> firestore.Client:
     return firestore.Client(project=FIRESTORE_PROJECT_ID)
 
 
-def collection_ref(key: str) -> firestore.CollectionReference[Any]:
+def collection_ref(key: str) -> firestore.CollectionReference:
     return get_firestore_client().collection(COLLECTIONS[key])
 
 

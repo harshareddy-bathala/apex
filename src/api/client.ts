@@ -10,7 +10,16 @@ type Nullable<T> = T | null;
 export type StudentProfileRecord = Partial<StudentProfile> & {
   id: string;
   onboardingComplete?: boolean;
+  role?: 'student' | 'teacher';
 };
+
+export interface UserDocRecord {
+  uid: string;
+  email: string;
+  role: 'student' | 'teacher';
+  createdAt: string;
+  updatedAt: string;
+}
 
 export type StudentGoalsPayload = Partial<
   Pick<StudentProfile, 'currentGoals' | 'shortTermGoals' | 'longTermGoals' | 'interests' | 'careerAspirations' | 'dreamJob'>
@@ -22,6 +31,81 @@ interface GoalsResponse {
 
 interface HomeworkResponse {
   homework: Homework[];
+}
+
+export interface CreateAssignmentPayload {
+  title: string;
+  classId: string;
+  subject?: string;
+  type?: string;
+  dueDate?: string;
+  description?: string;
+  instructions?: string;
+  attachments?: string[];
+  studentIds?: string[];
+}
+
+export interface AssignmentRecord extends CreateAssignmentPayload {
+  id: string;
+  teacherId: string;
+  createdAt: string;
+}
+
+export interface AttendanceRecordPayload {
+  studentId: string;
+  status: 'present' | 'absent' | 'late';
+  notes?: string;
+}
+
+export interface AttendancePayload {
+  classId: string;
+  date: string;
+  records: AttendanceRecordPayload[];
+  notes?: string;
+}
+
+export interface AttendanceRecordResponse extends AttendancePayload {
+  id: string;
+  teacherId: string;
+  createdAt: string;
+}
+
+export interface TimetableEntryPayload {
+  day: string;
+  startTime: string;
+  endTime: string;
+  subject: string;
+  location?: string;
+}
+
+export interface UpsertTimetablePayload {
+  classId: string;
+  weekOf: string;
+  entries: TimetableEntryPayload[];
+}
+
+export interface TimetableRecord extends UpsertTimetablePayload {
+  id: string;
+  teacherId: string;
+  updatedAt: string;
+}
+
+export interface AnalyticsSignal {
+  category: string;
+  description: string;
+  source: Record<string, unknown>;
+}
+
+export interface AnalyticsAlert {
+  studentId: string;
+  studentName?: string;
+  riskScore: number;
+  signals: AnalyticsSignal[];
+  aiSummary?: string;
+}
+
+interface AnalyticsAlertsResponse {
+  alerts: AnalyticsAlert[];
 }
 
 const ensureResponseBody = (response: Response): ReadableStream<Uint8Array> => {
@@ -218,5 +302,91 @@ export async function getHomework(token: string): Promise<HomeworkResponse> {
   }
 
   return (await response.json()) as HomeworkResponse;
+}
+
+export async function createAssignment(token: string, data: CreateAssignmentPayload): Promise<AssignmentRecord> {
+  const response = await fetch(apiUrl('/assignment'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create assignment (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as AssignmentRecord;
+}
+
+export async function createStudentUserDoc(uid: string, email: string): Promise<UserDocRecord> {
+  const response = await fetch(apiUrl('/auth/create-user-doc'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ uid, email }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create user doc (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as UserDocRecord;
+}
+
+export async function postAttendance(token: string, data: AttendancePayload): Promise<AttendanceRecordResponse> {
+  const response = await fetch(apiUrl('/attendance'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to record attendance (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as AttendanceRecordResponse;
+}
+
+export async function upsertTimetable(token: string, data: UpsertTimetablePayload): Promise<TimetableRecord> {
+  const response = await fetch(apiUrl('/timetable'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update timetable (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as TimetableRecord;
+}
+
+export async function getAnalyticsAlerts(token: string): Promise<AnalyticsAlertsResponse> {
+  const response = await fetch(apiUrl('/analytics/alerts'), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to load analytics alerts (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as AnalyticsAlertsResponse;
 }
 

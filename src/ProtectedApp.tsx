@@ -29,6 +29,7 @@ import { useAuth } from '@/common/hooks/useAuth';
 import { useProfile } from '@/common/context/ProfileContext';
 import { getHomework, type StudentProfileRecord } from '@/api/client';
 import FullScreenLoader from '@/router/components/FullScreenLoader';
+import { mapFirebaseUser } from '@/utils/mapFirebaseUser';
 
 type View = 'dashboard' | 'chat' | 'checkin' | 'report' | 'homework' | 'tests' | 'peer-chat';
 
@@ -190,7 +191,11 @@ const ProtectedApp: React.FC = () => {
     return <FullScreenLoader message="Securing your session..." />;
   }
 
-  if (!profileState || !authUser) {
+  if (!profileRecord || !authUser) {
+    return <FullScreenLoader message="Preparing your dashboard..." />;
+  }
+
+  if (!profileState) {
     return <FullScreenLoader message="Preparing your dashboard..." />;
   }
 
@@ -308,18 +313,7 @@ const ProtectedApp: React.FC = () => {
 
 export default ProtectedApp;
 
-function mapFirebaseUser(user: ReturnType<typeof useAuth>['user']): User | null {
-  if (!user) return null;
-  const provider = user.providerData[0]?.providerId === 'google.com' ? 'google' : 'email';
-  return {
-    id: user.uid,
-    email: user.email ?? '',
-    name: user.displayName ?? user.email ?? 'Student',
-    photoURL: user.photoURL ?? undefined,
-    provider,
-    createdAt: user.metadata.creationTime ?? new Date().toISOString(),
-  };
-}
+ 
 
 function normalizeProfile(record: StudentProfileRecord): StudentProfile {
   const now = new Date().toISOString();

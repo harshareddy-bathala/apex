@@ -47,18 +47,11 @@ export const StatCard: React.FC<StatCardProps> = ({
 }) => {
   const shouldReduceMotion = useReducedMotion();
 
-  const colorClasses = {
-    green: 'text-[#3DD6B8]',
-    yellow: 'text-yellow-400',
-    red: 'text-red-400',
-    blue: 'text-blue-400'
-  };
-
   const bgColorClasses = {
-    green: 'bg-[#3DD6B8]/10',
-    yellow: 'bg-yellow-400/10',
-    red: 'bg-red-400/10',
-    blue: 'bg-blue-400/10'
+    green: 'bg-[#34d399]/15 text-[#34d399] shadow-[0_0_20px_rgba(52,211,153,0.2)]',
+    yellow: 'bg-[#facc15]/15 text-[#facc15] shadow-[0_0_20px_rgba(250,204,21,0.15)]',
+    red: 'bg-[#fb7185]/15 text-[#fb7185] shadow-[0_0_20px_rgba(251,113,133,0.2)]',
+    blue: 'bg-[#22d3ee]/15 text-[#22d3ee] shadow-[0_0_20px_rgba(34,211,238,0.2)]'
   };
 
   const MotionComponent = motion[onClick ? 'button' : 'div'] as any;
@@ -66,30 +59,28 @@ export const StatCard: React.FC<StatCardProps> = ({
   return (
     <MotionComponent
       onClick={onClick}
-      className={`relative bg-slate-800 rounded-2xl p-5 shadow-md hover:shadow-lg transition-all duration-300 ${
-        onClick ? 'cursor-pointer hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-purple-400' : ''
+      className={`relative glass-card rounded-3xl p-5 shadow-[0_15px_40px_rgba(5,8,20,0.5)] transition-all duration-300 border border-white/5 ${
+        onClick ? 'cursor-pointer hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22d3ee]/60' : ''
       }`}
       {...(onClick && { type: 'button', 'aria-label': `View details for ${title}` })}
       initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay, ease: "easeOut" }}
+      transition={{ duration: 0.4, delay, ease: 'easeOut' }}
       whileHover={shouldReduceMotion ? {} : { scale: 1.02 }}
     >
       {/* Icon badge */}
-      <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl ${bgColorClasses[statusColor]} mb-3`}>
+      <div className={`inline-flex items-center justify-center w-11 h-11 rounded-2xl ${bgColorClasses[statusColor]} mb-4`}>
         <span className="text-xl">{icon}</span>
       </div>
 
       {/* Title and value */}
-      <h3 className="text-sm font-medium text-slate-400 mb-1">{title}</h3>
+      <h3 className="text-xs uppercase tracking-[0.35em] text-white/50 mb-2">{title}</h3>
       <div className="flex items-baseline gap-2 mb-2">
-        <p className={`text-2xl font-bold ${colorClasses[statusColor]}`}>
-          {value}
-        </p>
+        <p className="text-3xl font-semibold text-white">{value}</p>
         {changePercent !== undefined && (
           <span
             className={`text-xs font-medium ${
-              changePercent > 0 ? 'text-green-400' : changePercent < 0 ? 'text-red-400' : 'text-slate-400'
+              changePercent > 0 ? 'text-[#34d399]' : changePercent < 0 ? 'text-[#fb7185]' : 'text-white/50'
             }`}
           >
             {changePercent > 0 ? '↑' : changePercent < 0 ? '↓' : '→'} {Math.abs(changePercent)}%
@@ -98,7 +89,7 @@ export const StatCard: React.FC<StatCardProps> = ({
       </div>
 
       {/* Subtitle */}
-      <p className="text-xs text-slate-500 mb-3">{subtitle}</p>
+      <p className="text-sm text-white/50 mb-4">{subtitle}</p>
 
       {/* Trend visualization */}
       {trend && trend.length > 0 && (
@@ -107,10 +98,10 @@ export const StatCard: React.FC<StatCardProps> = ({
             data={trend}
             width={80}
             height={24}
-            color={statusColor === 'green' ? '#3DD6B8' : statusColor === 'red' ? '#F87171' : '#6C4AB6'}
+            color={statusColor === 'green' ? '#34d399' : statusColor === 'red' ? '#fb7185' : '#22d3ee'}
             label={trendLabel || `${title} trend over last 7 days`}
           />
-          <span className="text-xs text-slate-600">7 days</span>
+          <span className="text-xs text-white/50">7 days</span>
         </div>
       )}
 
@@ -122,7 +113,7 @@ export const StatCard: React.FC<StatCardProps> = ({
             maxHeight={32}
             barWidth={8}
             gap={3}
-            color="#6C4AB6"
+            color="#22d3ee"
             label={trendLabel || `${title} weekly distribution`}
           />
         </div>
@@ -130,7 +121,7 @@ export const StatCard: React.FC<StatCardProps> = ({
 
       {/* Chevron for clickable cards */}
       {onClick && (
-        <div className="absolute top-5 right-5 text-slate-600">
+        <div className="absolute top-5 right-5 text-white/40">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
@@ -164,32 +155,32 @@ export const CircularStatCard: React.FC<CircularStatCardProps> = ({
   onClick
 }) => {
   const colorMap = {
-    green: '#3DD6B8',
-    yellow: '#FBBF24',
-    red: '#F87171',
-    blue: '#60A5FA'
+    green: '#34d399',
+    yellow: '#facc15',
+    red: '#fb7185',
+    blue: '#22d3ee'
   };
 
   const bgColorClasses = {
-    green: 'bg-[#3DD6B8]/10',
-    yellow: 'bg-yellow-400/10',
-    red: 'bg-red-400/10',
-    blue: 'bg-blue-400/10'
+    green: 'bg-[#34d399]/15 text-[#34d399]',
+    yellow: 'bg-[#facc15]/15 text-[#facc15]',
+    red: 'bg-[#fb7185]/15 text-[#fb7185]',
+    blue: 'bg-[#22d3ee]/15 text-[#22d3ee]'
   };
 
   return (
     <button
       onClick={onClick}
-      className="relative bg-slate-800 rounded-2xl p-5 shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-purple-400 text-left w-full"
+      className="relative glass-card rounded-3xl p-5 shadow-[0_15px_40px_rgba(5,8,20,0.5)] transition-all duration-300 cursor-pointer hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22d3ee]/40 text-left w-full border border-white/5"
       type="button"
       aria-label={`View details for ${title}`}
     >
       {/* Icon badge */}
-      <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl ${bgColorClasses[statusColor]} mb-3`}>
+      <div className={`inline-flex items-center justify-center w-11 h-11 rounded-2xl ${bgColorClasses[statusColor]} mb-4`}>
         <span className="text-xl">{icon}</span>
       </div>
 
-      <h3 className="text-sm font-medium text-slate-400 mb-3">{title}</h3>
+      <h3 className="text-xs uppercase tracking-[0.35em] text-white/50 mb-3">{title}</h3>
 
       {/* Circular progress */}
       <div className="flex items-center gap-4 mb-3">
@@ -225,7 +216,7 @@ export const CircularStatCard: React.FC<CircularStatCardProps> = ({
         </svg>
         
         <div className="flex-1">
-          <p className="text-xs text-slate-500">{subtitle}</p>
+          <p className="text-sm text-white/60">{subtitle}</p>
         </div>
       </div>
     </button>
