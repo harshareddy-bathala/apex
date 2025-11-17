@@ -11,7 +11,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from firebase_admin import auth as firebase_auth
 from firebase_admin import credentials
 
-from db import collection_ref
+from db_fire_proxy import get_document
 
 _auth_app = None
 _security_scheme = HTTPBearer(auto_error=False)
@@ -59,11 +59,11 @@ async def verify_firebase_token(
     if not uid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token missing uid claim")
 
-    user_snapshot = collection_ref("users").document(uid).get()
-    if not user_snapshot.exists:
+    user_snapshot = get_document("users", uid)
+    if not user_snapshot:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User record not provisioned")
 
-    user_data = user_snapshot.to_dict() or {}
+    user_data = user_snapshot.data or {}
     role = user_data.get("role")
     if role not in ("student", "teacher"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User role missing or unsupported")

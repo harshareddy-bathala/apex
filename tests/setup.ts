@@ -19,6 +19,12 @@ const localStorageMock = {
 
 global.localStorage = localStorageMock as Storage;
 
+// Some components call scrollIntoView, which jsdom doesn't implement.
+// Provide a no-op stub so tests don't crash.
+if (!window.HTMLElement.prototype.scrollIntoView) {
+  window.HTMLElement.prototype.scrollIntoView = vi.fn();
+}
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import json
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 
 try:
     from google.adk.tools import tool
 except ImportError:  # pragma: no cover - ADK 0.3 fallback decorator.
     def tool(func):
         return func
-from google.cloud import firestore
 
-from db import collection_ref
+from db_fire_proxy import add_document, get_document, query_collection, upsert_document
 from memory import memory_bank, summarize_checkin
 
 analytics_runner: Optional[Callable[[str, str], str]] = None
@@ -25,17 +24,28 @@ def register_analytics_runner(callback: Callable[[str, str], str]) -> None:
 def get_assignments_for_student(student_id: str) -> str:
     """Return submissions plus assignment metadata for a student."""
 
-    submissions = collection_ref("studentSubmissions").where("studentId", "==", student_id).stream()
-    assignment_collection = collection_ref("assignments")
+    submissions = query_collection(
+        "studentSubmissions",
+        filters=[("studentId", "==", student_id)],
+    )
+    assignment_cache: Dict[str, Optional[Dict[str, object]]] = {}
     payload = []
 
     for submission in submissions:
-        submission_data = submission.to_dict() | {"id": submission.id}
+        submission_data = dict(submission.data)
+        submission_data["id"] = submission.id
         assignment_id = submission_data.get("assignmentId")
         if assignment_id:
-            assignment_snapshot = assignment_collection.document(assignment_id).get()
-            if assignment_snapshot.exists:
-                submission_data["assignment"] = assignment_snapshot.to_dict() | {"id": assignment_snapshot.id}
+            if assignment_id not in assignment_cache:
+                assignment_doc = get_document("assignments", assignment_id)
+                assignment_cache[assignment_id] = (
+                    assignment_doc.data | {"id": assignment_doc.id}
+                    if assignment_doc
+                    else None
+                )
+            assignment_data = assignment_cache.get(assignment_id)
+            if assignment_data:
+                submission_data["assignment"] = assignment_data
         payload.append(submission_data)
 
     return json.dumps(payload)
@@ -48,38 +58,40 @@ def create_assignment(teacher_id: str, assignment_payload: str) -> str:
     data = json.loads(assignment_payload)
     student_ids = data.pop("studentIds", [])
     data["assignedBy"] = teacher_id
-    data.setdefault("createdAt", firestore.SERVER_TIMESTAMP)
+    timestamp_fields = ["createdAt"] if "createdAt" not in data else None
 
-    assignments = collection_ref("assignments")
-    assignment_ref = assignments.document()
-    assignment_ref.set(data)
+    assignment_doc = add_document(
+        "assignments",
+        data,
+        server_timestamp_fields=timestamp_fields,
+    )
 
-    submission_ref = collection_ref("studentSubmissions")
     created_submissions = 0
     for student_id in student_ids:
-        submission_ref.add(
+        add_document(
+            "studentSubmissions",
             {
-                "assignmentId": assignment_ref.id,
+                "assignmentId": assignment_doc.id,
                 "studentId": student_id,
                 "status": "pending",
-                "createdAt": firestore.SERVER_TIMESTAMP,
-            }
+            },
+            server_timestamp_fields=["createdAt"],
         )
         created_submissions += 1
 
-    return json.dumps({"assignmentId": assignment_ref.id, "linkedStudents": created_submissions})
+    return json.dumps({"assignmentId": assignment_doc.id, "linkedStudents": created_submissions})
 
 
 @tool
 def get_student_profile(student_id: str) -> str:
     """Fetch a student's profile document."""
 
-    snapshot = collection_ref("studentProfiles").document(student_id).get()
-    if not snapshot.exists:
+    document = get_document("studentProfiles", student_id)
+    if not document:
         return json.dumps({})
 
-    data = snapshot.to_dict() or {}
-    data["id"] = snapshot.id
+    data = dict(document.data)
+    data["id"] = document.id
     return json.dumps(data)
 
 
@@ -91,13 +103,14 @@ def update_student_goals(student_id: str, goals_payload: str) -> str:
     if not isinstance(goals, list):
         raise ValueError("Goals payload must be a JSON array of strings")
 
-    profile_ref = collection_ref("studentProfiles").document(student_id)
-    profile_ref.set(
+    upsert_document(
+        "studentProfiles",
         {
             "goals": goals,
-            "updatedAt": firestore.SERVER_TIMESTAMP,
         },
+        document_id=student_id,
         merge=True,
+        server_timestamp_fields=["updatedAt"],
     )
 
     memory_bank.add_memory(student_id, f"Goals updated: {', '.join(goals)}")
@@ -116,10 +129,12 @@ def save_student_profile_data(student_id: str, data_to_save: str) -> str:
     if not isinstance(payload, dict):
         raise ValueError("data_to_save must be a JSON object")
 
-    profile_ref = collection_ref("studentProfiles").document(student_id)
-    profile_ref.set(
-        payload | {"updatedAt": firestore.SERVER_TIMESTAMP},
+    upsert_document(
+        "studentProfiles",
+        payload,
+        document_id=student_id,
         merge=True,
+        server_timestamp_fields=["updatedAt"],
     )
 
     return json.dumps({"status": "ok", "updatedFields": sorted(payload.keys())})
@@ -129,16 +144,24 @@ def save_student_profile_data(student_id: str, data_to_save: str) -> str:
 def record_daily_checkin(student_id: str, mood: str, win: str, blocker: str = "") -> str:
     """Persist the new check-in model and log a memory summary."""
 
-    data = {
+    doc = add_document(
+        "checkins",
+        {
+            "studentId": student_id,
+            "mood": mood,
+            "win": win,
+            "blocker": blocker,
+        },
+        server_timestamp_fields=["createdAt"],
+    )
+    stored_data = doc.data or {
         "studentId": student_id,
         "mood": mood,
         "win": win,
         "blocker": blocker,
-        "createdAt": firestore.SERVER_TIMESTAMP,
     }
-    doc_ref = collection_ref("checkins").add(data)
-    memory_bank.add_memory(student_id, summarize_checkin(data))
-    return json.dumps({"checkinId": doc_ref.id})
+    memory_bank.add_memory(student_id, summarize_checkin(stored_data))
+    return json.dumps({"checkinId": doc.id})
 
 
 @tool

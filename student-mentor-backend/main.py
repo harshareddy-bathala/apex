@@ -1,7 +1,8 @@
 from collections import defaultdict
 import json
+import uuid
 from datetime import datetime, timezone
-from typing import Any, AsyncGenerator, Dict, List
+from typing import Any, AsyncGenerator, Dict, List, Literal
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,7 +12,13 @@ from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from agents import analytics_agent, get_student_hub_agent, onboarding_agent
 from auth import FirebaseUser, verify_firebase_token
 from memory import session_service
-from db import collection_ref, student_profile_doc, user_doc
+from db_fire_proxy import (
+    FirestoreDocument,
+    add_document,
+    get_document,
+    query_collection,
+    upsert_document,
+)
 
 app = FastAPI(title="Student Mentor AI Backend")
 
@@ -24,6 +31,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _document_data(doc: FirestoreDocument | None) -> Dict[str, Any]:
+    if not doc:
+        return {}
+    data = dict(doc.data or {})
+    data.setdefault("id", doc.id)
+    return data
 
 
 class ChatPayload(BaseModel):
@@ -114,6 +129,14 @@ class TimetablePayload(BaseModel):
     entries: List[TimetableEntry]
 
 
+class HomeworkUpdatePayload(BaseModel):
+    """Payload for partial homework updates."""
+
+    status: Literal["pending", "in-progress", "completed", "submitted", "overdue"] | None = None
+    notes: str | None = None
+
+
+
 LOW_MOOD_STATES = {"stressed", "struggling"}
 ALERT_WEIGHTS = {
     "wellbeing": 3,
@@ -159,9 +182,8 @@ def _utc_now() -> str:
 
 @app.post("/auth/create-user-doc")
 async def create_user_doc(payload: CreateUserDocPayload) -> Dict[str, Any]:
-    doc = collection_ref("users").document(payload.uid)
-    snapshot = doc.get()
-    existing = snapshot.to_dict() if snapshot.exists else {}
+    snapshot = get_document("users", payload.uid)
+    existing = snapshot.data if snapshot else {}
     created_at = existing.get("createdAt") or _utc_now()
     record = {
         "uid": payload.uid,
@@ -170,7 +192,7 @@ async def create_user_doc(payload: CreateUserDocPayload) -> Dict[str, Any]:
         "createdAt": created_at,
         "updatedAt": _utc_now(),
     }
-    doc.set(record, merge=True)
+    upsert_document("users", record, document_id=payload.uid, merge=True)
     return record
 
 
@@ -233,11 +255,10 @@ async def update_profile(payload: ProfileUpdatePayload, user: FirebaseUser = Dep
     if not updates:
         raise HTTPException(status_code=400, detail="No profile fields provided")
 
-    doc = student_profile_doc(user.uid)
     merged_payload = {"id": user.uid, **updates, "updatedAt": _utc_now()}
-    doc.set(merged_payload, merge=True)
-    snapshot = doc.get()
-    data = snapshot.to_dict() or merged_payload
+    upsert_document("studentProfiles", merged_payload, document_id=user.uid, merge=True)
+    snapshot = get_document("studentProfiles", user.uid)
+    data = snapshot.data if snapshot else merged_payload
     data.setdefault("id", user.uid)
     return data
 
@@ -245,11 +266,10 @@ async def update_profile(payload: ProfileUpdatePayload, user: FirebaseUser = Dep
 @app.get("/profile")
 async def get_profile(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     if user.role == "teacher":
-        snapshot = user_doc(user.uid).get()
-        data = snapshot.to_dict() or {}
+        snapshot = get_document("users", user.uid)
     else:
-        snapshot = student_profile_doc(user.uid).get()
-        data = snapshot.to_dict() or {}
+        snapshot = get_document("studentProfiles", user.uid)
+    data = snapshot.data if snapshot else {}
 
     data.setdefault("id", user.uid)
     data["role"] = user.role
@@ -263,14 +283,14 @@ async def create_checkin(payload: CheckInPayload, user: FirebaseUser = Depends(v
     _ensure_student(user)
 
     data = payload.model_dump(exclude_none=True)
-    doc_ref = collection_ref("checkins").document()
+    doc_id = uuid.uuid4().hex
     record = {
-        "id": doc_ref.id,
+        "id": doc_id,
         "studentId": user.uid,
         "createdAt": _utc_now(),
         **data,
     }
-    doc_ref.set(record)
+    upsert_document("checkins", record, document_id=doc_id, merge=False)
     return record
 
 
@@ -278,19 +298,22 @@ async def create_checkin(payload: CheckInPayload, user: FirebaseUser = Depends(v
 async def get_goals(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     _ensure_student(user)
 
-    snapshot = student_profile_doc(user.uid).get()
-    if not snapshot.exists:
+    snapshot = get_document("studentProfiles", user.uid)
+    if not snapshot:
         return {"goals": None}
-    data = snapshot.to_dict() or {}
-    return {"goals": data.get("goals")}
+    return {"goals": snapshot.data.get("goals")}
 
 
 @app.post("/goal")
 async def update_goals(payload: GoalUpdatePayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     _ensure_student(user)
 
-    doc = student_profile_doc(user.uid)
-    doc.set({"id": user.uid, "goals": payload.goals, "updatedAt": _utc_now()}, merge=True)
+    upsert_document(
+        "studentProfiles",
+        {"id": user.uid, "goals": payload.goals, "updatedAt": _utc_now()},
+        document_id=user.uid,
+        merge=True,
+    )
     return {"goals": payload.goals}
 
 
@@ -298,14 +321,52 @@ async def update_goals(payload: GoalUpdatePayload, user: FirebaseUser = Depends(
 async def list_homework(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, List[Dict[str, Any]]]:
     _ensure_student(user)
 
-    submissions_ref = collection_ref("studentSubmissions")
-    query = submissions_ref.where("studentId", "==", user.uid)
     homework_items: List[Dict[str, Any]] = []
-    for doc in query.stream():
-        item = doc.to_dict() or {}
+    for doc in query_collection("studentSubmissions", filters=[("studentId", "==", user.uid)]):
+        item = dict(doc.data or {})
         item.setdefault("id", doc.id)
         homework_items.append(item)
     return {"homework": homework_items}
+
+
+@app.patch("/homework/{homework_id}")
+async def update_homework_entry(
+    homework_id: str,
+    payload: HomeworkUpdatePayload,
+    user: FirebaseUser = Depends(verify_firebase_token),
+) -> Dict[str, Any]:
+    _ensure_student(user)
+
+    snapshot = get_document("studentSubmissions", homework_id)
+    if not snapshot or not snapshot.data:
+        raise HTTPException(status_code=404, detail="Homework record not found")
+
+    student_id = snapshot.data.get("studentId")
+    if student_id and student_id != user.uid:
+        raise HTTPException(status_code=403, detail="You cannot update another student's homework")
+
+    updates = payload.model_dump(exclude_none=True)
+    if not updates:
+        raise HTTPException(status_code=400, detail="No homework updates provided")
+
+    update_payload: Dict[str, Any] = {"id": homework_id, "updatedAt": _utc_now()}
+
+    status = updates.get("status")
+    if status:
+        update_payload["status"] = status
+        if status in {"completed", "submitted"}:
+            update_payload["completedAt"] = _utc_now()
+        else:
+            update_payload["completedAt"] = None
+
+    if "notes" in updates:
+        update_payload["notes"] = updates["notes"]
+
+    upsert_document("studentSubmissions", update_payload, document_id=homework_id, merge=True)
+    refreshed = get_document("studentSubmissions", homework_id)
+    data = dict(refreshed.data or {})
+    data.setdefault("id", homework_id)
+    return {"homework": data}
 
 
 @app.post("/assignment")
@@ -313,28 +374,30 @@ async def create_assignment(payload: AssignmentPayload, user: FirebaseUser = Dep
     _ensure_teacher(user)
 
     data = payload.model_dump(by_alias=True, exclude_none=True)
-    assignments = collection_ref("assignments")
-    doc_ref = assignments.document()
+    doc_id = uuid.uuid4().hex
     record = {
-        "id": doc_ref.id,
+        "id": doc_id,
         **data,
         "teacherId": user.uid,
         "createdAt": _utc_now(),
     }
-    doc_ref.set(record)
+    add_document("assignments", record, document_id=doc_id)
 
     # Optionally seed student submissions for targeted students
     student_ids = data.get("studentIds") or []
     if student_ids:
-        submissions = collection_ref("studentSubmissions")
         for student_id in student_ids:
-            submissions.add(
+            submission_id = uuid.uuid4().hex
+            add_document(
+                "studentSubmissions",
                 {
-                    "assignmentId": doc_ref.id,
+                    "id": submission_id,
+                    "assignmentId": doc_id,
                     "studentId": student_id,
                     "status": "pending",
                     "createdAt": _utc_now(),
-                }
+                },
+                document_id=submission_id,
             )
 
     return record
@@ -344,11 +407,10 @@ async def create_assignment(payload: AssignmentPayload, user: FirebaseUser = Dep
 async def record_attendance(payload: AttendancePayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     _ensure_teacher(user)
 
-    attendance_collection = collection_ref("attendance")
-    doc_ref = attendance_collection.document()
+    doc_id = uuid.uuid4().hex
     records = [rec.model_dump(by_alias=True) for rec in payload.records]
     record = {
-        "id": doc_ref.id,
+        "id": doc_id,
         "teacherId": user.uid,
         "classId": payload.class_id,
         "date": payload.date,
@@ -356,7 +418,7 @@ async def record_attendance(payload: AttendancePayload, user: FirebaseUser = Dep
         "notes": payload.notes,
         "createdAt": _utc_now(),
     }
-    doc_ref.set(record)
+    add_document("attendance", record, document_id=doc_id)
     return record
 
 
@@ -364,9 +426,7 @@ async def record_attendance(payload: AttendancePayload, user: FirebaseUser = Dep
 async def upsert_timetable(payload: TimetablePayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     _ensure_teacher(user)
 
-    timetable_collection = collection_ref("timetables")
     doc_id = f"{payload.class_id}-{payload.week_of}"
-    doc_ref = timetable_collection.document(doc_id)
     record = {
         "id": doc_id,
         "teacherId": user.uid,
@@ -375,7 +435,7 @@ async def upsert_timetable(payload: TimetablePayload, user: FirebaseUser = Depen
         "entries": [entry.model_dump(by_alias=True) for entry in payload.entries],
         "updatedAt": _utc_now(),
     }
-    doc_ref.set(record)
+    upsert_document("timetables", record, document_id=doc_id, merge=True)
     return record
 
 
@@ -386,8 +446,8 @@ async def analytics_alerts(user: FirebaseUser = Depends(verify_firebase_token)) 
     alerts_map: Dict[str, Dict[str, Any]] = {}
 
     # Wellbeing signals from check-ins
-    for doc in collection_ref("checkins").stream():
-        checkin = doc.to_dict() or {}
+    for doc in query_collection("checkins"):
+        checkin = dict(doc.data or {})
         student_id = checkin.get("studentId")
         if not student_id:
             continue
@@ -398,8 +458,8 @@ async def analytics_alerts(user: FirebaseUser = Depends(verify_firebase_token)) 
             _add_signal(alerts_map, student_id, "wellbeing", description, checkin | {"id": doc.id})
 
     # Academic signals from student submissions
-    for doc in collection_ref("studentSubmissions").stream():
-        submission = doc.to_dict() or {}
+    for doc in query_collection("studentSubmissions"):
+        submission = dict(doc.data or {})
         student_id = submission.get("studentId")
         if not student_id:
             continue
@@ -411,8 +471,8 @@ async def analytics_alerts(user: FirebaseUser = Depends(verify_firebase_token)) 
             _add_signal(alerts_map, student_id, "academic", description, submission | {"id": doc.id})
 
     # Attendance signals from teacher attendance logs
-    for doc in collection_ref("attendance").stream():
-        attendance = doc.to_dict() or {}
+    for doc in query_collection("attendance"):
+        attendance = dict(doc.data or {})
         date = attendance.get("date")
         for record in attendance.get("records", []):
             student_id = record.get("studentId")

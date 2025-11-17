@@ -20,6 +20,11 @@ dist-ssr/
 !.env.example
 !.env.*.example
 
+# Google Cloud / Firebase credentials
+**/firestore.json
+**/*-firebase-adminsdk-*.json
+**/*credentials*.json
+
 # Editor directories and system files
 .vscode/*
 !.vscode/extensions.json
