@@ -27,7 +27,7 @@ import { type User } from '@/features/auth/types';
 import { auth } from '@/firebase';
 import { useAuth } from '@/common/hooks/useAuth';
 import { useProfile } from '@/common/context/ProfileContext';
-import { getHomework, type StudentProfileRecord } from '@/api/client';
+import { getHomework, updateHomework, type StudentProfileRecord } from '@/api/client';
 import FullScreenLoader from '@/router/components/FullScreenLoader';
 import { mapFirebaseUser } from '@/utils/mapFirebaseUser';
 
@@ -39,6 +39,7 @@ const ProtectedApp: React.FC = () => {
 
   const normalizedProfile = useMemo(() => (profileRecord ? normalizeProfile(profileRecord) : null), [profileRecord]);
   const [profileState, setProfileState] = useState<StudentProfile | null>(normalizedProfile);
+  const profileId = profileState?.id;
 
   useEffect(() => {
     if (normalizedProfile) {
@@ -65,12 +66,12 @@ const ProtectedApp: React.FC = () => {
   const [homeworkError, setHomeworkError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!profileState) {
+    if (!profileId) {
       return;
     }
-    setTests(seedTests(profileState.id));
+    setTests(seedTests(profileId));
     setContacts(seedContacts());
-  }, [profileState?.id]);
+  }, [profileId]);
 
   const loadHomework = useCallback(async () => {
     if (!idToken) {
@@ -88,6 +89,41 @@ const ProtectedApp: React.FC = () => {
       setHomeworkLoading(false);
     }
   }, [idToken]);
+  const handleHomeworkStatusChange = useCallback(
+    async (homeworkId: string, status: Homework['status']) => {
+      if (!idToken) {
+        return;
+      }
+
+      setHomeworkError(null);
+      setHomework((prev) =>
+        prev.map((hw) =>
+          hw.id === homeworkId
+            ? {
+                ...hw,
+                status,
+                completedAt:
+                  status === 'completed' || status === 'submitted'
+                    ? new Date().toISOString()
+                    : undefined,
+              }
+            : hw,
+        ),
+      );
+
+      try {
+        const updated = await updateHomework(idToken, homeworkId, { status });
+        setHomework((prev) => prev.map((hw) => (hw.id === homeworkId ? { ...hw, ...updated } : hw)));
+      } catch (err) {
+        console.error('Failed to persist homework status', err);
+        setHomeworkError('Unable to update homework status. Please retry.');
+        await loadHomework();
+        throw err;
+      }
+    },
+    [idToken, loadHomework],
+  );
+
 
   useEffect(() => {
     void loadHomework();
@@ -225,13 +261,20 @@ const ProtectedApp: React.FC = () => {
           )}
 
           {currentView === 'dashboard' && (
-            <Dashboard profile={profileState} checkIns={checkIns} activities={activities} homework={homework} tests={tests} />
+            <Dashboard
+              profile={profileState}
+              checkIns={checkIns}
+              activities={activities}
+              homework={homework}
+              tests={tests}
+              onHomeworkStatusChange={handleHomeworkStatusChange}
+            />
           )}
           {currentView === 'homework' && (
             <HomeworkList
               homework={homework}
-              onUpdate={setHomework}
-              token={idToken}
+              onStatusChange={handleHomeworkStatusChange}
+              onRefresh={loadHomework}
               loadingExternal={homeworkLoading}
               errorMessage={homeworkError}
             />
@@ -252,8 +295,6 @@ const ProtectedApp: React.FC = () => {
               profile={profileState}
               checkIns={checkIns}
               activities={activities}
-              homework={homework}
-              tests={tests}
               onAddActivity={addActivity}
               onTriggerAlert={handleTriggerAlert}
             />

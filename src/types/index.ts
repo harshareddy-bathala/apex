@@ -248,6 +248,14 @@ export interface PeerMessage {
   attachmentUrl?: string;
 }
 
+export interface AcademicMetrics {
+  totalStudyHours: number;
+  averageStudyHours: number;
+  homeworkCompletionRate: number;
+  attendanceRate: number;
+  mostStudiedSubjects: string[];
+}
+
 // Conversation Thread
 export interface Conversation {
   id: string;
@@ -273,7 +281,7 @@ export interface TeacherAlert {
   relatedData: {
     recentCheckIns?: DailyCheckIn[];
     recentActivities?: ActivityLog[];
-    academicMetrics?: any;
+    academicMetrics?: AcademicMetrics;
   };
   status: 'new' | 'acknowledged' | 'in-progress' | 'resolved';
   createdAt: string;

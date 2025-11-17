@@ -9,9 +9,17 @@ interface DashboardProps {
   activities: ActivityLog[];
   homework?: Homework[];
   tests?: Test[];
+  onHomeworkStatusChange?: (homeworkId: string, status: Homework['status']) => Promise<void> | void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ profile, checkIns, activities, homework = [], tests = [] }) => {
+const Dashboard: React.FC<DashboardProps> = ({
+  profile,
+  checkIns,
+  activities,
+  homework = [],
+  tests = [],
+  onHomeworkStatusChange,
+}) => {
   const academicMetrics = useMemo(() => calculateAcademicMetrics(checkIns), [checkIns]);
 
   // Convert data to Premium Dashboard format
@@ -51,11 +59,13 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, checkIns, activities, ho
         .slice(0, 3)
         .map(h => ({
           id: h.id,
+          homeworkId: h.id,
           title: h.title,
           subject: h.subject,
           timeEstimate: h.estimatedTime ? `${h.estimatedTime} min` : '30 min',
-          completed: false,
-          priority: h.priority as 'low' | 'medium' | 'high'
+          completed: h.status === 'completed' || h.status === 'submitted',
+          priority: (h.priority === 'urgent' ? 'high' : h.priority) as 'low' | 'medium' | 'high',
+          status: h.status,
         })),
       
       // Upcoming deadlines
@@ -112,11 +122,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, checkIns, activities, ho
   return (
     <DashboardContent
       studentData={dashboardData}
-      onOpenChat={() => console.log('Open chat')}
-      onAddGoal={() => console.log('Add goal')}
-      onViewTasks={() => console.log('View tasks')}
-      onExportReport={() => console.log('Export report')}
-      onToggleTeacherMode={() => console.log('Toggle teacher mode')}
+      onTaskStatusChange={onHomeworkStatusChange}
     />
   );
 };

@@ -59,7 +59,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ idToken }) => {
       classId: classId.trim(),
       date,
       notes: notes || undefined,
-      records: records.map(({ key, ...record }) => ({ ...record, notes: record.notes || undefined })),
+      records: records.map(({ key: _key, ...record }) => ({ ...record, notes: record.notes || undefined })),
     };
 
     setLoading(true);

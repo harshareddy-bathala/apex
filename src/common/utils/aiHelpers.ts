@@ -291,6 +291,8 @@ export function generateInsights(
 
   const academicMetrics = calculateAcademicMetrics(checkIns);
   const moodAnalysis = analyzeMoodPatterns(checkIns);
+  const recentChallenges = activities.filter((activity) => activity.type === 'challenge');
+  const recentAchievements = activities.filter((activity) => activity.type === 'achievement');
 
   // Analyze strengths
   if (academicMetrics.homeworkCompletionRate > 80) {
@@ -309,6 +311,9 @@ export function generateInsights(
   const physicalActivity = checkIns.reduce((sum, c) => sum + c.physicalActivityMinutes, 0) / checkIns.length;
   if (physicalActivity > 30) {
     strengths.push('Maintains regular physical activity');
+  }
+  if (recentAchievements.length > 0) {
+    strengths.push('Recognizes and records personal wins consistently');
   }
 
   // Analyze growth areas
@@ -334,6 +339,11 @@ export function generateInsights(
   if (moodAnalysis.trend === 'declining') {
     growthAreas.push('Emotional well-being showing decline');
     recommendations.push('Consider additional support and counseling resources');
+  }
+
+  if (recentChallenges.length > 2) {
+    growthAreas.push('Multiple recent challenges reported');
+    recommendations.push('Review recent incidents captured in activity logs for targeted intervention');
   }
 
   // Academic challenge-specific recommendations

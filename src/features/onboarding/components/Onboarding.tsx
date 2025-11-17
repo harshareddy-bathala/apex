@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { type StudentProfile } from '@/types';
 
+type GenderValue = 'male' | 'female' | 'other' | 'prefer-not-to-say';
+type LearningStyleValue = 'visual' | 'auditory' | 'kinesthetic' | 'reading-writing';
+
 interface OnboardingProps {
   onComplete: (profile: StudentProfile) => void;
 }
@@ -13,13 +16,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [grade, setGrade] = useState('');
-  const [gender, setGender] = useState<'male' | 'female' | 'other' | 'prefer-not-to-say'>('prefer-not-to-say');
+  const [gender, setGender] = useState<GenderValue>('prefer-not-to-say');
 
   // Step 2: Academic
   const [subjects, setSubjects] = useState<string[]>([]);
   const [subjectInput, setSubjectInput] = useState('');
   const [academicGoals, setAcademicGoals] = useState('');
-  const [learningStyle, setLearningStyle] = useState<'visual' | 'auditory' | 'kinesthetic' | 'reading-writing'>('visual');
+  const [learningStyle, setLearningStyle] = useState<LearningStyleValue>('visual');
 
   // Step 3: Aspirations
   const [careerAspirations, setCareerAspirations] = useState('');
@@ -64,7 +67,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const validateStep = (currentStep: number): boolean => {
     setError('');
     switch (currentStep) {
-      case 1:
+      case 1: {
         if (!name.trim()) {
           setError('Please enter your name.');
           return false;
@@ -79,6 +82,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           return false;
         }
         return true;
+      }
       case 2:
         if (subjects.length === 0) {
           setError('Please add at least one subject you study.');
@@ -198,7 +202,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <label className="block text-sm font-medium text-slate-300 mb-1">Gender (optional)</label>
               <select
                 value={gender}
-                onChange={(e) => setGender(e.target.value as any)}
+                onChange={(e) => setGender(e.target.value as GenderValue)}
                 className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
                 <option value="prefer-not-to-say">Prefer not to say</option>
@@ -260,7 +264,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <label className="block text-sm font-medium text-slate-300 mb-1">Your learning style</label>
               <select
                 value={learningStyle}
-                onChange={(e) => setLearningStyle(e.target.value as any)}
+                onChange={(e) => setLearningStyle(e.target.value as LearningStyleValue)}
                 className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
                 <option value="visual">Visual (diagrams, images)</option>

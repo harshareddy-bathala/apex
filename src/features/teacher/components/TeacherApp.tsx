@@ -17,11 +17,11 @@ interface TeacherAppProps {
   onLogout: () => void | Promise<void>;
 }
 
-const navItems: Array<{ key: TeacherView; label: string; description: string }> = [
-  { key: 'dashboard', label: 'Alerts', description: 'AI insights' },
-  { key: 'assignments', label: 'Assignments', description: 'Create work' },
-  { key: 'attendance', label: 'Attendance', description: 'Daily log' },
-  { key: 'timetable', label: 'Timetable', description: 'Weekly plan' },
+const navItems: Array<{ key: TeacherView; label: string; description: string; icon: string }> = [
+  { key: 'dashboard', label: 'Alerts', description: 'AI insights', icon: '⚡' },
+  { key: 'assignments', label: 'Assignments', description: 'Create work', icon: '📝' },
+  { key: 'attendance', label: 'Attendance', description: 'Daily log', icon: '📋' },
+  { key: 'timetable', label: 'Timetable', description: 'Weekly plan', icon: '📅' },
 ];
 
 const TeacherApp: React.FC<TeacherAppProps> = ({ profile, idToken, authUser, onLogout }) => {
@@ -44,20 +44,25 @@ const TeacherApp: React.FC<TeacherAppProps> = ({ profile, idToken, authUser, onL
   }, [idToken, view]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <header className="border-b border-slate-900 bg-slate-900/80 backdrop-blur">
+    <div className="min-h-screen bg-gradient-to-b from-[#030712] via-[#050d1f] to-[#030712] text-white">
+      <header className="border-b border-white/5 bg-white/5 backdrop-blur-xl shadow-[0_10px_60px_rgba(3,7,18,0.65)]">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-6 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-indigo-300">Teacher Portal</p>
-            <h1 className="text-3xl font-semibold">{teacherName}</h1>
-            <p className="text-sm text-slate-400">{primaryClass}</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-sky-300">Teacher Portal</p>
+            <h1 className="text-3xl font-semibold" style={{ fontFamily: 'Space Grotesk, Inter, sans-serif' }}>
+              {teacherName}
+            </h1>
+            <p className="text-sm text-white/70">{primaryClass}</p>
           </div>
           <div className="flex items-center gap-3">
-            <p className="text-sm text-slate-400">{authUser.email}</p>
+            <div className="text-right">
+              <p className="text-xs text-white/50">Signed in as</p>
+              <p className="text-sm text-white/80">{authUser.email}</p>
+            </div>
             <button
               type="button"
               onClick={() => void onLogout()}
-              className="rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:border-red-500 hover:text-red-200"
+              className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white/80 hover:border-red-400 hover:text-red-200 transition-all"
             >
               Sign out
             </button>
@@ -65,26 +70,29 @@ const TeacherApp: React.FC<TeacherAppProps> = ({ profile, idToken, authUser, onL
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-6 py-6">
-        <nav className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
+        <nav className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {navItems.map((item) => (
             <button
               key={item.key}
               type="button"
               onClick={() => setView(item.key)}
-              className={`rounded-xl border px-4 py-4 text-left transition-all ${
+              className={`rounded-2xl border px-4 py-5 text-left transition-all duration-200 hover:-translate-y-0.5 ${
                 view === item.key
-                  ? 'border-indigo-500 bg-indigo-500/20 shadow-lg'
-                  : 'border-slate-800 bg-slate-900/60 hover:border-slate-600'
+                  ? 'bg-gradient-to-br from-indigo-500/30 to-sky-500/20 border-sky-400/50 shadow-[0_15px_45px_rgba(14,165,233,0.25)]'
+                  : 'border-white/10 bg-white/5 hover:border-sky-400/40'
               }`}
             >
-              <p className="text-lg font-semibold">{item.label}</p>
-              <p className="text-xs uppercase tracking-wide text-slate-400">{item.description}</p>
+              <p className="text-2xl mb-2">{item.icon}</p>
+              <p className="text-lg font-semibold text-white">{item.label}</p>
+              <p className="text-xs uppercase tracking-wide text-white/60">{item.description}</p>
             </button>
           ))}
         </nav>
 
-        <section className="mt-8">{content}</section>
+        <section className="glass-card rounded-3xl border border-white/10 p-6 shadow-[0_30px_80px_rgba(3,7,18,0.7)]">
+          {content}
+        </section>
       </div>
     </div>
   );

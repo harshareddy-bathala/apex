@@ -14,7 +14,8 @@ const DailyCheckIn: React.FC<DailyCheckInProps> = ({ profile, idToken, onComplet
   const totalSteps = 4;
 
   // Step 1: Mood & Mental State
-  const [mood, setMood] = useState<'excellent' | 'good' | 'okay' | 'stressed' | 'struggling'>('good');
+  type MoodValue = 'excellent' | 'good' | 'okay' | 'stressed' | 'struggling';
+  const [mood, setMood] = useState<MoodValue>('good');
   const [moodNotes, setMoodNotes] = useState('');
   const [stressLevel, setStressLevel] = useState(5);
   const [sleepHours, setSleepHours] = useState(7);
@@ -39,7 +40,7 @@ const DailyCheckIn: React.FC<DailyCheckInProps> = ({ profile, idToken, onComplet
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const moodOptions = [
+  const moodOptions: ReadonlyArray<{ value: MoodValue; label: string; emoji: string; color: string }> = [
     { value: 'excellent', label: 'Excellent', emoji: '😄', color: 'bg-green-600' },
     { value: 'good', label: 'Good', emoji: '😊', color: 'bg-sky-600' },
     { value: 'okay', label: 'Okay', emoji: '😐', color: 'bg-yellow-600' },
@@ -129,7 +130,7 @@ const DailyCheckIn: React.FC<DailyCheckInProps> = ({ profile, idToken, onComplet
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => setMood(option.value as any)}
+                    onClick={() => setMood(option.value)}
                     className={`p-4 rounded-xl border-2 transition-all ${
                       mood === option.value
                         ? `${option.color} border-white`

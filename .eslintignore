@@ -1,9 +1,0 @@
-node_modules
-dist
-dist-ssr
-coverage
-build
-*.config.js
-*.config.ts
-.eslintrc.cjs
-vite.config.ts

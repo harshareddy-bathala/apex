@@ -3,7 +3,7 @@ import {
   generateMentorSystemInstruction,
   generateInsights
 } from '@/common/utils/aiHelpers';
-import { StudentProfile, DailyCheckIn } from '@/types';
+import { StudentProfile, DailyCheckIn, ActivityLog } from '@/types';
 
 describe('AI Helpers', () => {
   const mockProfile: StudentProfile = {
@@ -71,7 +71,7 @@ describe('AI Helpers', () => {
         },
       ];
 
-      const mockActivities: any[] = [];
+      const mockActivities: ActivityLog[] = [];
       const insights = generateInsights(mockProfile, mockCheckIns, mockActivities);
       
       expect(insights).toHaveProperty('strengths');
