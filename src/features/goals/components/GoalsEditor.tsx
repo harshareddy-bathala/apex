@@ -22,6 +22,16 @@ export default function GoalsEditor({ profile, idToken, onUpdate, onClose }: Goa
   const [newGoal, setNewGoal] = useState('');
   const [activeTab, setActiveTab] = useState<'current' | 'short' | 'long' | 'career' | 'interests'>('current');
 
+  const tabConfig: Array<{ id: 'current' | 'short' | 'long' | 'career' | 'interests'; label: string; helper: string }> = [
+    { id: 'current', label: '📌 Current Goals', helper: 'Daily or weekly focus' },
+    { id: 'short', label: '⏳ Short-term', helper: '3-6 month plans' },
+    { id: 'long', label: '🎯 Long-term', helper: '1+ year horizon' },
+    { id: 'career', label: '💼 Career', helper: 'Future pathways' },
+    { id: 'interests', label: '❤️ Interests', helper: 'Clubs & hobbies' },
+  ];
+
+  const inputBase = 'w-full rounded-2xl border border-white/10 bg-panel-elevated/80 text-white placeholder:text-muted-ink px-4 py-3 focus:outline-none focus:ring-2 focus:ring-discrete-highlight transition-colors';
+
   const applyGoals = (source?: StudentGoalsPayload | Partial<StudentProfile> | null) => {
     setCurrentGoals(source?.currentGoals ?? []);
     setShortTermGoals(source?.shortTermGoals ?? []);
@@ -123,75 +133,71 @@ export default function GoalsEditor({ profile, idToken, onUpdate, onClose }: Goa
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4">
+      <div className="w-full max-w-4xl max-h-[92vh] overflow-hidden flex flex-col rounded-3xl border border-white/10 bg-panel text-white shadow-card">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
-          <h2 className="text-2xl font-bold mb-2">Edit Your Goals & Aspirations</h2>
-          <p className="text-purple-100">Update your goals anytime as your interests evolve</p>
+        <div className="bg-gradient-to-r from-primary-from to-primary-to p-6 text-white">
+          <p className="text-micro uppercase tracking-[0.2em] text-white/70">Task 06</p>
+          <h2 className="text-2xl md:text-3xl font-semibold mb-2">Edit Your Goals & Aspirations</h2>
+          <p className="text-white/80">Fine tune what you are working toward—short sprints to dream careers.</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b bg-gray-50 overflow-x-auto">
-          {[
-            { id: 'current', label: '📌 Current Goals' },
-            { id: 'short', label: '⏳ Short-term' },
-            { id: 'long', label: '🎯 Long-term' },
-            { id: 'career', label: '💼 Career' },
-            { id: 'interests', label: '❤️ Interests' },
-          ].map((tab) => (
+        <div className="flex space-x-3 overflow-x-auto border-b border-white/5 bg-panel-elevated/40 px-6 py-3">
+          {tabConfig.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-6 py-3 font-medium whitespace-nowrap transition-colors ${
+              onClick={() => setActiveTab(tab.id)}
+              className={`min-w-max rounded-2xl px-4 py-2 text-left transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight ${
                 activeTab === tab.id
-                  ? 'border-b-2 border-purple-600 text-purple-600 bg-white'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white text-bg-dark shadow-card'
+                  : 'bg-transparent text-muted-ink hover:text-white'
               }`}
             >
-              {tab.label}
+              <span className="block font-medium">{tab.label}</span>
+              <span className="text-body-xs text-muted-ink/80">{tab.helper}</span>
             </button>
           ))}
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {loading && <p className="text-center text-gray-500 py-4">Loading your goals...</p>}
-          {error && !loading && <p className="text-red-500 text-sm mb-4">{error}</p>}
+        <div className="flex-1 overflow-y-auto p-6 bg-panel/60 backdrop-blur">
+          {loading && <p className="text-center text-muted-ink py-4">Loading your goals...</p>}
+          {error && !loading && <p className="text-red-400 text-sm mb-4">{error}</p>}
           {/* Current Goals */}
           {activeTab === 'current' && (
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">Current Focus Areas</h3>
-              <div className="mb-4 flex gap-2">
+              <h3 className="text-lg font-semibold mb-4 text-white">Current Focus Areas</h3>
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row">
                 <input
                   type="text"
                   value={newGoal}
                   onChange={(e) => setNewGoal(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addGoal('current')}
                   placeholder="Add a current goal..."
-                  className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className={`${inputBase}`}
                 />
                 <button
                   onClick={() => addGoal('current')}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-primary-from to-primary-to font-medium shadow-card hover:opacity-90"
                 >
                   Add
                 </button>
               </div>
               <div className="space-y-2">
                 {currentGoals.map((goal, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-                    <span className="flex-1">{goal}</span>
+                  <div key={idx} className="flex items-center gap-3 p-3 rounded-2xl border border-white/10 bg-panel-elevated/50">
+                    <span className="flex-1 text-body text-white">{goal}</span>
                     <button
                       onClick={() => removeGoal('current', idx)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-muted-ink hover:text-white"
                     >
                       ✕
                     </button>
                   </div>
                 ))}
                 {currentGoals.length === 0 && (
-                  <p className="text-gray-500 text-center py-8">No current goals set</p>
+                  <p className="text-muted-ink text-center py-8">No current goals set</p>
                 )}
               </div>
             </div>
@@ -200,37 +206,37 @@ export default function GoalsEditor({ profile, idToken, onUpdate, onClose }: Goa
           {/* Short-term Goals */}
           {activeTab === 'short' && (
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">Short-term Goals (3-6 months)</h3>
-              <div className="mb-4 flex gap-2">
+              <h3 className="text-lg font-semibold mb-4 text-white">Short-term Goals (3-6 months)</h3>
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row">
                 <input
                   type="text"
                   value={newGoal}
                   onChange={(e) => setNewGoal(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addGoal('short')}
                   placeholder="Add a short-term goal..."
-                  className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className={inputBase}
                 />
                 <button
                   onClick={() => addGoal('short')}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-primary-from to-primary-to font-medium shadow-card hover:opacity-90"
                 >
                   Add
                 </button>
               </div>
               <div className="space-y-2">
                 {shortTermGoals.map((goal, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                    <span className="flex-1">{goal}</span>
+                  <div key={idx} className="flex items-center gap-3 p-3 rounded-2xl border border-white/10 bg-panel-elevated/50">
+                    <span className="flex-1 text-body text-white">{goal}</span>
                     <button
                       onClick={() => removeGoal('short', idx)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-muted-ink hover:text-white"
                     >
                       ✕
                     </button>
                   </div>
                 ))}
                 {shortTermGoals.length === 0 && (
-                  <p className="text-gray-500 text-center py-8">No short-term goals set</p>
+                  <p className="text-muted-ink text-center py-8">No short-term goals set</p>
                 )}
               </div>
             </div>
@@ -239,37 +245,37 @@ export default function GoalsEditor({ profile, idToken, onUpdate, onClose }: Goa
           {/* Long-term Goals */}
           {activeTab === 'long' && (
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">Long-term Goals (1+ years)</h3>
-              <div className="mb-4 flex gap-2">
+              <h3 className="text-lg font-semibold mb-4 text-white">Long-term Goals (1+ years)</h3>
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row">
                 <input
                   type="text"
                   value={newGoal}
                   onChange={(e) => setNewGoal(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addGoal('long')}
                   placeholder="Add a long-term goal..."
-                  className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className={inputBase}
                 />
                 <button
                   onClick={() => addGoal('long')}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-primary-from to-primary-to font-medium shadow-card hover:opacity-90"
                 >
                   Add
                 </button>
               </div>
               <div className="space-y-2">
                 {longTermGoals.map((goal, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                    <span className="flex-1">{goal}</span>
+                  <div key={idx} className="flex items-center gap-3 p-3 rounded-2xl border border-white/10 bg-panel-elevated/50">
+                    <span className="flex-1 text-body text-white">{goal}</span>
                     <button
                       onClick={() => removeGoal('long', idx)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-muted-ink hover:text-white"
                     >
                       ✕
                     </button>
                   </div>
                 ))}
                 {longTermGoals.length === 0 && (
-                  <p className="text-gray-500 text-center py-8">No long-term goals set</p>
+                  <p className="text-muted-ink text-center py-8">No long-term goals set</p>
                 )}
               </div>
             </div>
@@ -279,26 +285,26 @@ export default function GoalsEditor({ profile, idToken, onUpdate, onClose }: Goa
           {activeTab === 'career' && (
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-ink mb-2">
                   Career Aspirations
                 </label>
                 <textarea
                   value={careerAspirations}
                   onChange={(e) => setCareerAspirations(e.target.value)}
                   rows={3}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className={`${inputBase} min-h-[120px]`}
                   placeholder="What career path interests you?"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-ink mb-2">
                   Dream Job
                 </label>
                 <input
                   type="text"
                   value={dreamJob}
                   onChange={(e) => setDreamJob(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className={inputBase}
                   placeholder="What's your dream job?"
                 />
               </div>
@@ -308,19 +314,19 @@ export default function GoalsEditor({ profile, idToken, onUpdate, onClose }: Goa
           {/* Interests */}
           {activeTab === 'interests' && (
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">Your Interests & Hobbies</h3>
-              <div className="mb-4 flex gap-2">
+              <h3 className="text-lg font-semibold mb-4 text-white">Your Interests & Hobbies</h3>
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row">
                 <input
                   type="text"
                   value={newGoal}
                   onChange={(e) => setNewGoal(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addInterest()}
                   placeholder="Add an interest..."
-                  className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className={inputBase}
                 />
                 <button
                   onClick={addInterest}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-primary-from to-primary-to font-medium shadow-card hover:opacity-90"
                 >
                   Add
                 </button>
@@ -329,19 +335,19 @@ export default function GoalsEditor({ profile, idToken, onUpdate, onClose }: Goa
                 {interests.map((interest, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-pink-50 text-pink-700 rounded-full"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-panel-elevated/60 text-white"
                   >
                     {interest}
                     <button
                       onClick={() => removeInterest(idx)}
-                      className="text-pink-500 hover:text-pink-700"
+                      className="text-muted-ink hover:text-white"
                     >
                       ✕
                     </button>
                   </span>
                 ))}
                 {interests.length === 0 && (
-                  <p className="text-gray-500 text-center py-8 w-full">No interests added yet</p>
+                  <p className="text-muted-ink text-center py-8 w-full">No interests added yet</p>
                 )}
               </div>
             </div>
@@ -349,10 +355,10 @@ export default function GoalsEditor({ profile, idToken, onUpdate, onClose }: Goa
         </div>
 
         {/* Footer */}
-        <div className="border-t p-6 bg-gray-50 flex justify-end gap-3">
+        <div className="border-t border-white/10 p-6 bg-panel-elevated/40 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-60"
+            className="px-6 py-3 rounded-2xl border border-white/20 text-white/80 hover:bg-white/10 transition-colors disabled:opacity-60"
             disabled={saving}
           >
             Cancel
@@ -360,7 +366,7 @@ export default function GoalsEditor({ profile, idToken, onUpdate, onClose }: Goa
           <button
             onClick={handleSave}
             disabled={saving || loading}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-60"
+            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-primary-from to-primary-to font-semibold shadow-card hover:opacity-90 transition-colors disabled:opacity-60"
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>

@@ -29,6 +29,14 @@ FIREBASE_CREDENTIALS_FILE=<optional path if different from GOOGLE_APPLICATION_CR
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+### Quick smoke commands
+
+```powershell
+.venv\Scripts\Activate.ps1
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+pytest -q
+```
+
 ## Data Model (v2)
 
 The FastAPI service now enforces Firebase Authentication on every endpoint and persists data in the following multi-tenant Firestore collections:

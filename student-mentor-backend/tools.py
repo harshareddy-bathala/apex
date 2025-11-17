@@ -3,7 +3,11 @@ from __future__ import annotations
 import json
 from typing import Callable, Optional
 
-from google.adk.tools import tool
+try:
+    from google.adk.tools import tool
+except ImportError:  # pragma: no cover - ADK 0.3 fallback decorator.
+    def tool(func):
+        return func
 from google.cloud import firestore
 
 from db import collection_ref

@@ -153,7 +153,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   const energyStatus = getEnergyStatus(studentData.energyLevel);
 
   return (
-    <div className="min-h-screen bg-bg-dark">
+    <div className="min-h-screen">
       {/* Skip to content link for accessibility */}
       <a
         href="#main-content"
@@ -163,33 +163,42 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
       </a>
 
       {/* Main Content */}
-      <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         {/* Breadcrumb / Welcome */}
-        <div className="mb-6">
-          <p className="text-sm text-slate-400">
-            Dashboard / <span className="text-white">Overview</span>
-          </p>
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-[0.3em] text-white/50">Dashboard</p>
+          <div className="flex items-end justify-between flex-wrap gap-2">
+            <h2 className="text-2xl font-semibold text-white/90" style={{ fontFamily: 'Space Grotesk, Inter, sans-serif' }}>
+              Today’s premium overview
+            </h2>
+            <button
+              onClick={handleToggleTeacherMode}
+              className={`text-xs font-semibold px-3 py-1 rounded-full border transition-all ${
+                isTeacherMode
+                  ? 'border-[#22d3ee]/60 text-[#22d3ee] bg-[#22d3ee]/10'
+                  : 'border-white/10 text-white/60 hover:text-white hover:border-white/30'
+              }`}
+            >
+              {isTeacherMode ? 'Teacher lens enabled' : 'Peek teacher view'}
+            </button>
+          </div>
         </div>
 
         {/* Hero Card */}
-        <div className="mb-6">
-          <HeroCard
-            studentName={studentData.firstName}
-            grade={studentData.grade}
-            subjects={studentData.subjects}
-            overallProgress={studentData.overallProgressPercent}
-            onProgressClick={handleProgressClick}
-          />
-        </div>
+        <HeroCard
+          studentName={studentData.firstName}
+          grade={studentData.grade}
+          subjects={studentData.subjects}
+          overallProgress={studentData.overallProgressPercent}
+          onProgressClick={handleProgressClick}
+        />
 
         {/* Action Bar */}
-        <div className="mb-6">
-          <ActionBar
-            onAskMentor={handleOpenChat}
-            onAddGoal={() => { onAddGoal?.(); console.log('Add goal'); }}
-            onViewTasks={() => { onViewTasks?.(); console.log('View tasks'); }}
-          />
-        </div>
+        <ActionBar
+          onAskMentor={handleOpenChat}
+          onAddGoal={() => { onAddGoal?.(); console.log('Add goal'); }}
+          onViewTasks={() => { onViewTasks?.(); console.log('View tasks'); }}
+        />
 
         {/* Main Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -276,25 +285,25 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 
         {/* Teacher Mode View */}
         {isTeacherMode && (
-          <div className="mt-8 p-6 bg-purple-900/20 border border-purple-500/30 rounded-2xl">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <div className="glass-card mt-4 p-6 rounded-3xl border border-white/10 shadow-[0_25px_80px_rgba(5,8,20,0.65)]">
+            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
               Teacher View
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-slate-800 p-4 rounded-xl">
-                <p className="text-slate-400 text-sm mb-1">Class Size</p>
-                <p className="text-2xl font-bold text-white">45</p>
+              <div className="glass-highlight rounded-2xl p-4">
+                <p className="text-xs uppercase tracking-[0.3em] text-white/50 mb-2">Class Size</p>
+                <p className="text-3xl font-semibold text-white">45</p>
               </div>
-              <div className="bg-slate-800 p-4 rounded-xl">
-                <p className="text-slate-400 text-sm mb-1">At-Risk Students</p>
-                <p className="text-2xl font-bold text-red-400">2</p>
+              <div className="glass-highlight rounded-2xl p-4">
+                <p className="text-xs uppercase tracking-[0.3em] text-white/50 mb-2">At-Risk Students</p>
+                <p className="text-3xl font-semibold text-[#fb7185]">2</p>
               </div>
-              <div className="bg-slate-800 p-4 rounded-xl">
-                <p className="text-slate-400 text-sm mb-1">Class Avg Study Hours</p>
-                <p className="text-2xl font-bold text-blue-400">2.1h</p>
+              <div className="glass-highlight rounded-2xl p-4">
+                <p className="text-xs uppercase tracking-[0.3em] text-white/50 mb-2">Avg Study Hours</p>
+                <p className="text-3xl font-semibold text-[#38bdf8]">2.1h</p>
               </div>
             </div>
           </div>

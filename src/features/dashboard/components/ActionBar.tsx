@@ -30,7 +30,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
       {/* Primary: Ask Mentor */}
       <button
         onClick={onAskMentor}
-        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-from to-primary-to text-white font-medium rounded-xl shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight focus:ring-offset-2 focus:ring-offset-bg-dark"
+        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-white font-medium shadow-[0_20px_45px_rgba(8,145,178,0.35)] bg-gradient-to-r from-[#22d3ee] via-[#2dd4bf] to-[#14b8a6] hover:translate-y-[-2px] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22d3ee]/70"
         aria-label="Ask your AI Mentor"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -42,7 +42,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
       {/* Secondary: Add Goal */}
       <button
         onClick={onAddGoal}
-        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 bg-panel text-slate-200 font-medium rounded-xl border border-card-border hover:bg-panel-elevated hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight focus:ring-offset-2 focus:ring-offset-bg-dark"
+        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-medium border border-white/10 text-white/80 bg-white/5 hover:bg-white/10 hover:text-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
         aria-label="Add a new goal"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -54,7 +54,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
       {/* Ghost: Today's Tasks */}
       <button
         onClick={onViewTasks}
-        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 text-muted-ink font-medium rounded-xl hover:bg-panel hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight focus:ring-offset-2 focus:ring-offset-bg-dark"
+        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-medium text-white/60 border border-dashed border-white/20 hover:text-white hover:border-white/40 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
         aria-label="View today's tasks"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -35,18 +35,18 @@ export const ActivitiesFeed: React.FC<ActivitiesFeedProps> = ({
 
   const categoryConfig = {
     academic: {
-      bg: 'bg-blue-500/20',
-      text: 'text-blue-300',
+      bg: 'bg-[#22d3ee]/15',
+      text: 'text-[#67e8f9]',
       label: 'Academic'
     },
     wellness: {
-      bg: 'bg-accent-green/20',
-      text: 'text-accent-green',
+      bg: 'bg-[#34d399]/15',
+      text: 'text-[#34d399]',
       label: 'Wellness'
     },
     sports: {
-      bg: 'bg-orange-500/20',
-      text: 'text-orange-300',
+      bg: 'bg-[#fb923c]/15',
+      text: 'text-[#fb923c]',
       label: 'Sports'
     }
   };
@@ -58,9 +58,9 @@ export const ActivitiesFeed: React.FC<ActivitiesFeedProps> = ({
   const displayActivities = filteredActivities.slice(0, maxItems);
 
   return (
-    <div className="bg-panel rounded-2xl p-5 shadow-card border border-card-border">
+    <div className="glass-card rounded-3xl p-5 border border-white/10 shadow-[0_25px_60px_rgba(5,8,20,0.55)]">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-section-title text-white flex items-center gap-2">
+        <h2 className="text-white flex items-center gap-2 text-lg font-semibold">
           <span className="text-2xl">🎯</span>
           Recent Activities
         </h2>
@@ -72,10 +72,10 @@ export const ActivitiesFeed: React.FC<ActivitiesFeedProps> = ({
           <button
             key={tab}
             onClick={() => setFilter(tab)}
-            className={`px-3 py-1.5 text-micro font-medium rounded-lg transition-all whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-discrete-highlight ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-all whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
               filter === tab
-                ? 'bg-gradient-to-r from-primary-from to-primary-to text-white'
-                : 'bg-panel-elevated text-slate-400 hover:bg-slate-700'
+                ? 'bg-gradient-to-r from-[#7c3aed] to-[#22d3ee] text-white shadow-[0_10px_30px_rgba(124,58,237,0.35)]'
+                : 'bg-white/5 text-white/60 hover:text-white'
             }`}
             aria-label={`Filter by ${tab} activities`}
             aria-pressed={filter === tab}
@@ -88,7 +88,7 @@ export const ActivitiesFeed: React.FC<ActivitiesFeedProps> = ({
       {/* Activities list */}
       <div className="space-y-3">
         {displayActivities.length === 0 ? (
-          <p className="text-muted-ink text-body-sm text-center py-8">
+          <p className="text-white/50 text-sm text-center py-8">
             No activities to show
           </p>
         ) : (
@@ -99,23 +99,23 @@ export const ActivitiesFeed: React.FC<ActivitiesFeedProps> = ({
               return (
                 <li
                   key={activity.id}
-                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-card-hover transition-colors"
+                  className="flex items-start gap-3 p-3 rounded-2xl border border-white/5 hover:border-white/25 transition-colors bg-white/5/10"
                 >
                   {/* Icon */}
-                  <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-panel-elevated rounded-lg text-lg">
+                  <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-white/5 rounded-2xl text-lg">
                     {activity.icon}
                   </div>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-body-sm text-slate-200 mb-1">
+                    <p className="text-sm text-white mb-1">
                       {activity.text}
                     </p>
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-0.5 text-micro ${config.bg} ${config.text} rounded`}>
                         {config.label}
                       </span>
-                      <span className="text-micro text-muted-ink">
+                      <span className="text-xs text-white/50">
                         {activity.time}
                       </span>
                     </div>
@@ -130,7 +130,7 @@ export const ActivitiesFeed: React.FC<ActivitiesFeedProps> = ({
       {/* View all button */}
       {filteredActivities.length > maxItems && (
         <button
-          className="w-full mt-4 py-2 text-body-sm text-slate-400 hover:text-slate-300 border border-card-border hover:border-discrete-highlight rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-discrete-highlight"
+          className="w-full mt-4 py-2 text-sm text-white/60 hover:text-white border border-white/15 hover:border-white/35 rounded-2xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
           aria-label="View all activities"
         >
           View all {filteredActivities.length} activities
