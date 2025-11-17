@@ -33,6 +33,10 @@ interface HomeworkResponse {
   homework: Homework[];
 }
 
+interface HomeworkUpdateResponse {
+  homework: Homework;
+}
+
 export interface CreateAssignmentPayload {
   title: string;
   classId: string;
@@ -302,6 +306,31 @@ export async function getHomework(token: string): Promise<HomeworkResponse> {
   }
 
   return (await response.json()) as HomeworkResponse;
+}
+
+export type HomeworkUpdatePayload = Partial<Pick<Homework, 'status' | 'notes'>>;
+
+export async function updateHomework(
+  token: string,
+  homeworkId: string,
+  payload: HomeworkUpdatePayload,
+): Promise<Homework> {
+  const response = await fetch(apiUrl(`/homework/${homeworkId}`), {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update homework (${response.status}): ${errorText}`);
+  }
+
+  const data = (await response.json()) as HomeworkUpdateResponse;
+  return data.homework;
 }
 
 export async function createAssignment(token: string, data: CreateAssignmentPayload): Promise<AssignmentRecord> {

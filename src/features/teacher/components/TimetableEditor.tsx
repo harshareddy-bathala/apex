@@ -59,7 +59,7 @@ const TimetableEditor: React.FC<TimetableEditorProps> = ({ idToken }) => {
     const payload: UpsertTimetablePayload = {
       classId: classId.trim(),
       weekOf,
-      entries: entries.map(({ key, ...entry }) => ({ ...entry, location: entry.location || undefined })),
+      entries: entries.map(({ key: _key, ...entry }) => ({ ...entry, location: entry.location || undefined })),
     };
 
     setLoading(true);

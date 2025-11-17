@@ -12,7 +12,7 @@ interface PeerChatProps {
 
 export default function PeerChat({
   currentUserId,
-  currentUserName,
+  currentUserName: _currentUserName,
   contacts,
   conversations,
   messages,

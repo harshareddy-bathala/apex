@@ -12,20 +12,23 @@
  * Accessibility: Checkboxes with labels, keyboard navigation
  */
 
-import React, { useState } from 'react';
+import React from 'react';
+import type { Homework } from '@/types';
 
 interface Task {
   id: string;
+  homeworkId?: string;
   title: string;
   subject: string;
   timeEstimate: string;
   completed: boolean;
   priority: 'low' | 'medium' | 'high';
+  status?: Homework['status'];
 }
 
 interface TodayPanelProps {
   tasks: Task[];
-  onToggleTask: (taskId: string) => void;
+  onToggleTask: (taskId: string) => Promise<void> | void;
   onSnoozeTask?: (taskId: string) => void;
   onRescheduleTask?: (taskId: string) => void;
 }

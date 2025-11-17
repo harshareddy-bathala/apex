@@ -3,10 +3,8 @@ import {
   type ActivityLog,
   type ChatMessage,
   type DailyCheckIn,
-  type Homework,
   type StudentProfile,
   type TeacherAlert,
-  type Test,
 } from "@/types";
 import { ChatInterface } from "./ChatInterface";
 import { createBackendChatClient, type BackendChatClient } from "@/common/utils/aiHelpers";
@@ -25,7 +23,6 @@ const createDemoChatClient = (profile: StudentProfile): DemoChatClient => ({
     const reply = `Hi ${firstName}! I'm running in demo mode because the mentor backend isn't reachable yet. Here's a canned thought about "${message}".\n\nTry exploring homework, wellness, or goal prompts while we finish setup.`;
     const chunks = reply.match(/.{1,60}/g) || [reply];
     for (const chunk of chunks) {
-      // eslint-disable-next-line no-await-in-loop
       await new Promise((resolve) => setTimeout(resolve, 110));
       yield { text: chunk };
     }
@@ -36,8 +33,6 @@ interface ChatProps {
   profile: StudentProfile;
   checkIns: DailyCheckIn[];
   activities: ActivityLog[];
-  homework?: Homework[];
-  tests?: Test[];
   onAddActivity: (activity: Omit<ActivityLog, "id" | "timestamp">) => void;
   onTriggerAlert?: (alert: Omit<TeacherAlert, "id" | "createdAt">) => void;
 }
@@ -46,8 +41,6 @@ const Chat: React.FC<ChatProps> = ({
   profile,
   checkIns,
   activities,
-  homework = [],
-  tests = [],
   onAddActivity,
   onTriggerAlert,
 }) => {

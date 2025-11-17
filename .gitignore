@@ -9,14 +9,36 @@ lerna-debug.log*
 
 # Dependencies
 node_modules/
+.pnp
+.pnp.js
 
-# Build artifacts (dist/ excluded because Vercel builds during deploy)
-/dist
+# Python virtual environments and cache
+.venv/
+.venv-*/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Build artifacts
+dist/
 dist-ssr/
+build/
 *.tsbuildinfo
+.next/
+out/
 
 # Local environment secrets
-.env*
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 !.env.example
 !.env.*.example
 
@@ -24,6 +46,8 @@ dist-ssr/
 **/firestore.json
 **/*-firebase-adminsdk-*.json
 **/*credentials*.json
+**/service-account.json
+**/*-service-account-*.json
 
 # Editor directories and system files
 .vscode/*
@@ -35,3 +59,21 @@ dist-ssr/
 *.njsproj
 *.sln
 *.sw?
+.history/
+
+# Testing
+coverage/
+.nyc_output/
+*.coveragerc
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Vercel
+.vercel
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

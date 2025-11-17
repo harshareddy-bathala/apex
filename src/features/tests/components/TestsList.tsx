@@ -1,14 +1,23 @@
 import React, { useState } from 'react';
 import { Test } from '@/types';
 
+const FILTER_TABS = [
+  { id: 'upcoming', label: 'Upcoming', icon: '🔜' },
+  { id: 'today', label: 'Today', icon: '⚡' },
+  { id: 'week', label: 'This Week', icon: '📅' },
+  { id: 'all', label: 'All', icon: '📚' },
+] as const;
+
+type FilterValue = (typeof FILTER_TABS)[number]['id'];
+
 interface TestsListProps {
   studentId: string;
   tests: Test[];
   onUpdate: (tests: Test[]) => void;
 }
 
-export default function TestsList({ studentId, tests, onUpdate }: TestsListProps) {
-  const [filter, setFilter] = useState<'all' | 'upcoming' | 'today' | 'week'>('upcoming');
+export default function TestsList({ studentId: _studentId, tests, onUpdate }: TestsListProps) {
+  const [filter, setFilter] = useState<FilterValue>('upcoming');
   
   const updatePreparationStatus = (id: string, status: Test['preparationStatus']) => {
     const updated = tests.map(test => 
@@ -92,15 +101,10 @@ export default function TestsList({ studentId, tests, onUpdate }: TestsListProps
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 bg-panel p-4 rounded-2xl shadow-card border border-card-border">
-        {[
-          { id: 'upcoming', label: 'Upcoming', icon: '🔜' },
-          { id: 'today', label: 'Today', icon: '⚡' },
-          { id: 'week', label: 'This Week', icon: '📅' },
-          { id: 'all', label: 'All', icon: '📚' },
-        ].map(tab => (
+        {FILTER_TABS.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setFilter(tab.id as any)}
+            onClick={() => setFilter(tab.id)}
             className={`px-4 py-2 rounded-xl text-body-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight ${
               filter === tab.id 
                 ? 'bg-gradient-to-r from-primary-from to-primary-to text-white shadow-card' 

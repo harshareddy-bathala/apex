@@ -54,7 +54,7 @@ export const StatCard: React.FC<StatCardProps> = ({
     blue: 'bg-[#22d3ee]/15 text-[#22d3ee] shadow-[0_0_20px_rgba(34,211,238,0.2)]'
   };
 
-  const MotionComponent = motion[onClick ? 'button' : 'div'] as any;
+  const MotionComponent: typeof motion.button | typeof motion.div = onClick ? motion.button : motion.div;
 
   return (
     <MotionComponent

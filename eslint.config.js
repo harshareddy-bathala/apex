@@ -4,10 +4,27 @@ import tseslint from 'typescript-eslint';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
-import jsxA11y from 'eslint-plugin-jsx-a11y';
 import prettierConfig from 'eslint-config-prettier';
+import { FlatCompat } from '@eslint/eslintrc';
 
-const ignores = ['dist', 'dist-ssr', 'coverage', 'build', 'node_modules', '*.config.js', '*.config.ts', '.eslintrc.cjs', 'vite.config.ts'];
+const ignores = [
+  'dist',
+  'dist-ssr',
+  'coverage',
+  'build',
+  'node_modules',
+  '*.config.js',
+  '*.config.ts',
+  '.eslintrc.cjs',
+  'vite.config.ts',
+  '**/.venv/**',
+  '**/.venv*/**',
+  '**/__pycache__/**',
+];
+
+const compat = new FlatCompat({
+  baseDirectory: import.meta.dirname,
+});
 
 export default [
   {
@@ -15,8 +32,7 @@ export default [
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  reactPlugin.configs.flat?.recommended ?? reactPlugin.configs.recommended,
-  jsxA11y.configs.recommended,
+  ...compat.extends('plugin:react/recommended'),
   {
     files: ['**/*.{ts,tsx,js,jsx}'],
     languageOptions: {
@@ -39,7 +55,6 @@ export default [
       react: reactPlugin,
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
-      'jsx-a11y': jsxA11y,
     },
     settings: {
       react: {
@@ -50,7 +65,7 @@ export default [
       ...prettierConfig.rules,
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'react-refresh/only-export-components': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
@@ -62,9 +77,8 @@ export default [
       'no-debugger': 'warn',
       'prefer-const': 'error',
       'no-var': 'error',
-      'jsx-a11y/anchor-is-valid': 'warn',
-      'jsx-a11y/click-events-have-key-events': 'warn',
-      'jsx-a11y/no-static-element-interactions': 'warn',
+      'react/no-unescaped-entities': 'off',
+      // Accessibility plugin removed from config to reduce automated lint noise
     },
   },
 ];

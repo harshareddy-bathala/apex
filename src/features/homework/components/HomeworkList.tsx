@@ -1,65 +1,78 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { getHomework } from '@/api/client';
+import React, { useState } from 'react';
 import { Homework } from '@/types';
+
+const FILTER_TABS = [
+  { id: 'all', label: 'All', icon: '🗂️' },
+  { id: 'pending', label: 'Pending', icon: '⚙️' },
+  { id: 'completed', label: 'Completed', icon: '✅' },
+] as const;
+
+const SORT_OPTIONS = [
+  { value: 'dueDate', label: 'Due Date' },
+  { value: 'priority', label: 'Priority' },
+] as const;
+
+type FilterValue = (typeof FILTER_TABS)[number]['id'];
+type SortValue = (typeof SORT_OPTIONS)[number]['value'];
+
+const isSortValue = (value: string): value is SortValue => SORT_OPTIONS.some((option) => option.value === value);
 
 interface HomeworkListProps {
   homework: Homework[];
-  onUpdate: (homework: Homework[]) => void;
-  token: string;
+  onStatusChange: (homeworkId: string, status: Homework['status']) => Promise<void> | void;
+  onRefresh: () => Promise<void> | void;
   loadingExternal?: boolean;
   errorMessage?: string | null;
 }
 
-export default function HomeworkList({ homework, onUpdate, token, loadingExternal, errorMessage }: HomeworkListProps) {
-  const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
-  const [sortBy, setSortBy] = useState<'dueDate' | 'priority'>('dueDate');
-  const [isFetching, setIsFetching] = useState(false);
+export default function HomeworkList({
+  homework,
+  onStatusChange,
+  onRefresh,
+  loadingExternal,
+  errorMessage,
+}: HomeworkListProps) {
+  const [filter, setFilter] = useState<FilterValue>('all');
+  const [sortBy, setSortBy] = useState<SortValue>('dueDate');
+  const [inFlightId, setInFlightId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const fetchHomework = useCallback(async () => {
-    setIsFetching(true);
-    setLocalError(null);
-    try {
-      const { homework: assignments } = await getHomework(token);
-      onUpdate(assignments);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to load homework right now.';
-      setLocalError(message);
-    } finally {
-      setIsFetching(false);
-    }
-  }, [onUpdate, token]);
-
-  useEffect(() => {
-    if (!token) {
-      return;
-    }
-    void fetchHomework();
-  }, [token, fetchHomework]);
-
-  const toggleComplete = (id: string) => {
-    const updated = homework.map(hw => {
-      if (hw.id === id) {
-        const newStatus: Homework['status'] = hw.status === 'completed' ? 'pending' : 'completed';
-        return {
-          ...hw,
-          status: newStatus,
-          completedAt: newStatus === 'completed' ? new Date().toISOString() : undefined,
-        };
-      }
-      return hw;
-    });
-    onUpdate(updated);
+  const toggleComplete = async (id: string) => {
+    const target = homework.find((item) => item.id === id);
+    if (!target) return;
+    const nextStatus: Homework['status'] = target.status === 'completed' || target.status === 'submitted' ? 'pending' : 'completed';
+    await persistStatus(id, nextStatus);
   };
 
-  const updateStatus = (id: string, status: Homework['status']) => {
-    const updated = homework.map(hw => {
-      if (hw.id === id) {
-        return { ...hw, status };
-      }
-      return hw;
-    });
-    onUpdate(updated);
+  const updateStatus = async (id: string, status: Homework['status']) => {
+    await persistStatus(id, status);
+  };
+
+  const persistStatus = async (id: string, status: Homework['status']) => {
+    setLocalError(null);
+    setInFlightId(id);
+    try {
+      await onStatusChange(id, status);
+    } catch (error) {
+      console.error('Homework status update failed', error);
+      setLocalError('Unable to update homework right now. Please retry.');
+    } finally {
+      setInFlightId(null);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setLocalError(null);
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } catch (error) {
+      console.error('Homework refresh failed', error);
+      setLocalError('Unable to refresh homework. Please try again.');
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const filteredHomework = homework.filter(hw => {
@@ -117,6 +130,17 @@ export default function HomeworkList({ homework, onUpdate, token, loadingExterna
     const diff = new Date(h.dueDate).getTime() - new Date().getTime();
     return diff <= 3 * 24 * 60 * 60 * 1000 && diff >= -24 * 60 * 60 * 1000 && h.status !== 'completed' && h.status !== 'submitted';
   }).length;
+  const filterCounts: Record<FilterValue, number> = {
+    all: totalHomework,
+    pending: pendingCount,
+    completed: completedCount,
+  };
+
+  const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    if (isSortValue(event.target.value)) {
+      setSortBy(event.target.value);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -129,11 +153,11 @@ export default function HomeworkList({ homework, onUpdate, token, loadingExterna
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => void fetchHomework()}
-            disabled={isFetching || loadingExternal}
+            onClick={() => void handleRefresh()}
+            disabled={isRefreshing || loadingExternal}
             className="px-4 py-2 rounded-xl text-body-sm font-medium bg-panel-elevated/80 border border-card-border text-slate-200 hover:bg-slate-700 transition-all disabled:opacity-60"
           >
-            {isFetching || loadingExternal ? 'Refreshing…' : 'Refresh'}
+            {isRefreshing || loadingExternal ? 'Refreshing…' : 'Refresh'}
           </button>
         </div>
       </div>
@@ -165,14 +189,10 @@ export default function HomeworkList({ homework, onUpdate, token, loadingExterna
       {/* Filters & Sort */}
       <div className="flex flex-wrap gap-3 items-center bg-panel/80 p-4 rounded-2xl shadow-card border border-card-border backdrop-blur-xl">
         <div className="flex flex-wrap gap-2">
-          {[
-            { id: 'all', label: 'All', count: totalHomework, icon: '🗂️' },
-            { id: 'pending', label: 'Pending', count: pendingCount, icon: '⚙️' },
-            { id: 'completed', label: 'Completed', count: completedCount, icon: '✅' },
-          ].map(tab => (
+          {FILTER_TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setFilter(tab.id as typeof filter)}
+              onClick={() => setFilter(tab.id)}
               className={`px-4 py-2 rounded-xl text-body-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight flex items-center gap-2 ${
                 filter === tab.id
                   ? 'bg-gradient-to-r from-primary-from to-primary-to text-white shadow-card'
@@ -180,7 +200,7 @@ export default function HomeworkList({ homework, onUpdate, token, loadingExterna
               }`}
             >
               <span>{tab.icon}</span>
-              {tab.label} ({tab.count})
+              {tab.label} ({filterCounts[tab.id]})
             </button>
           ))}
         </div>
@@ -189,11 +209,14 @@ export default function HomeworkList({ homework, onUpdate, token, loadingExterna
           <div className="flex items-center gap-2 rounded-xl bg-panel-elevated px-3 py-1.5 border border-card-border text-body-sm">
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={handleSortChange}
               className="bg-transparent text-white focus:outline-none"
             >
-              <option value="dueDate">Due Date</option>
-              <option value="priority">Priority</option>
+              {SORT_OPTIONS.map((option) => (
+                <option value={option.value} key={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -210,7 +233,7 @@ export default function HomeworkList({ homework, onUpdate, token, loadingExterna
             <div className="text-6xl mb-4">🎉</div>
             <h3 className="text-section-title font-semibold text-white mb-2">All caught up!</h3>
             <p className="text-body text-muted-ink">
-              {isFetching || loadingExternal ? 'Loading assignments...' : filter === 'all' ? 'No homework assigned yet' : `No ${filter} homework`}
+              {isRefreshing || loadingExternal ? 'Loading assignments...' : filter === 'all' ? 'No homework assigned yet' : `No ${filter} homework`}
             </p>
           </div>
         ) : (
@@ -228,11 +251,12 @@ export default function HomeworkList({ homework, onUpdate, token, loadingExterna
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/0" />
               <div className="relative flex items-start gap-4">
                 {/* Checkbox */}
-                <label className="relative flex items-center cursor-pointer group mt-1">
+                <label className={`relative flex items-center cursor-pointer group mt-1 ${inFlightId === hw.id ? 'opacity-60' : ''}`}>
                   <input
                     type="checkbox"
                     checked={hw.status === 'completed' || hw.status === 'submitted'}
-                    onChange={() => toggleComplete(hw.id)}
+                    onChange={() => void toggleComplete(hw.id)}
+                    disabled={inFlightId === hw.id}
                     className="sr-only peer"
                   />
                   <div className="w-5 h-5 rounded border-2 border-slate-600 peer-checked:bg-accent-green peer-checked:border-accent-green flex items-center justify-center transition-all group-hover:border-accent-green">
@@ -288,8 +312,9 @@ export default function HomeworkList({ homework, onUpdate, token, loadingExterna
                   {hw.status !== 'completed' && hw.status !== 'submitted' && (
                     <div className="mt-3 flex gap-2">
                       <button
-                        onClick={() => updateStatus(hw.id, 'in-progress')}
-                        className={`px-3 py-1 rounded-xl text-body-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight ${
+                        onClick={() => void updateStatus(hw.id, 'in-progress')}
+                        disabled={inFlightId === hw.id}
+                        className={`px-3 py-1 rounded-xl text-body-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight disabled:opacity-60 ${
                           hw.status === 'in-progress'
                             ? 'bg-blue-600 text-white'
                             : 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
@@ -298,8 +323,9 @@ export default function HomeworkList({ homework, onUpdate, token, loadingExterna
                         In Progress
                       </button>
                       <button
-                        onClick={() => updateStatus(hw.id, 'submitted')}
-                        className="px-3 py-1 rounded-xl text-body-sm font-medium bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-accent-green"
+                        onClick={() => void updateStatus(hw.id, 'submitted')}
+                        disabled={inFlightId === hw.id}
+                        className="px-3 py-1 rounded-xl text-body-sm font-medium bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-accent-green disabled:opacity-60"
                       >
                         Mark Submitted
                       </button>
@@ -310,6 +336,10 @@ export default function HomeworkList({ homework, onUpdate, token, loadingExterna
                     <p className="text-body-sm text-accent-green mt-2">
                       ✓ Completed on {new Date(hw.completedAt).toLocaleDateString()}
                     </p>
+                  )}
+
+                  {inFlightId === hw.id && (
+                    <p className="text-body-xs text-muted-ink mt-2">Updating…</p>
                   )}
                 </div>
               </div>
