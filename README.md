@@ -175,118 +175,7 @@ student-mentor-ai/
 └── RESTRUCTURING_GUIDE.md # Architecture guide
 ```
 
-### Recommended Future Structure
-
-We're planning to reorganize into a feature-based architecture for better scalability:
-
-```
-src/
-├── features/              # Feature modules
-│   ├── auth/
-│   ├── dashboard/
-│   ├── chat/
-│   └── ...
-├── ui/                    # Shared UI components
-│   ├── Button/
-│   ├── Card/
-│   ├── Input/
-│   └── ...
-├── common/                # Shared utilities
-│   ├── hooks/
-│   ├── utils/
-│   └── constants/
-└── types/                 # TypeScript types
-```
-
-📖 **See [RESTRUCTURING_GUIDE.md](./RESTRUCTURING_GUIDE.md) for detailed architecture plans**
-
-## 🛠️ Local Development Setup
-
-### Prerequisites
-- **Node.js 18+** and **npm 9+**
-- **Python 3.11+**
-- **Google Cloud Project** with:
-  - Firestore database (native mode)
-  - Firebase Authentication enabled
-  - Gemini API access (via Google AI Studio or Vertex AI)
-  - Service account JSON with Firestore and Firebase Admin permissions
-
-### 1. Backend Setup (FastAPI + ADK)
-
-Navigate to the backend directory and create a virtual environment:
-
-```powershell
-cd student-mentor-backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-Create a `.env` file in the `student-mentor-backend` directory:
-
-```env
-GOOGLE_API_KEY=<your-gemini-api-key>
-GOOGLE_APPLICATION_CREDENTIALS=<absolute-path-to-service-account.json>
-GEMINI_MODEL=gemini-1.5-flash
-FIRESTORE_PROJECT_ID=<your-gcp-project-id>
-FIREBASE_CREDENTIALS_FILE=<optional-path-if-different-from-above>
-```
-
-> **Note**: The Firebase Admin SDK reuses `GOOGLE_APPLICATION_CREDENTIALS` when `FIREBASE_CREDENTIALS_FILE` is not provided. Ensure your service account has Firebase Admin, Firestore, and IAM permissions.
-
-Start the FastAPI server:
-
-```powershell
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-The backend will be available at `http://localhost:8000`.
-
-### 2. Frontend Setup (React + Vite)
-
-Navigate back to the project root and install dependencies:
-
-```powershell
-cd ..
-npm install
-```
-
-Create a `.env.local` file in the project root:
-
-```env
-VITE_MENTOR_BACKEND_URL=http://localhost:8000
-VITE_FIREBASE_API_KEY=<your-firebase-api-key>
-VITE_FIREBASE_AUTH_DOMAIN=<your-project-id>.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=<your-gcp-project-id>
-VITE_FIREBASE_STORAGE_BUCKET=<your-project-id>.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=<your-sender-id>
-VITE_FIREBASE_APP_ID=<your-app-id>
-```
-
-Start the development server:
-
-```powershell
-npm run dev
-```
-
-Visit `http://localhost:5173` in your browser. Both frontend and backend must be running simultaneously.
-
-### 3. Developer Tools
-
-Run these commands for code quality checks:
-
-```powershell
-npm run lint           # Check for linting errors
-npm run lint:fix       # Auto-fix linting issues
-npm run format         # Format code with Prettier
-npm run format:check   # Check formatting without changes
-npm run type-check     # TypeScript type checking
-npm run test           # Run unit tests
-npm run test:ui        # Run tests with UI
-npm run test:coverage  # Generate coverage report
-```
-
-📖 **See [SETUP_INSTRUCTIONS.md](./SETUP_INSTRUCTIONS.md) for detailed linting, testing, and CI setup**
+📖 **See [RESTRUCTURING_GUIDE.md](./RESTRUCTURING_GUIDE.md) for planned architecture improvements**
 
 ## 🎯 Usage Guide
 
@@ -333,6 +222,99 @@ npm run test:coverage  # Generate coverage report
 5. **Multi-Stakeholder**: Serves students, teachers, and parents with role-based access
 6. **Cloud-Native**: Built on Firebase and Google Cloud for scalability and reliability
 7. **Career-Oriented**: Connects daily activities to long-term aspirations
+
+## 🔮 Upcoming Features
+
+### Phase 1 - Enhanced Communication
+- [ ] **Group Study Rooms**: Create virtual study sessions with multiple students
+- [ ] **Video/Voice Chat**: Real-time video calls with teachers and peers
+- [ ] **Screen Sharing**: Share screens for collaborative problem-solving
+- [ ] **File Attachments**: Send and receive study materials, notes, PDFs
+
+### Phase 2 - Advanced Analytics
+- [ ] **Predictive Performance**: AI predicts exam performance based on preparation
+- [ ] **Learning Style Optimization**: Personalized study recommendations
+- [ ] **Time Management AI**: Smart scheduling based on workload and deadlines
+- [ ] **Comparison Analytics**: Anonymous peer performance benchmarking
+
+### Phase 3 - Gamification & Rewards
+- [ ] **Achievement Badges**: Earn badges for study streaks, goals, improvements
+- [ ] **Leaderboards**: Friendly competition with classmates
+- [ ] **XP System**: Gain experience points for completing tasks
+- [ ] **Virtual Rewards**: Unlock themes, avatars, study tools
+
+### Phase 4 - Parent/Guardian Features
+- [ ] **Parent Dashboard**: View child's progress and well-being
+- [ ] **Weekly Reports**: Automated summary emails
+- [ ] **Concern Alerts**: Notifications for academic/mental health issues
+- [ ] **Parent-Teacher Communication**: Direct messaging channel
+
+### Phase 5 - School Integration
+- [ ] **LMS Integration**: Connect with Canvas, Google Classroom, Moodle
+- [ ] **Grade Sync**: Automatic grade import from school systems
+- [ ] **Calendar Integration**: Sync with school calendars
+- [ ] **Attendance Tracking**: Monitor and report attendance patterns
+
+### Phase 6 - AI Enhancements
+- [ ] **Study Plan Generator**: AI creates personalized study schedules
+- [ ] **Doubt Solver**: AI explains concepts with step-by-step solutions
+- [ ] **Practice Problem Generator**: Auto-generate practice questions
+- [ ] **Essay Reviewer**: AI feedback on writing assignments
+- [ ] **Voice AI Mentor**: Voice-based interactions for accessibility
+
+### Phase 7 - Wellness Features
+- [ ] **Meditation & Mindfulness**: Guided sessions for stress relief
+- [ ] **Break Reminders**: Smart notifications to take study breaks
+- [ ] **Sleep Tracker**: Monitor and optimize sleep patterns
+- [ ] **Nutrition Tips**: Healthy eating advice for students
+- [ ] **Exercise Challenges**: Physical fitness goals and tracking
+
+### Phase 8 - Career Development
+- [ ] **Career Aptitude Tests**: AI-powered career assessments
+- [ ] **Industry Mentorship**: Connect with professionals in dream fields
+- [ ] **College Planning**: Application guidance and deadlines
+- [ ] **Skill Development Paths**: Curated learning tracks for career goals
+- [ ] **Internship Finder**: Opportunities matching student interests
+
+### Phase 9 - Content Library
+- [ ] **Video Tutorials**: Recorded lessons for all subjects
+- [ ] **Practice Tests**: Mock exams with detailed explanations
+- [ ] **Study Notes**: Community-contributed study materials
+- [ ] **Formula Sheets**: Quick reference guides
+- [ ] **Past Papers**: Previous exam papers with solutions
+
+### Phase 10 - Advanced Features
+- [ ] **Multi-language Support**: Interface in student's native language
+- [ ] **Offline Mode**: Access key features without internet
+- [ ] **Mobile Apps**: Native iOS and Android applications
+- [ ] **Smart Watch Integration**: Quick check-ins and reminders
+- [ ] **AR Study Tools**: Augmented reality for interactive learning
+- [ ] **Blockchain Certificates**: Verified achievement credentials
+- [ ] **AI Tutor Network**: Connect with specialized AI tutors
+
+### Phase 11 - Teacher Tools
+- [ ] **Class Management**: Bulk homework and test assignments
+- [ ] **Automated Grading**: AI-assisted assignment evaluation
+- [ ] **Attendance Dashboard**: Visual attendance tracking
+- [ ] **Performance Predictions**: Early warning system for at-risk students
+- [ ] **Lesson Planning AI**: Curriculum suggestions and resources
+
+### Phase 12 - Community Features
+- [ ] **Study Groups**: Form groups based on subjects/interests
+- [ ] **Peer Tutoring Marketplace**: Students help each other
+- [ ] **Discussion Forums**: Subject-wise Q&A communities
+- [ ] **Resource Sharing**: Exchange notes, summaries, tips
+- [ ] **Event Calendar**: School events, deadlines, competitions
+
+## 💭 Feature Suggestions
+
+Have ideas for new features? We'd love to hear them! The system is designed to be extensible and can accommodate:
+
+- **Custom Integrations**: Connect with your school's specific tools
+- **Specialized Subjects**: Advanced courses, languages, vocational training
+- **Regional Adaptations**: Country-specific curricula and exam boards
+- **Accessibility Features**: Screen readers, dyslexia-friendly modes, etc.
+- **Cultural Customization**: Respect local education systems and values
 
 ## 🔧 Configuration Options
 
@@ -458,98 +440,13 @@ npm run type-check     # Check TypeScript types
 
 All contributions must pass linting, formatting, type checking, and tests before merging.
 
-## 🔮 Upcoming Features
+## 🛠️ Getting Started
 
-### Phase 1 - Enhanced Communication
-- [ ] **Group Study Rooms**: Create virtual study sessions with multiple students
-- [ ] **Video/Voice Chat**: Real-time video calls with teachers and peers
-- [ ] **Screen Sharing**: Share screens for collaborative problem-solving
-- [ ] **File Attachments**: Send and receive study materials, notes, PDFs
+Ready to contribute or run the project locally? Check out our comprehensive setup guide:
 
-### Phase 2 - Advanced Analytics
-- [ ] **Predictive Performance**: AI predicts exam performance based on preparation
-- [ ] **Learning Style Optimization**: Personalized study recommendations
-- [ ] **Time Management AI**: Smart scheduling based on workload and deadlines
-- [ ] **Comparison Analytics**: Anonymous peer performance benchmarking
+📖 **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Complete development setup instructions for both frontend and backend
 
-### Phase 3 - Gamification & Rewards
-- [ ] **Achievement Badges**: Earn badges for study streaks, goals, improvements
-- [ ] **Leaderboards**: Friendly competition with classmates
-- [ ] **XP System**: Gain experience points for completing tasks
-- [ ] **Virtual Rewards**: Unlock themes, avatars, study tools
-
-### Phase 4 - Parent/Guardian Features
-- [ ] **Parent Dashboard**: View child's progress and well-being
-- [ ] **Weekly Reports**: Automated summary emails
-- [ ] **Concern Alerts**: Notifications for academic/mental health issues
-- [ ] **Parent-Teacher Communication**: Direct messaging channel
-
-### Phase 5 - School Integration
-- [ ] **LMS Integration**: Connect with Canvas, Google Classroom, Moodle
-- [ ] **Grade Sync**: Automatic grade import from school systems
-- [ ] **Calendar Integration**: Sync with school calendars
-- [ ] **Attendance Tracking**: Monitor and report attendance patterns
-
-### Phase 6 - AI Enhancements
-- [ ] **Study Plan Generator**: AI creates personalized study schedules
-- [ ] **Doubt Solver**: AI explains concepts with step-by-step solutions
-- [ ] **Practice Problem Generator**: Auto-generate practice questions
-- [ ] **Essay Reviewer**: AI feedback on writing assignments
-- [ ] **Voice AI Mentor**: Voice-based interactions for accessibility
-
-### Phase 7 - Wellness Features
-- [ ] **Meditation & Mindfulness**: Guided sessions for stress relief
-- [ ] **Break Reminders**: Smart notifications to take study breaks
-- [ ] **Sleep Tracker**: Monitor and optimize sleep patterns
-- [ ] **Nutrition Tips**: Healthy eating advice for students
-- [ ] **Exercise Challenges**: Physical fitness goals and tracking
-
-### Phase 8 - Career Development
-- [ ] **Career Aptitude Tests**: AI-powered career assessments
-- [ ] **Industry Mentorship**: Connect with professionals in dream fields
-- [ ] **College Planning**: Application guidance and deadlines
-- [ ] **Skill Development Paths**: Curated learning tracks for career goals
-- [ ] **Internship Finder**: Opportunities matching student interests
-
-### Phase 9 - Content Library
-- [ ] **Video Tutorials**: Recorded lessons for all subjects
-- [ ] **Practice Tests**: Mock exams with detailed explanations
-- [ ] **Study Notes**: Community-contributed study materials
-- [ ] **Formula Sheets**: Quick reference guides
-- [ ] **Past Papers**: Previous exam papers with solutions
-
-### Phase 10 - Advanced Features
-- [ ] **Multi-language Support**: Interface in student's native language
-- [ ] **Offline Mode**: Access key features without internet
-- [ ] **Mobile Apps**: Native iOS and Android applications
-- [ ] **Smart Watch Integration**: Quick check-ins and reminders
-- [ ] **AR Study Tools**: Augmented reality for interactive learning
-- [ ] **Blockchain Certificates**: Verified achievement credentials
-- [ ] **AI Tutor Network**: Connect with specialized AI tutors
-
-### Phase 11 - Teacher Tools
-- [ ] **Class Management**: Bulk homework and test assignments
-- [ ] **Automated Grading**: AI-assisted assignment evaluation
-- [ ] **Attendance Dashboard**: Visual attendance tracking
-- [ ] **Performance Predictions**: Early warning system for at-risk students
-- [ ] **Lesson Planning AI**: Curriculum suggestions and resources
-
-### Phase 12 - Community Features
-- [ ] **Study Groups**: Form groups based on subjects/interests
-- [ ] **Peer Tutoring Marketplace**: Students help each other
-- [ ] **Discussion Forums**: Subject-wise Q&A communities
-- [ ] **Resource Sharing**: Exchange notes, summaries, tips
-- [ ] **Event Calendar**: School events, deadlines, competitions
-
-## 💭 Feature Suggestions
-
-Have ideas for new features? We'd love to hear them! The system is designed to be extensible and can accommodate:
-
-- **Custom Integrations**: Connect with your school's specific tools
-- **Specialized Subjects**: Advanced courses, languages, vocational training
-- **Regional Adaptations**: Country-specific curricula and exam boards
-- **Accessibility Features**: Screen readers, dyslexia-friendly modes, etc.
-- **Cultural Customization**: Respect local education systems and values
+📖 **[SETUP_INSTRUCTIONS.md](./SETUP_INSTRUCTIONS.md)** - Detailed linting, testing, and CI configuration
 
 ---
 
