@@ -64,7 +64,6 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
       setCreatedAssignment(assignment);
       setFormState(defaultFormState);
     } catch (err) {
-      console.error('Failed to create assignment', err);
       setError(err instanceof Error ? err.message : 'Unable to create assignment');
     } finally {
       setLoading(false);
@@ -109,13 +108,13 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
             />
           </label>
           <label className="flex flex-col gap-2 text-sm text-slate-200">
-            Type
+            Assignment Type
             <input
               type="text"
               value={formState.type}
               onChange={(event) => handleChange('type', event.target.value)}
               className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
-              placeholder="Homework, project..."
+              placeholder="Quiz, Project, Essay"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm text-slate-200">

@@ -44,11 +44,17 @@ const Dashboard: React.FC<DashboardProps> = ({
         ? (checkIns[0].energyLevel >= 7 ? 'high' : checkIns[0].energyLevel >= 4 ? 'balanced' : 'low')
         : 'balanced',
       
-      overallProgressPercent: Math.round((
-        academicMetrics.homeworkCompletionRate * 0.4 +
-        academicMetrics.attendanceRate * 0.3 +
-        (academicMetrics.averageStudyHours / 3) * 100 * 0.3
-      )),
+      overallProgressPercent: Math.min(
+        100,
+        Math.max(
+          0,
+          Math.round(
+            academicMetrics.homeworkCompletionRate * 0.4 +
+              academicMetrics.attendanceRate * 0.3 +
+              (academicMetrics.averageStudyHours / 3) * 100 * 0.3
+          )
+        ),
+      ),
       
       energyTrend: checkIns.slice(0, 7).reverse().map(c => c.energyLevel),
       attendanceTrend: checkIns.slice(0, 7).reverse().map(c => c.classesAttended),

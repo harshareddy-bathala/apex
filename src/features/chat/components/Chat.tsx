@@ -62,8 +62,7 @@ const Chat: React.FC<ChatProps> = ({
         if (cancelled) return;
         setChatClient(backendClient);
         setMessages([buildWelcomeMessage(profile)]);
-      } catch (error) {
-        console.warn("Backend unreachable, switching to demo mode.", error);
+      } catch (_error) {
         if (cancelled) return;
         const demoClient = createDemoChatClient(profile);
         setChatClient(demoClient);
@@ -144,7 +143,6 @@ const Chat: React.FC<ChatProps> = ({
         }
       }
     } catch (error) {
-      console.error("Failed to send message:", error);
       let userFriendlyMessage = "I'm having a little trouble thinking right now. Please try again in a moment.";
       if (error instanceof Error) {
         const lowered = error.message.toLowerCase();
@@ -289,39 +287,40 @@ const Chat: React.FC<ChatProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-full bg-bg-dark">
-      <header className="flex-shrink-0 p-4 border-b border-card-border bg-panel flex items-center justify-between">
-        <div className="flex items-center space-x-3">
+    <div className="flex flex-col h-full glass-panel rounded-[28px] border border-white/10 shadow-[0_35px_90px_rgba(2,6,23,0.65)] overflow-hidden">
+      <header className="flex-shrink-0 p-4 sm:p-6 border-b border-white/10 bg-gradient-to-br from-[#0f1a2b] via-[#0c1422] to-[#070d18] flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-from to-primary-to rounded-full flex items-center justify-center text-white font-bold">
+            <div className="w-12 h-12 bg-gradient-to-br from-[#22d3ee] via-[#34d399] to-[#a855f7] rounded-2xl flex items-center justify-center text-white font-semibold shadow-[0_15px_35px_rgba(52,211,153,0.35)]">
               AI
             </div>
-            <div className="absolute bottom-0 right-0 w-3 h-3 bg-accent-green rounded-full border-2 border-bg-dark"></div>
+            <div className="absolute bottom-1 right-1 w-3 h-3 bg-accent-green rounded-full border-2 border-[#0f172a]"></div>
           </div>
           <div>
-            <h1 className="text-section-title text-white">Your AI Mentor</h1>
-            <p className="text-micro text-muted-ink">Always here to help you grow </p>
+            <p className="text-xs uppercase tracking-[0.4em] text-white/50">Mentor</p>
+            <h1 className="text-xl font-semibold text-white">Your AI Guide</h1>
+            <p className="text-micro text-white/60">Always here to help you grow</p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-micro text-slate-300">{profile.name}</p>
-          <p className="text-micro text-muted-ink">Grade {profile.grade}</p>
+          <p className="text-sm font-medium text-white/90">{profile.name}</p>
+          <p className="text-xs text-white/60">Grade {profile.grade}</p>
         </div>
       </header>
 
       <div className="flex-1 overflow-hidden">
         {isInitializing ? (
           <div className="flex items-center justify-center h-full p-8">
-            <div className="max-w-md text-center p-6 bg-panel border border-card-border rounded-2xl">
-              <p className="text-section-title text-accent-green font-medium mb-2">Connecting to mentor brain</p>
-              <p className="text-body-sm text-muted-ink">Warming up the FastAPI + ADK backend.</p>
+            <div className="max-w-md text-center p-6 glass-card border border-white/10 rounded-2xl">
+              <p className="text-lg font-semibold text-accent-green mb-2">Connecting to mentor brain</p>
+              <p className="text-sm text-white/70">Warming up the FastAPI + ADK backend.</p>
             </div>
           </div>
         ) : !chatClient ? (
           <div className="flex items-center justify-center h-full p-8">
-            <div className="max-w-md text-center p-6 bg-panel border border-card-border rounded-2xl">
-              <p className="text-section-title text-accent-amber font-medium mb-2">Backend unavailable</p>
-              <p className="text-body-sm text-muted-ink">Start the FastAPI service on http://localhost:8000 to chat with the mentor.</p>
+            <div className="max-w-md text-center p-6 glass-card border border-white/10 rounded-2xl">
+              <p className="text-lg font-semibold text-accent-amber mb-2">Backend unavailable</p>
+              <p className="text-sm text-white/70">Start the FastAPI service on http://localhost:8000 to chat with the mentor.</p>
             </div>
           </div>
         ) : (
@@ -336,9 +335,9 @@ const Chat: React.FC<ChatProps> = ({
       </div>
 
       {chatClient && (
-        <footer className="flex-shrink-0 p-3 border-t border-card-border bg-panel">
-          <p className="text-micro text-muted-ink text-center">
-            AI mentor powered by Google ADK agents  Conversation is private and supportive
+        <footer className="flex-shrink-0 p-3 border-t border-white/10 bg-white/5">
+          <p className="text-micro text-white/60 text-center">
+            AI mentor powered by Google ADK agents · Your conversation stays private 💬
           </p>
         </footer>
       )}

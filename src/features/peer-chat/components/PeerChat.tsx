@@ -1,26 +1,25 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ChatContact, PeerMessage, Conversation } from '@/types';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { getPeerContacts, getPeerMessages, sendPeerMessage } from '@/api/client';
+import type { ChatContact, PeerMessage } from '@/types';
 
 interface PeerChatProps {
   currentUserId: string;
   currentUserName: string;
-  contacts: ChatContact[];
-  conversations: Conversation[];
-  messages: PeerMessage[];
-  onSendMessage: (receiverId: string, message: string) => void;
+  idToken: string;
 }
 
-export default function PeerChat({
-  currentUserId,
-  currentUserName: _currentUserName,
-  contacts,
-  conversations,
-  messages,
-  onSendMessage,
-}: PeerChatProps) {
+export default function PeerChat({ currentUserId, currentUserName, idToken }: PeerChatProps) {
+  const [contacts, setContacts] = useState<ChatContact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(true);
+  const [contactsError, setContactsError] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<ChatContact | null>(null);
+  const [messages, setMessages] = useState<PeerMessage[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [messagesError, setMessagesError] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sendingMessageId, setSendingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -29,207 +28,341 @@ export default function PeerChat({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, selectedContact]);
+  }, [messages]);
 
-  const filteredContacts = contacts.filter(contact =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (contact.subject && contact.subject.toLowerCase().includes(searchQuery.toLowerCase()))
+  const loadContacts = useCallback(async () => {
+    setContactsLoading(true);
+    setContactsError(null);
+    try {
+      const { peers } = await getPeerContacts(idToken);
+      setContacts(peers);
+      if (peers.length > 0) {
+        setSelectedContact((prev) => prev ?? peers[0]);
+      } else {
+        setSelectedContact(null);
+      }
+    } catch (err) {
+      setContactsError('Unable to load your peers. Please try again.');
+      setContacts([]);
+    } finally {
+      setContactsLoading(false);
+    }
+  }, [idToken]);
+
+  useEffect(() => {
+    void loadContacts();
+  }, [loadContacts]);
+
+  const loadConversation = useCallback(
+    async (peerId: string) => {
+      setMessagesLoading(true);
+      setMessagesError(null);
+      try {
+        const { messages: peerMessages } = await getPeerMessages(idToken, peerId);
+        const ordered = peerMessages.sort(
+          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+        );
+        setMessages(ordered);
+      } catch (err) {
+        setMessagesError('Unable to load this conversation.');
+        setMessages([]);
+      } finally {
+        setMessagesLoading(false);
+      }
+    },
+    [idToken],
   );
 
-  const currentMessages = selectedContact
-    ? messages.filter(
-        m =>
-          (m.senderId === currentUserId && m.receiverId === selectedContact.id) ||
-          (m.senderId === selectedContact.id && m.receiverId === currentUserId)
-      ).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    : [];
+  useEffect(() => {
+    if (selectedContact) {
+      void loadConversation(selectedContact.id);
+    } else {
+      setMessages([]);
+    }
+  }, [selectedContact, loadConversation]);
 
-  const handleSend = () => {
-    if (!newMessage.trim() || !selectedContact) return;
-    onSendMessage(selectedContact.id, newMessage.trim());
+  const filteredContacts = useMemo(() => {
+    return contacts.filter((contact) => {
+      const query = searchQuery.toLowerCase();
+      return (
+        contact.name.toLowerCase().includes(query) ||
+        (!!contact.subject && contact.subject.toLowerCase().includes(query))
+      );
+    });
+  }, [contacts, searchQuery]);
+
+  const currentContactName = selectedContact?.name ?? 'your peer';
+
+  const handleSend = async () => {
+    if (!newMessage.trim() || !selectedContact) {
+      return;
+    }
+
+    const trimmed = newMessage.trim();
+    const optimisticId = `temp-${Date.now()}`;
+    const conversationId = [currentUserId, selectedContact.id].sort().join('-');
+    const optimisticMessage: PeerMessage = {
+      id: optimisticId,
+      conversationId,
+      senderId: currentUserId,
+      senderName: currentUserName,
+      receiverId: selectedContact.id,
+      message: trimmed,
+      timestamp: new Date().toISOString(),
+      read: false,
+      type: 'text',
+    };
+
+    setMessages((prev) => [...prev, optimisticMessage]);
     setNewMessage('');
+    setSendingMessageId(optimisticId);
+    setMessagesError(null);
+
+    try {
+      const persisted = await sendPeerMessage(idToken, {
+        recipientId: selectedContact.id,
+        content: trimmed,
+      });
+
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === optimisticId ? { ...persisted } : msg)),
+      );
+    } catch (err) {
+      setMessagesError('Message failed to send. Please try again.');
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId));
+      setNewMessage(trimmed);
+    } finally {
+      setSendingMessageId(null);
+    }
   };
 
-  const getContactConversation = (contactId: string) => {
-    return conversations.find(conv => conv.participants.includes(contactId));
+  const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      void handleSend();
+    }
+  };
+
+  const renderContactList = () => {
+    if (contactsLoading) {
+      return (
+        <div className="flex items-center justify-center h-full text-muted-ink">
+          <p>Loading your peers...</p>
+        </div>
+      );
+    }
+
+    if (contactsError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center px-6">
+          <p className="text-body text-red-200 mb-4">{contactsError}</p>
+          <button
+            type="button"
+            onClick={() => void loadContacts()}
+            className="px-4 py-2 rounded-lg bg-gradient-to-r from-primary-from to-primary-to text-white shadow-card"
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+
+    if (filteredContacts.length === 0) {
+      return (
+        <div className="p-8 text-center text-muted-ink">
+          <p>No contacts found</p>
+        </div>
+      );
+    }
+
+    return filteredContacts.map((contact) => (
+      <button
+        key={contact.id}
+        onClick={() => setSelectedContact(contact)}
+        className={`w-full p-4 border-b border-card-border hover:bg-panel transition-colors text-left ${
+          selectedContact?.id === contact.id ? 'bg-panel' : ''
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-from to-primary-to flex items-center justify-center text-white font-bold text-lg">
+              {contact.name.charAt(0).toUpperCase()}
+            </div>
+            {contact.isOnline && (
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-accent-green border-2 border-bg-dark rounded-full" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-white truncate">
+              {contact.name}
+              {contact.role === 'teacher' && (
+                <span className="ml-2 text-xs bg-blue-500/20 text-blue-200 px-2 py-0.5 rounded-full border border-blue-500/40">
+                  Teacher
+                </span>
+              )}
+            </p>
+            {contact.subject && <p className="text-xs text-muted-ink">{contact.subject}</p>}
+            <p className="text-xs text-muted-ink mt-1">
+              {contact.isOnline
+                ? 'Online now'
+                : contact.lastSeen
+                ? `Last seen ${new Date(contact.lastSeen).toLocaleString()}`
+                : 'Last seen recently'}
+            </p>
+          </div>
+        </div>
+      </button>
+    ));
+  };
+
+  const renderMessages = () => {
+    if (!selectedContact) {
+      return (
+        <div className="flex-1 flex items-center justify-center text-muted-ink">
+          <div className="text-center">
+            <p className="text-6xl mb-4">💬</p>
+            <p className="text-xl font-semibold">Select a contact to start chatting</p>
+            <p className="text-sm mt-2">Connect with classmates and teachers</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (messagesLoading) {
+      return (
+        <div className="flex-1 flex items-center justify-center text-muted-ink">
+          <p>Loading conversation...</p>
+        </div>
+      );
+    }
+
+    if (messagesError) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+          <p className="text-body text-red-200 mb-4">{messagesError}</p>
+          <button
+            type="button"
+            onClick={() => void loadConversation(selectedContact.id)}
+            className="px-4 py-2 rounded-lg bg-gradient-to-r from-primary-from to-primary-to text-white shadow-card"
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+
+    if (messages.length === 0) {
+      return (
+        <div className="flex-1 flex items-center justify-center text-muted-ink">
+          <div className="text-center">
+            <p className="text-4xl mb-2">👋</p>
+            <p>Start a conversation with {currentContactName}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((msg) => {
+          const isSent = msg.senderId === currentUserId;
+          const isPending = isSent && msg.id === sendingMessageId;
+          return (
+            <div key={msg.id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`max-w-[70%] rounded-2xl px-4 py-3 shadow-card border ${
+                  isSent
+                    ? 'bg-gradient-to-r from-primary-from to-primary-to text-white border-primary-to/40'
+                    : 'bg-panel text-white border-card-border'
+                } ${isPending ? 'opacity-70' : ''}`}
+              >
+                <p className="break-words text-body-sm">{msg.message}</p>
+                <p className={`text-micro mt-1 ${isSent ? 'text-white/70' : 'text-muted-ink'}`}>
+                  {new Date(msg.timestamp).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                  {isSent && msg.read && ' • Read'}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+    );
   };
 
   return (
-    <div className="flex h-[calc(100vh-200px)] bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="flex h-[calc(100vh-200px)] bg-bg-dark rounded-3xl shadow-card border border-card-border overflow-hidden">
       {/* Contacts Sidebar */}
-      <div className="w-80 border-r flex flex-col">
+      <div className="w-80 border-r border-card-border flex flex-col bg-panel-elevated">
         {/* Search */}
-        <div className="p-4 border-b bg-gray-50">
-          <h2 className="text-xl font-bold text-gray-900 mb-3">💬 Messages</h2>
+        <div className="p-4 border-b border-card-border bg-panel">
+          <h2 className="text-xl font-bold text-white mb-3">💬 Messages</h2>
           <input
             type="text"
             placeholder="Search contacts..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-2 bg-panel-elevated border border-card-border rounded-lg text-white placeholder-muted-ink focus:ring-2 focus:ring-discrete-highlight"
           />
         </div>
 
         {/* Contacts List */}
-        <div className="flex-1 overflow-y-auto">
-          {filteredContacts.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <p>No contacts found</p>
-            </div>
-          ) : (
-            filteredContacts.map(contact => {
-              const conversation = getContactConversation(contact.id);
-              return (
-                <button
-                  key={contact.id}
-                  onClick={() => setSelectedContact(contact)}
-                  className={`w-full p-4 border-b hover:bg-gray-50 transition-colors text-left ${
-                    selectedContact?.id === contact.id ? 'bg-indigo-50' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
-                        {contact.name.charAt(0).toUpperCase()}
-                      </div>
-                      {contact.isOnline && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="font-semibold text-gray-900 truncate">
-                          {contact.name}
-                          {contact.role === 'teacher' && (
-                            <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                              Teacher
-                            </span>
-                          )}
-                        </p>
-                        {conversation?.unreadCount > 0 && (
-                          <span className="bg-indigo-600 text-white text-xs px-2 py-1 rounded-full">
-                            {conversation.unreadCount}
-                          </span>
-                        )}
-                      </div>
-                      {contact.subject && (
-                        <p className="text-xs text-gray-600">{contact.subject}</p>
-                      )}
-                      {conversation && (
-                        <p className="text-sm text-gray-500 truncate mt-1">
-                          {conversation.lastMessage}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })
-          )}
-        </div>
+        <div className="flex-1 overflow-y-auto">{renderContactList()}</div>
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {selectedContact ? (
-          <>
-            {/* Chat Header */}
-            <div className="p-4 border-b bg-gray-50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold">
-                  {selectedContact.name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">
-                    {selectedContact.name}
-                    {selectedContact.role === 'teacher' && (
-                      <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                        Teacher
-                      </span>
-                    )}
-                  </p>
-                  {selectedContact.isOnline ? (
-                    <p className="text-xs text-green-600">● Online</p>
-                  ) : (
-                    <p className="text-xs text-gray-500">
-                      Last seen: {selectedContact.lastSeen ? new Date(selectedContact.lastSeen).toLocaleString() : 'Unknown'}
-                    </p>
-                  )}
-                </div>
-              </div>
+      <div className="flex-1 flex flex-col bg-panel">
+        {selectedContact && (
+          <div className="p-4 border-b border-card-border bg-panel flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-from to-primary-to flex items-center justify-center text-white font-bold">
+              {selectedContact.name.charAt(0).toUpperCase()}
             </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {currentMessages.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  <div className="text-center">
-                    <p className="text-4xl mb-2">👋</p>
-                    <p>Start a conversation with {selectedContact.name}</p>
-                  </div>
-                </div>
+            <div>
+              <p className="font-semibold text-white">
+                {selectedContact.name}
+                {selectedContact.role === 'teacher' && (
+                  <span className="ml-2 text-xs bg-blue-500/20 text-blue-200 px-2 py-0.5 rounded-full border border-blue-500/40">
+                    Teacher
+                  </span>
+                )}
+              </p>
+              {selectedContact.isOnline ? (
+                <p className="text-xs text-accent-green">● Online</p>
               ) : (
-                currentMessages.map(msg => {
-                  const isSent = msg.senderId === currentUserId;
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                          isSent
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}
-                      >
-                        <p className="break-words">{msg.message}</p>
-                        <p
-                          className={`text-xs mt-1 ${
-                            isSent ? 'text-indigo-200' : 'text-gray-500'
-                          }`}
-                        >
-                          {new Date(msg.timestamp).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                          {isSent && msg.read && ' • Read'}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })
+                <p className="text-xs text-muted-ink">
+                  Last seen:{' '}
+                  {selectedContact.lastSeen
+                    ? new Date(selectedContact.lastSeen).toLocaleString()
+                    : 'Recently'}
+                </p>
               )}
-              <div ref={messagesEndRef} />
             </div>
+          </div>
+        )}
 
-            {/* Message Input */}
-            <div className="p-4 border-t bg-gray-50">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Type a message..."
-                  className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={!newMessage.trim()}
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Send
-                </button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            <div className="text-center">
-              <p className="text-6xl mb-4">💬</p>
-              <p className="text-xl font-semibold">Select a contact to start chatting</p>
-              <p className="text-sm mt-2">Connect with classmates and teachers</p>
+        {renderMessages()}
+
+        {selectedContact && (
+          <div className="p-4 border-t border-card-border bg-panel">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder={`Message ${currentContactName}`}
+                className="flex-1 px-4 py-3 bg-panel-elevated border border-card-border rounded-2xl text-white placeholder-muted-ink focus:ring-2 focus:ring-discrete-highlight"
+              />
+              <button
+                onClick={() => void handleSend()}
+                disabled={!newMessage.trim()}
+                className="px-6 py-3 rounded-2xl bg-gradient-to-r from-primary-from to-primary-to text-white font-semibold shadow-card disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Send
+              </button>
             </div>
           </div>
         )}

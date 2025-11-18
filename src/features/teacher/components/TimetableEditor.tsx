@@ -68,7 +68,6 @@ const TimetableEditor: React.FC<TimetableEditorProps> = ({ idToken }) => {
       const record = await upsertTimetable(idToken, payload);
       setLatestTimetable(record);
     } catch (err) {
-      console.error('Failed to save timetable', err);
       setError(err instanceof Error ? err.message : 'Unable to save timetable');
     } finally {
       setLoading(false);

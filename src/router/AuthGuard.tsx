@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 
 import { useAuth } from '@/common/hooks/useAuth';
@@ -13,9 +14,28 @@ import { mapFirebaseUser } from '@/utils/mapFirebaseUser';
 
 const AuthGuard: React.FC = () => {
   const { user, idToken } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<StudentProfileRecord | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forceOnboarding, setForceOnboarding] = useState(() =>
+    Boolean((location.state as { forceOnboarding?: boolean } | null)?.forceOnboarding),
+  );
+
+  useEffect(() => {
+    const locationState = location.state as { forceOnboarding?: boolean } | null;
+    if (locationState?.forceOnboarding) {
+      setForceOnboarding(true);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location, navigate]);
+
+  useEffect(() => {
+    if (forceOnboarding && profile?.onboardingComplete) {
+      setForceOnboarding(false);
+    }
+  }, [forceOnboarding, profile?.onboardingComplete]);
 
   const fetchProfile = useCallback(async () => {
     if (!idToken) {
@@ -29,7 +49,6 @@ const AuthGuard: React.FC = () => {
       const record = await getStudentProfile(idToken);
       setProfile(record);
     } catch (err) {
-      console.error('Failed to load user profile', err);
       setProfile(null);
       setError('Unable to load your profile. Please try again.');
     } finally {
@@ -46,7 +65,8 @@ const AuthGuard: React.FC = () => {
   }, [fetchProfile, idToken]);
 
   const profileRole = profile?.role ?? 'student';
-  const requiresOnboarding = profileRole !== 'teacher' && (!profile || profile.onboardingComplete === false);
+  const needsProfileCompletion = profile?.onboardingComplete !== true;
+  const requiresOnboarding = profileRole !== 'teacher' && (forceOnboarding || needsProfileCompletion);
   const providerValue = useMemo(() => ({ profile, refetchProfile: fetchProfile }), [profile, fetchProfile]);
   const authUser = useMemo(() => mapFirebaseUser(user), [user]);
 

@@ -142,6 +142,15 @@ class HomeworkUpdatePayload(BaseModel):
     notes: str | None = None
 
 
+class PeerMessagePayload(BaseModel):
+    recipient_id: str = Field(..., alias="recipientId")
+    content: str = Field(..., min_length=1)
+
+
+def _conversation_id(peer_a: str, peer_b: str) -> str:
+    return "-".join(sorted([peer_a, peer_b]))
+
+
 
 LOW_MOOD_STATES = {"stressed", "struggling"}
 ALERT_WEIGHTS = {
@@ -380,6 +389,139 @@ async def update_homework_entry(
     data = dict(refreshed.data or {})
     data.setdefault("id", homework_id)
     return {"homework": data}
+
+
+@app.get("/tests")
+async def list_tests(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, List[Dict[str, Any]]]:
+    _ensure_student(user)
+
+    records: List[Dict[str, Any]] = []
+    for doc in query_collection("tests", filters=[("studentId", "==", user.uid)]):
+        data = dict(doc.data or {})
+        data.setdefault("id", doc.id)
+        records.append(data)
+
+    if not records:
+        for doc in query_collection("assignments", filters=[("type", "==", "test")]):
+            assignment = dict(doc.data or {})
+            student_ids = assignment.get("studentIds") or []
+            if student_ids and user.uid not in student_ids:
+                continue
+            record = {
+                "id": doc.id,
+                "studentId": user.uid,
+                "teacherId": assignment.get("teacherId"),
+                "teacherName": assignment.get("teacherName") or assignment.get("teacher"),
+                "subject": assignment.get("subject") or "General",
+                "title": assignment.get("title") or "Test",
+                "description": assignment.get("description"),
+                "testDate": assignment.get("testDate") or assignment.get("dueDate") or _utc_now(),
+                "duration": assignment.get("duration"),
+                "syllabus": assignment.get("syllabus") or assignment.get("topics") or [],
+                "importance": assignment.get("importance") or assignment.get("type") or "quiz",
+                "preparationStatus": assignment.get("preparationStatus") or "not-started",
+                "studyMaterials": assignment.get("studyMaterials") or [],
+                "notes": assignment.get("notes"),
+                "createdAt": assignment.get("createdAt") or _utc_now(),
+            }
+            records.append(record)
+
+    return {"tests": records}
+
+
+@app.get("/peers")
+async def list_peers(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, List[Dict[str, Any]]]:
+    _ensure_student(user)
+
+    peers: List[Dict[str, Any]] = []
+    for doc in query_collection("users", filters=[("role", "==", "student")]):
+        if doc.id == user.uid:
+            continue
+        data = dict(doc.data or {})
+        profile_snapshot = get_document("studentProfiles", doc.id)
+        profile = profile_snapshot.data if profile_snapshot else {}
+        peer_record = {
+            "id": doc.id,
+            "name": profile.get("name") or data.get("name") or (data.get("email") or "peer").split("@")[0],
+            "role": "student",
+            "subject": (profile.get("subjects") or [None])[0],
+            "class": profile.get("grade"),
+            "avatarUrl": profile.get("avatarUrl"),
+            "isOnline": bool(profile.get("isOnline")),
+            "lastSeen": profile.get("updatedAt"),
+        }
+        peers.append(peer_record)
+
+    peers.sort(key=lambda peer: peer.get("name", "").lower())
+    return {"peers": peers}
+
+
+@app.post("/peer/message")
+async def create_peer_message(payload: PeerMessagePayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    _ensure_student(user)
+
+    if payload.recipient_id == user.uid:
+        raise HTTPException(status_code=400, detail="Cannot send a message to yourself")
+
+    recipient_snapshot = get_document("users", payload.recipient_id)
+    if not recipient_snapshot or (recipient_snapshot.data or {}).get("role") != "student":
+        raise HTTPException(status_code=404, detail="Recipient not found")
+
+    sender_profile = get_document("studentProfiles", user.uid)
+    sender_name = (sender_profile.data or {}).get("name") if sender_profile else None
+    timestamp = _utc_now()
+    conversation_id = _conversation_id(user.uid, payload.recipient_id)
+    message_id = uuid.uuid4().hex
+    record = {
+        "id": message_id,
+        "conversationId": conversation_id,
+        "senderId": user.uid,
+        "senderName": sender_name or user.email or "You",
+        "receiverId": payload.recipient_id,
+        "message": payload.content,
+        "timestamp": timestamp,
+        "read": False,
+        "type": "text",
+        "createdAt": timestamp,
+    }
+    add_document("peerMessages", record, document_id=message_id)
+    return {"message": record}
+
+
+@app.get("/peer/messages/{peer_id}")
+async def list_peer_messages(peer_id: str, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, List[Dict[str, Any]]]:
+    _ensure_student(user)
+
+    if peer_id == user.uid:
+        raise HTTPException(status_code=400, detail="peerId must be different from current user")
+
+    peer_snapshot = get_document("users", peer_id)
+    if not peer_snapshot or (peer_snapshot.data or {}).get("role") != "student":
+        raise HTTPException(status_code=404, detail="Peer not found")
+
+    conversation_id = _conversation_id(user.uid, peer_id)
+    messages: List[Dict[str, Any]] = []
+    for doc in query_collection("peerMessages", filters=[("conversationId", "==", conversation_id)]):
+        entry = dict(doc.data or {})
+        entry.setdefault("id", doc.id)
+        messages.append(entry)
+
+    messages.sort(key=lambda msg: msg.get("timestamp", ""))
+    return {"messages": messages}
+
+
+@app.post("/peers/message")
+async def create_peer_message_plural(payload: PeerMessagePayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    """Compatibility alias for clients expecting /peers/message."""
+
+    return await create_peer_message(payload, user)
+
+
+@app.get("/peers/messages/{peer_id}")
+async def list_peer_messages_plural(peer_id: str, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, List[Dict[str, Any]]]:
+    """Compatibility alias for clients expecting /peers/messages/{peerId}."""
+
+    return await list_peer_messages(peer_id, user)
 
 
 @app.post("/assignment")

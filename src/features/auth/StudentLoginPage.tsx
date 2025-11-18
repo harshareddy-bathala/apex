@@ -29,6 +29,7 @@ const StudentLoginPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [shouldForceOnboarding, setShouldForceOnboarding] = useState(false);
 
   const normalizeEmail = (value: string) => value.trim().toLowerCase();
 
@@ -63,13 +64,12 @@ const StudentLoginPage: React.FC = () => {
   const seedStudentDoc = async (uid: string, emailAddress?: string | null) => {
     const normalized = (emailAddress ?? '').trim().toLowerCase();
     if (!normalized) {
-      console.warn('Unable to seed user doc: missing email');
       return;
     }
     try {
       await createStudentUserDoc(uid, normalized);
-    } catch (seedError) {
-      console.error('Failed to create user document', seedError);
+    } catch (_seedError) {
+      /* no-op */
     }
   };
 
@@ -99,11 +99,12 @@ const StudentLoginPage: React.FC = () => {
           await seedStudentDoc(credential.user.uid, credential.user.email ?? normalizedEmail);
           await credential.user.getIdToken(true);
         }
+        setShouldForceOnboarding(true);
       } else {
         await signInWithEmailAndPassword(auth, normalizedEmail, password);
+        setShouldForceOnboarding(false);
       }
     } catch (authError) {
-      console.error(authError);
       const code = (authError as { code?: string })?.code;
       setError(code ? mapAuthError(code, mode) : 'Unable to authenticate. Please double-check your credentials.');
     } finally {
@@ -124,7 +125,6 @@ const StudentLoginPage: React.FC = () => {
       await sendPasswordResetEmail(auth, normalizeEmail(email));
       setInfoMessage('Password reset email sent. Check your inbox (and spam).');
     } catch (resetError) {
-      console.error(resetError);
       const code = (resetError as { code?: string })?.code;
       const message = code === 'auth/user-not-found'
         ? 'No account exists for that email yet. Try signing up first.'
@@ -149,8 +149,8 @@ const StudentLoginPage: React.FC = () => {
         await seedStudentDoc(credential.user.uid, credential.user.email);
         await credential.user.getIdToken(true);
       }
+      setShouldForceOnboarding(isNewUser);
     } catch (authError) {
-      console.error(authError);
       setError('Google sign-in failed. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -166,7 +166,7 @@ const StudentLoginPage: React.FC = () => {
   }
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/" replace state={shouldForceOnboarding ? { forceOnboarding: true } : null} />;
   }
 
   return (

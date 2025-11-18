@@ -50,7 +50,6 @@ const TeacherLoginPage: React.FC = () => {
       const normalizedEmail = normalizeEmail(email);
       await signInWithEmailAndPassword(auth, normalizedEmail, password);
     } catch (authError) {
-      console.error(authError);
       const code = (authError as { code?: string })?.code;
       setError(mapAuthError(code));
       setIsSubmitting(false);
@@ -66,7 +65,6 @@ const TeacherLoginPage: React.FC = () => {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (authError) {
-      console.error(authError);
       setError('Google sign-in failed. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -86,7 +84,6 @@ const TeacherLoginPage: React.FC = () => {
       await sendPasswordResetEmail(auth, normalizeEmail(email));
       setInfoMessage('Reset email sent. Check your inbox or spam folder.');
     } catch (resetError) {
-      console.error(resetError);
       const code = (resetError as { code?: string })?.code;
       const message = code === 'auth/user-not-found'
         ? 'No teacher account exists for that email. Contact an admin to get access.'

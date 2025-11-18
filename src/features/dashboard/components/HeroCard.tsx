@@ -32,6 +32,8 @@ export const HeroCard: React.FC<HeroCardProps> = ({
   onProgressClick
 }) => {
   const shouldReduceMotion = useReducedMotion();
+  const safeProgress = Math.min(100, Math.max(0, overallProgress));
+  const progressInteractive = typeof onProgressClick === 'function';
 
   return (
     <motion.div
@@ -80,12 +82,14 @@ export const HeroCard: React.FC<HeroCardProps> = ({
         {/* Right side: Progress ring */}
         <div className="flex flex-col items-center gap-3 px-4 py-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
           <ProgressRing
-            percent={overallProgress}
+            percent={safeProgress}
             size={100}
             strokeWidth={8}
             color="#22d3ee"
-            label={`Overall weekly progress: ${overallProgress}%`}
+            label={`Overall weekly progress: ${safeProgress}%`}
             onClick={onProgressClick}
+            interactive={progressInteractive}
+            disabledTooltip="Coming soon"
           />
           <span className="text-xs uppercase tracking-[0.35em] text-white/70">
             Weekly Progress

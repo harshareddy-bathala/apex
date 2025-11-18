@@ -15,6 +15,8 @@ COLLECTIONS: Dict[str, str] = {
     "checkins": "checkins",
     "attendance": "attendance",
     "timetables": "timetables",
+    "tests": "tests",
+    "peerMessages": "peerMessages",
 }
 
 

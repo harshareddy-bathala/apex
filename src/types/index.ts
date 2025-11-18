@@ -74,6 +74,8 @@ export interface DailyCheckIn {
   
   // Achievements
   achievements?: string[];
+  win?: string;
+  blocker?: string;
   
   timestamp: string;
 }

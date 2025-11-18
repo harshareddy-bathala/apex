@@ -21,6 +21,7 @@ type View = 'dashboard' | 'chat' | 'checkin' | 'report' | 'homework' | 'tests' |
 interface NavigationProps {
   authUser: User;
   profile: StudentProfile;
+  role?: 'student' | 'teacher';
   currentView: View;
   hasTodayCheckIn: boolean;
   onViewChange: (view: View) => void;
@@ -34,6 +35,7 @@ interface NavigationProps {
 const Navigation: React.FC<NavigationProps> = ({
   authUser,
   profile,
+  role = 'student',
   currentView,
   hasTodayCheckIn,
   onViewChange,
@@ -117,17 +119,19 @@ const Navigation: React.FC<NavigationProps> = ({
               </button>
             )}
             
-            {/* Report Button */}
-            <button
-              onClick={onReportClick}
-              className="px-4 py-2 rounded-2xl text-sm font-medium text-white bg-white/10 border border-white/10 hover:bg-white/15 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 flex items-center gap-2"
-              aria-label="View progress report"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span className="hidden sm:inline">Report</span>
-            </button>
+            {/* Report Button (teachers only) */}
+            {role === 'teacher' && (
+              <button
+                onClick={onReportClick}
+                className="px-4 py-2 rounded-2xl text-sm font-medium text-white bg-white/10 border border-white/10 hover:bg-white/15 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 flex items-center gap-2"
+                aria-label="View progress report"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="hidden sm:inline">Report</span>
+              </button>
+            )}
             
             {/* User Menu */}
             <div className="relative group">

@@ -58,7 +58,7 @@ export const ActivitiesFeed: React.FC<ActivitiesFeedProps> = ({
   const displayActivities = filteredActivities.slice(0, maxItems);
 
   return (
-    <div className="glass-card rounded-3xl p-5 border border-white/10 shadow-[0_25px_60px_rgba(5,8,20,0.55)]">
+    <div className="glass-panel rounded-3xl p-5 shadow-[0_25px_60px_rgba(5,8,20,0.55)]">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-white flex items-center gap-2 text-lg font-semibold">
           <span className="text-2xl">🎯</span>
@@ -75,7 +75,7 @@ export const ActivitiesFeed: React.FC<ActivitiesFeedProps> = ({
             className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-all whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
               filter === tab
                 ? 'bg-gradient-to-r from-[#7c3aed] to-[#22d3ee] text-white shadow-[0_10px_30px_rgba(124,58,237,0.35)]'
-                : 'bg-white/5 text-white/60 hover:text-white'
+                : 'premium-chip text-white/70 hover:text-white'
             }`}
             aria-label={`Filter by ${tab} activities`}
             aria-pressed={filter === tab}
@@ -99,10 +99,10 @@ export const ActivitiesFeed: React.FC<ActivitiesFeedProps> = ({
               return (
                 <li
                   key={activity.id}
-                  className="flex items-start gap-3 p-3 rounded-2xl border border-white/5 hover:border-white/25 transition-colors bg-white/5/10"
+                  className="flex items-start gap-3 glass-panel rounded-2xl p-4 border border-white/5 hover:border-white/25 transition-colors"
                 >
                   {/* Icon */}
-                  <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-white/5 rounded-2xl text-lg">
+                  <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-white/10 rounded-2xl text-lg">
                     {activity.icon}
                   </div>
 
@@ -112,7 +112,7 @@ export const ActivitiesFeed: React.FC<ActivitiesFeedProps> = ({
                       {activity.text}
                     </p>
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 text-micro ${config.bg} ${config.text} rounded`}>
+                      <span className={`premium-chip px-2 py-0.5 text-micro ${config.text}`}>
                         {config.label}
                       </span>
                       <span className="text-xs text-white/50">
@@ -130,7 +130,7 @@ export const ActivitiesFeed: React.FC<ActivitiesFeedProps> = ({
       {/* View all button */}
       {filteredActivities.length > maxItems && (
         <button
-          className="w-full mt-4 py-2 text-sm text-white/60 hover:text-white border border-white/15 hover:border-white/35 rounded-2xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+          className="w-full mt-4 py-2 text-sm text-white/60 hover:text-white premium-chip rounded-2xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
           aria-label="View all activities"
         >
           View all {filteredActivities.length} activities

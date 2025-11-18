@@ -1,4 +1,4 @@
-import type { DailyCheckIn, Homework, StudentProfile } from '@/types';
+import type { ChatContact, DailyCheckIn, Homework, PeerMessage, StudentProfile, Test } from '@/types';
 
 const DEFAULT_BACKEND_URL =
   import.meta.env.VITE_MENTOR_BACKEND_URL?.replace(/\/$/, '') || 'http://localhost:8000';
@@ -35,6 +35,18 @@ interface HomeworkResponse {
 
 interface HomeworkUpdateResponse {
   homework: Homework;
+}
+
+interface TestsResponse {
+  tests: Test[];
+}
+
+interface PeerContactsResponse {
+  peers: ChatContact[];
+}
+
+interface PeerMessagesResponse {
+  messages: PeerMessage[];
 }
 
 export interface CreateAssignmentPayload {
@@ -308,6 +320,21 @@ export async function getHomework(token: string): Promise<HomeworkResponse> {
   return (await response.json()) as HomeworkResponse;
 }
 
+export async function getTests(token: string): Promise<TestsResponse> {
+  const response = await fetch(apiUrl('/tests'), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to load tests (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as TestsResponse;
+}
+
 export type HomeworkUpdatePayload = Partial<Pick<Homework, 'status' | 'notes'>>;
 
 export async function updateHomework(
@@ -331,6 +358,60 @@ export async function updateHomework(
 
   const data = (await response.json()) as HomeworkUpdateResponse;
   return data.homework;
+}
+
+export async function getPeerContacts(token: string): Promise<PeerContactsResponse> {
+  const response = await fetch(apiUrl('/peers'), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to load peers (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as PeerContactsResponse;
+}
+
+export async function getPeerMessages(token: string, peerId: string): Promise<PeerMessagesResponse> {
+  const response = await fetch(apiUrl(`/peer/messages/${peerId}`), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to load conversation (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as PeerMessagesResponse;
+}
+
+export interface SendPeerMessagePayload {
+  recipientId: string;
+  content: string;
+}
+
+export async function sendPeerMessage(token: string, payload: SendPeerMessagePayload): Promise<PeerMessage> {
+  const response = await fetch(apiUrl('/peer/message'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to send message (${response.status}): ${errorText}`);
+  }
+
+  const data = (await response.json()) as { message: PeerMessage };
+  return data.message;
 }
 
 export async function createAssignment(token: string, data: CreateAssignmentPayload): Promise<AssignmentRecord> {

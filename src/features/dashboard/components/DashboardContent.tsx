@@ -141,6 +141,8 @@ const DashboardContent: React.FC<Props> = ({
 		onViewTasks?.();
 	};
 
+	const teacherModeDisabled = !onToggleTeacherMode;
+
 	return (
 		<div className="space-y-6">
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -148,7 +150,16 @@ const DashboardContent: React.FC<Props> = ({
 					<p className="text-xs uppercase tracking-[0.3em] text-white/50">Dashboard</p>
 					<h2 className="text-2xl font-semibold text-white/90">Today’s premium overview</h2>
 				</div>
-				<button type="button" onClick={() => onToggleTeacherMode?.()} className="text-sm text-white/60 hover:text-white">
+				<button
+					type="button"
+					onClick={() => onToggleTeacherMode?.()}
+					disabled={teacherModeDisabled}
+					title={teacherModeDisabled ? 'Coming soon' : undefined}
+					className={`text-sm text-white/60 ${
+						teacherModeDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-white'
+					}`}
+					aria-disabled={teacherModeDisabled}
+				>
 					Toggle teacher view
 				</button>
 			</div>
@@ -158,13 +169,13 @@ const DashboardContent: React.FC<Props> = ({
 				grade={studentData.grade}
 				subjects={studentData.subjects}
 				overallProgress={studentData.overallProgressPercent}
-				onProgressClick={onExportReport ?? (() => {})}
+				onProgressClick={onExportReport}
 			/>
 
 			<ActionBar
 				onAskMentor={handleOpenChat}
-				onAddGoal={onAddGoal ?? (() => {})}
-				onViewTasks={onViewTasks ?? (() => {})}
+				onAddGoal={onAddGoal}
+				onViewTasks={onViewTasks}
 			/>
 
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">

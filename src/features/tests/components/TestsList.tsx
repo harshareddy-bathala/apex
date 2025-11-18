@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Test } from '@/types';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { getTests } from '@/api/client';
+import type { Test } from '@/types';
 
 const FILTER_TABS = [
   { id: 'upcoming', label: 'Upcoming', icon: '🔜' },
@@ -11,26 +13,42 @@ const FILTER_TABS = [
 type FilterValue = (typeof FILTER_TABS)[number]['id'];
 
 interface TestsListProps {
-  studentId: string;
-  tests: Test[];
-  onUpdate: (tests: Test[]) => void;
+  idToken: string;
 }
 
-export default function TestsList({ studentId: _studentId, tests, onUpdate }: TestsListProps) {
+export default function TestsList({ idToken }: TestsListProps) {
   const [filter, setFilter] = useState<FilterValue>('upcoming');
+  const [tests, setTests] = useState<Test[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadTests = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { tests: payload } = await getTests(idToken);
+      setTests(payload);
+    } catch (err) {
+      setError('Unable to load tests. Please try again.');
+      setTests([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [idToken]);
+
+  useEffect(() => {
+    void loadTests();
+  }, [loadTests]);
   
   const updatePreparationStatus = (id: string, status: Test['preparationStatus']) => {
-    const updated = tests.map(test => 
-      test.id === id ? { ...test, preparationStatus: status } : test
+    setTests((prev) =>
+      prev.map((test) => (test.id === id ? { ...test, preparationStatus: status } : test)),
     );
-    onUpdate(updated);
   };
 
   const addNote = (id: string, note: string) => {
-    const updated = tests.map(test => 
-      test.id === id ? { ...test, notes: note } : test
-    );
-    onUpdate(updated);
+    setTests((prev) => prev.map((test) => (test.id === id ? { ...test, notes: note } : test)));
   };
 
   const getFilteredTests = () => {
@@ -48,7 +66,7 @@ export default function TestsList({ studentId: _studentId, tests, onUpdate }: Te
     }).sort((a, b) => new Date(a.testDate).getTime() - new Date(b.testDate).getTime());
   };
 
-  const filteredTests = getFilteredTests();
+  const filteredTests = useMemo(() => getFilteredTests(), [tests, filter]);
 
   const getImportanceColor = (importance: string) => {
     switch (importance) {
@@ -118,11 +136,33 @@ export default function TestsList({ studentId: _studentId, tests, onUpdate }: Te
 
       {/* Tests List */}
       <div className="grid gap-4">
-        {filteredTests.length === 0 ? (
+        {loading ? (
+          <div className="bg-panel rounded-2xl p-10 text-center shadow-card border border-card-border animate-pulse">
+            <p className="text-body text-muted-ink">Fetching the latest assessments...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-10 text-center">
+            <p className="text-body text-red-200 mb-4">{error}</p>
+            <button
+              type="button"
+              onClick={() => void loadTests()}
+              className="px-6 py-2 rounded-xl bg-gradient-to-r from-primary-from to-primary-to text-white font-semibold shadow-card"
+            >
+              Retry
+            </button>
+          </div>
+        ) : filteredTests.length === 0 ? (
           <div className="bg-panel rounded-2xl p-12 text-center shadow-card border border-card-border">
-            <div className="text-6xl mb-4">🎉</div>
-            <h3 className="text-section-title font-semibold text-white mb-2">No tests {filter !== 'all' ? filter : 'scheduled'}</h3>
-            <p className="text-body text-muted-ink">Enjoy your study time!</p>
+            <div className="text-6xl mb-4">📘</div>
+            <h3 className="text-section-title font-semibold text-white mb-2">No upcoming tests</h3>
+            <p className="text-body text-muted-ink mb-4">You’re all caught up. We’ll notify you when new assessments arrive.</p>
+            <button
+              type="button"
+              onClick={() => void loadTests()}
+              className="px-6 py-2 rounded-xl bg-panel-elevated text-white border border-card-border hover:bg-slate-700"
+            >
+              Refresh
+            </button>
           </div>
         ) : (
           filteredTests.map(test => {

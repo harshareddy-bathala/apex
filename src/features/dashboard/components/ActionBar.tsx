@@ -16,8 +16,8 @@ import React from 'react';
 
 interface ActionBarProps {
   onAskMentor: () => void;
-  onAddGoal: () => void;
-  onViewTasks: () => void;
+  onAddGoal?: () => void;
+  onViewTasks?: () => void;
 }
 
 export const ActionBar: React.FC<ActionBarProps> = ({
@@ -25,6 +25,9 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   onAddGoal,
   onViewTasks
 }) => {
+  const addGoalDisabled = !onAddGoal;
+  const viewTasksDisabled = !onViewTasks;
+
   return (
     <div className="flex flex-col sm:flex-row gap-3">
       {/* Primary: Ask Mentor */}
@@ -41,9 +44,15 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 
       {/* Secondary: Add Goal */}
       <button
-        onClick={onAddGoal}
-        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-medium border border-white/10 text-white/80 bg-white/5 hover:bg-white/10 hover:text-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+        type="button"
+        onClick={() => onAddGoal?.()}
+        disabled={addGoalDisabled}
+        title={addGoalDisabled ? 'Coming soon' : undefined}
+        className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-medium border border-white/10 text-white/80 bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+          addGoalDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/10 hover:text-white'
+        }`}
         aria-label="Add a new goal"
+        aria-disabled={addGoalDisabled}
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -53,9 +62,15 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 
       {/* Ghost: Today's Tasks */}
       <button
-        onClick={onViewTasks}
-        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-medium text-white/60 border border-dashed border-white/20 hover:text-white hover:border-white/40 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+        type="button"
+        onClick={() => onViewTasks?.()}
+        disabled={viewTasksDisabled}
+        title={viewTasksDisabled ? 'Coming soon' : undefined}
+        className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-medium text-white/60 border border-dashed border-white/20 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+          viewTasksDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-white hover:border-white/40'
+        }`}
         aria-label="View today's tasks"
+        aria-disabled={viewTasksDisabled}
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />

@@ -86,6 +86,8 @@ interface ProgressRingProps {
   color?: string;
   label: string;
   onClick?: () => void;
+  interactive?: boolean;
+  disabledTooltip?: string;
 }
 
 export const ProgressRing: React.FC<ProgressRingProps> = ({
@@ -94,18 +96,28 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   strokeWidth = 6,
   color = '#3DD6B8',
   label,
-  onClick
+  onClick,
+  interactive = true,
+  disabledTooltip
 }) => {
+  const safePercent = Math.min(100, Math.max(0, percent));
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (percent / 100) * circumference;
+  const offset = circumference - (safePercent / 100) * circumference;
+  const isInteractive = interactive && Boolean(onClick);
+  const title = !isInteractive ? disabledTooltip ?? 'Coming soon' : undefined;
 
   return (
     <button
-      onClick={onClick}
-      className="relative focus:outline-none focus:ring-2 focus:ring-purple-400 rounded-full transition-transform hover:scale-105"
-      aria-label={label}
       type="button"
+      onClick={isInteractive ? onClick : undefined}
+      disabled={!isInteractive}
+      aria-disabled={!isInteractive}
+      title={title}
+      className={`relative focus:outline-none focus:ring-2 focus:ring-purple-400 rounded-full transition-transform ${
+        isInteractive ? 'hover:scale-105' : 'cursor-not-allowed opacity-80'
+      }`}
+      aria-label={label}
     >
       <svg width={size} height={size} className="transform -rotate-90">
         {/* Background circle */}
@@ -132,7 +144,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-lg font-semibold text-white">{Math.round(percent)}%</span>
+        <span className="text-lg font-semibold text-white">{Math.round(safePercent)}%</span>
       </div>
     </button>
   );

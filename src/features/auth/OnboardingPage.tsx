@@ -85,12 +85,11 @@ const OnboardingPage: React.FC<OnboardingPageProps> = ({ idToken }) => {
         signal: controller.signal,
         onData: (chunk) => appendChunkToMessage(mentorMessageId, chunk),
       });
-      await refetchProfile().catch((err) => console.error('Failed to refresh profile after onboarding', err));
+      await refetchProfile().catch(() => null);
     } catch (err) {
       if ((err as Error).name === 'AbortError') {
         return;
       }
-      console.error(err);
       setError('We hit a snag talking to your mentor. Please try again.');
       appendChunkToMessage(mentorMessageId, 'Sorry, I lost my train of thought. Could you repeat that?');
     } finally {

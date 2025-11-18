@@ -55,7 +55,6 @@ export default function HomeworkList({
     try {
       await onStatusChange(id, status);
     } catch (error) {
-      console.error('Homework status update failed', error);
       setLocalError('Unable to update homework right now. Please retry.');
     } finally {
       setInFlightId(null);
@@ -68,7 +67,6 @@ export default function HomeworkList({
     try {
       await onRefresh();
     } catch (error) {
-      console.error('Homework refresh failed', error);
       setLocalError('Unable to refresh homework. Please try again.');
     } finally {
       setIsRefreshing(false);
@@ -172,8 +170,8 @@ export default function HomeworkList({
         ].map((stat) => (
           <div
             key={stat.label}
-            className={`rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/0 p-4 shadow-card backdrop-blur-lg ${
-              stat.highlight ? 'ring-1 ring-red-400/40' : ''
+            className={`glass-panel rounded-2xl p-4 shadow-card ${
+              stat.highlight ? 'glass-panel--highlight ring-0' : ''
             }`}
           >
             <div className="flex items-center justify-between text-muted-ink text-body-sm">
@@ -187,7 +185,7 @@ export default function HomeworkList({
       </div>
 
       {/* Filters & Sort */}
-      <div className="flex flex-wrap gap-3 items-center bg-panel/80 p-4 rounded-2xl shadow-card border border-card-border backdrop-blur-xl">
+      <div className="flex flex-wrap gap-3 items-center glass-panel p-4 rounded-2xl shadow-card">
         <div className="flex flex-wrap gap-2">
           {FILTER_TABS.map(tab => (
             <button
@@ -196,7 +194,7 @@ export default function HomeworkList({
               className={`px-4 py-2 rounded-xl text-body-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight flex items-center gap-2 ${
                 filter === tab.id
                   ? 'bg-gradient-to-r from-primary-from to-primary-to text-white shadow-card'
-                  : 'bg-panel-elevated text-slate-300 hover:text-white hover:bg-slate-700'
+                  : 'premium-chip hover:text-white'
               }`}
             >
               <span>{tab.icon}</span>
@@ -206,7 +204,7 @@ export default function HomeworkList({
         </div>
         <div className="ml-auto flex gap-2 items-center">
           <span className="text-body-sm text-muted-ink">Sort by</span>
-          <div className="flex items-center gap-2 rounded-xl bg-panel-elevated px-3 py-1.5 border border-card-border text-body-sm">
+          <div className="flex items-center gap-2 rounded-xl premium-chip px-3 py-1.5 text-body-sm">
             <select
               value={sortBy}
               onChange={handleSortChange}
@@ -229,7 +227,7 @@ export default function HomeworkList({
 
       <div className="space-y-3">
         {sortedHomework.length === 0 ? (
-          <div className="bg-panel rounded-2xl p-12 text-center shadow-card border border-card-border">
+          <div className="glass-panel rounded-2xl p-12 text-center shadow-card">
             <div className="text-6xl mb-4">🎉</div>
             <h3 className="text-section-title font-semibold text-white mb-2">All caught up!</h3>
             <p className="text-body text-muted-ink">
@@ -240,15 +238,15 @@ export default function HomeworkList({
           sortedHomework.map(hw => (
             <div
               key={hw.id}
-              className={`relative overflow-hidden rounded-2xl p-5 shadow-card border border-card-border/80 transition-all duration-200 hover:shadow-card-hover ${
+              className={`glass-panel relative overflow-hidden rounded-3xl p-5 shadow-card transition-all duration-200 hover:shadow-card-hover ${
                 isOverdue(hw.dueDate, hw.status)
-                  ? 'ring-1 ring-red-500/40'
+                  ? 'glass-panel--highlight'
                   : hw.status === 'completed' || hw.status === 'submitted'
                   ? 'opacity-80'
-                  : 'ring-1 ring-primary-to/40'
+                  : ''
               }`}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/0" />
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
               <div className="relative flex items-start gap-4">
                 {/* Checkbox */}
                 <label className={`relative flex items-center cursor-pointer group mt-1 ${inFlightId === hw.id ? 'opacity-60' : ''}`}>
@@ -280,7 +278,7 @@ export default function HomeworkList({
                       <p className="text-body-sm text-muted-ink mt-1">{hw.subject} • {hw.teacherName}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2 text-right">
-                      <span className={`px-3 py-1 rounded-full text-micro font-semibold border ${getPriorityColor(hw.priority)}`}>
+                      <span className={`premium-chip px-3 py-1 rounded-full text-micro font-semibold border ${getPriorityColor(hw.priority)}`}>
                         {hw.priority.toUpperCase()}
                       </span>
                       <span className="text-body-xs text-muted-ink flex items-center gap-1">

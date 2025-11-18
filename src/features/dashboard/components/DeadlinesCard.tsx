@@ -26,11 +26,13 @@ interface Deadline {
 interface DeadlinesCardProps {
   deadlines: Deadline[];
   onDeadlineClick?: (deadlineId: string) => void;
+  onAddDeadline?: () => void;
 }
 
 export const DeadlinesCard: React.FC<DeadlinesCardProps> = ({
   deadlines,
-  onDeadlineClick
+  onDeadlineClick,
+  onAddDeadline
 }) => {
   const priorityConfig = {
     high: {
@@ -135,8 +137,15 @@ export const DeadlinesCard: React.FC<DeadlinesCardProps> = ({
 
       {/* Quick add button */}
       <button
-        className="w-full mt-4 py-2 text-sm text-white/60 hover:text-white border border-dashed border-white/15 hover:border-white/35 rounded-2xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+        type="button"
+        onClick={onAddDeadline}
+        disabled={!onAddDeadline}
+        title={!onAddDeadline ? 'Coming soon' : undefined}
+        className={`w-full mt-4 py-2 text-sm text-white/60 border border-dashed border-white/15 rounded-2xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+          onAddDeadline ? 'hover:text-white hover:border-white/35' : 'opacity-50 cursor-not-allowed'
+        }`}
         aria-label="Add new deadline"
+        aria-disabled={!onAddDeadline}
       >
         + Add deadline
       </button>

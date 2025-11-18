@@ -12,50 +12,36 @@ import TestsList from '@/features/tests/components/TestsList';
 import PeerChat from '@/features/peer-chat/components/PeerChat';
 import TeacherAlerts from '@/features/reports/components/TeacherAlerts';
 import Navigation from '@/features/navigation/components/Navigation';
-import {
-  type StudentProfile,
-  type DailyCheckIn as DailyCheckInType,
-  type ActivityLog,
-  type Homework,
-  type Test,
-  type ChatContact,
-  type PeerMessage,
-  type Conversation,
-  type TeacherAlert,
-} from '@/types';
-import { type User } from '@/features/auth/types';
-import { auth } from '@/firebase';
+import FullScreenLoader from '@/router/components/FullScreenLoader';
 import { useAuth } from '@/common/hooks/useAuth';
 import { useProfile } from '@/common/context/ProfileContext';
-import { getHomework, updateHomework, type StudentProfileRecord } from '@/api/client';
-import FullScreenLoader from '@/router/components/FullScreenLoader';
+import { auth } from '@/firebase';
 import { mapFirebaseUser } from '@/utils/mapFirebaseUser';
+import { getHomework, getTests, updateHomework } from '@/api/client';
+import type { StudentProfileRecord } from '@/api/client';
+import type {
+  ActivityLog,
+  DailyCheckIn as DailyCheckInType,
+  Homework,
+  StudentProfile,
+  TeacherAlert,
+  Test,
+} from '@/types';
 
 type View = 'dashboard' | 'chat' | 'checkin' | 'report' | 'homework' | 'tests' | 'peer-chat';
 
 const ProtectedApp: React.FC = () => {
   const { user, idToken } = useAuth();
   const { profile: profileRecord, refetchProfile } = useProfile();
+  const authUser = useMemo(() => mapFirebaseUser(user), [user]);
 
-  const normalizedProfile = useMemo(() => (profileRecord ? normalizeProfile(profileRecord) : null), [profileRecord]);
-  const [profileState, setProfileState] = useState<StudentProfile | null>(normalizedProfile);
-  const profileId = profileState?.id;
-
-  useEffect(() => {
-    if (normalizedProfile) {
-      setProfileState(normalizedProfile);
-    }
-  }, [normalizedProfile]);
-
-  const authUser = useMemo<User | null>(() => mapFirebaseUser(user), [user]);
-
-  const [checkIns, setCheckIns] = useState<DailyCheckInType[]>([]);
+  const [profileState, setProfileState] = useState<StudentProfile | null>(() =>
+    profileRecord ? normalizeProfile(profileRecord) : null,
+  );
   const [activities, setActivities] = useState<ActivityLog[]>([]);
+  const [checkIns, setCheckIns] = useState<DailyCheckInType[]>([]);
   const [homework, setHomework] = useState<Homework[]>([]);
   const [tests, setTests] = useState<Test[]>([]);
-  const [contacts, setContacts] = useState<ChatContact[]>([]);
-  const [peerMessages, setPeerMessages] = useState<PeerMessage[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [teacherAlerts, setTeacherAlerts] = useState<TeacherAlert[]>([]);
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [showCheckIn, setShowCheckIn] = useState(false);
@@ -66,29 +52,50 @@ const ProtectedApp: React.FC = () => {
   const [homeworkError, setHomeworkError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!profileId) {
+    if (profileRecord) {
+      setProfileState(normalizeProfile(profileRecord));
+    }
+  }, [profileRecord]);
+
+  const loadTests = useCallback(async () => {
+    if (!idToken) {
       return;
     }
-    setTests(seedTests(profileId));
-    setContacts(seedContacts());
-  }, [profileId]);
+
+    try {
+      const { tests: serverTests } = await getTests(idToken);
+      setTests(serverTests);
+    } catch {
+      setTests([]);
+    }
+  }, [idToken]);
+
+  useEffect(() => {
+    void loadTests();
+  }, [loadTests]);
 
   const loadHomework = useCallback(async () => {
     if (!idToken) {
       return;
     }
+
     setHomeworkLoading(true);
     try {
       const { homework: assignments } = await getHomework(idToken);
       setHomework(assignments);
       setHomeworkError(null);
-    } catch (err) {
-      console.error('Failed to load homework', err);
+    } catch {
+      setHomework([]);
       setHomeworkError('Unable to load homework.');
     } finally {
       setHomeworkLoading(false);
     }
   }, [idToken]);
+
+  useEffect(() => {
+    void loadHomework();
+  }, [loadHomework]);
+
   const handleHomeworkStatusChange = useCallback(
     async (homeworkId: string, status: Homework['status']) => {
       if (!idToken) {
@@ -114,20 +121,13 @@ const ProtectedApp: React.FC = () => {
       try {
         const updated = await updateHomework(idToken, homeworkId, { status });
         setHomework((prev) => prev.map((hw) => (hw.id === homeworkId ? { ...hw, ...updated } : hw)));
-      } catch (err) {
-        console.error('Failed to persist homework status', err);
+      } catch {
         setHomeworkError('Unable to update homework status. Please retry.');
         await loadHomework();
-        throw err;
       }
     },
     [idToken, loadHomework],
   );
-
-
-  useEffect(() => {
-    void loadHomework();
-  }, [loadHomework]);
 
   const addActivity = (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => {
     const newActivity: ActivityLog = {
@@ -155,52 +155,15 @@ const ProtectedApp: React.FC = () => {
     });
   };
 
-  const handleSendPeerMessage = (receiverId: string, message: string) => {
-    if (!profileState) return;
-    const newMessage: PeerMessage = {
-      id: `msg-${Date.now()}`,
-      conversationId: `conv-${[profileState.id, receiverId].sort().join('-')}`,
-      senderId: profileState.id,
-      senderName: profileState.name,
-      receiverId,
-      message,
-      timestamp: new Date().toISOString(),
-      read: false,
-      type: 'text',
-    };
-    setPeerMessages((prev) => [...prev, newMessage]);
-
-    setConversations((prev) => {
-      const existing = prev.find((c) => c.id === newMessage.conversationId);
-      if (existing) {
-        return prev.map((c) =>
-          c.id === newMessage.conversationId ? { ...c, lastMessage: message, lastMessageTime: newMessage.timestamp } : c,
-        );
-      }
-      return [
-        ...prev,
-        {
-          id: newMessage.conversationId,
-          participants: [profileState.id, receiverId],
-          lastMessage: message,
-          lastMessageTime: newMessage.timestamp,
-          unreadCount: 0,
-          type: 'peer',
-        },
-      ];
-    });
-  };
-
   const handleDismissAlert = (alertId: string) => {
-    setTeacherAlerts((prev) => prev.filter((a) => a.id !== alertId));
-  };
-
-  const handleProfileUpdate = (updates: Partial<StudentProfile>) => {
-    setProfileState((prev) => (prev ? { ...prev, ...updates, updatedAt: new Date().toISOString() } : prev));
+    setTeacherAlerts((prev) => prev.filter((alert) => alert.id !== alertId));
   };
 
   const handleTriggerAlert = (alert: Omit<TeacherAlert, 'id' | 'createdAt'>) => {
-    if (!profileState) return;
+    if (!profileState) {
+      return;
+    }
+
     const newAlert: TeacherAlert = {
       ...alert,
       id: `alert-${Date.now()}-${Math.random()}`,
@@ -216,6 +179,10 @@ const ProtectedApp: React.FC = () => {
     });
   };
 
+  const handleProfileUpdate = (updates: Partial<StudentProfile>) => {
+    setProfileState((prev) => (prev ? { ...prev, ...updates, updatedAt: new Date().toISOString() } : prev));
+  };
+
   const handleLogout = async () => {
     if (!confirm('Are you sure you want to logout?')) {
       return;
@@ -223,15 +190,7 @@ const ProtectedApp: React.FC = () => {
     await signOut(auth);
   };
 
-  if (!idToken) {
-    return <FullScreenLoader message="Securing your session..." />;
-  }
-
-  if (!profileRecord || !authUser) {
-    return <FullScreenLoader message="Preparing your dashboard..." />;
-  }
-
-  if (!profileState) {
+  if (!idToken || !profileRecord || !authUser || !profileState) {
     return <FullScreenLoader message="Preparing your dashboard..." />;
   }
 
@@ -242,6 +201,7 @@ const ProtectedApp: React.FC = () => {
       <Navigation
         authUser={authUser}
         profile={profileState}
+        role={profileRecord.role === 'teacher' ? 'teacher' : 'student'}
         currentView={currentView}
         hasTodayCheckIn={!!todayCheckIn}
         onViewChange={setCurrentView}
@@ -270,6 +230,7 @@ const ProtectedApp: React.FC = () => {
               onHomeworkStatusChange={handleHomeworkStatusChange}
             />
           )}
+
           {currentView === 'homework' && (
             <HomeworkList
               homework={homework}
@@ -279,17 +240,13 @@ const ProtectedApp: React.FC = () => {
               errorMessage={homeworkError}
             />
           )}
-          {currentView === 'tests' && <TestsList studentId={profileState.id} tests={tests} onUpdate={setTests} />}
+
+          {currentView === 'tests' && <TestsList idToken={idToken} />}
+
           {currentView === 'peer-chat' && (
-            <PeerChat
-              currentUserId={profileState.id}
-              currentUserName={profileState.name}
-              contacts={contacts}
-              conversations={conversations}
-              messages={peerMessages}
-              onSendMessage={handleSendPeerMessage}
-            />
+            <PeerChat currentUserId={profileState.id} currentUserName={profileState.name} idToken={idToken} />
           )}
+
           {currentView === 'chat' && (
             <Chat
               profile={profileState}
@@ -354,8 +311,6 @@ const ProtectedApp: React.FC = () => {
 
 export default ProtectedApp;
 
- 
-
 function normalizeProfile(record: StudentProfileRecord): StudentProfile {
   const now = new Date().toISOString();
   return {
@@ -386,44 +341,4 @@ function normalizeProfile(record: StudentProfileRecord): StudentProfile {
     createdAt: record.createdAt ?? now,
     updatedAt: record.updatedAt ?? now,
   };
-}
-
-function seedTests(studentId: string): Test[] {
-  return [
-    {
-      id: 'test-1',
-      studentId,
-      teacherId: 't1',
-      teacherName: 'Mr. Smith',
-      subject: 'Mathematics',
-      title: 'Algebra Mid-term Exam',
-      description: 'Covers chapters 1-5',
-      testDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      duration: 90,
-      syllabus: ['Linear Equations', 'Quadratic Equations', 'Functions', 'Graphs'],
-      importance: 'midterm',
-      preparationStatus: 'in-progress',
-      createdAt: new Date().toISOString(),
-    },
-  ];
-}
-
-function seedContacts(): ChatContact[] {
-  return [
-    {
-      id: 'c1',
-      name: 'Sarah Chen',
-      role: 'student',
-      class: '10th Grade',
-      isOnline: true,
-    },
-    {
-      id: 't1',
-      name: 'Mr. Smith',
-      role: 'teacher',
-      subject: 'Mathematics',
-      isOnline: false,
-      lastSeen: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    },
-  ];
 }

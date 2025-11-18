@@ -59,7 +59,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ idToken }) => {
       classId: classId.trim(),
       date,
       notes: notes || undefined,
-      records: records.map(({ key: _key, ...record }) => ({ ...record, notes: record.notes || undefined })),
     };
 
     setLoading(true);
@@ -68,7 +67,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ idToken }) => {
       const response = await postAttendance(idToken, payload);
       setLastSubmission(response);
     } catch (err) {
-      console.error('Failed to record attendance', err);
       setError(err instanceof Error ? err.message : 'Unable to record attendance');
     } finally {
       setLoading(false);
