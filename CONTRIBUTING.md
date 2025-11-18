@@ -20,9 +20,14 @@ Thank you for your interest in contributing to Student Mentor AI! This guide wil
 Before you begin, ensure you have the following installed:
 - **Node.js** (v18 or higher)
 - **npm** (v9 or higher)
+- **Python** (v3.11 or higher)
 - **Git**
 - A code editor (we recommend **VS Code**)
-- A **Gemini API Key** from [Google AI Studio](https://aistudio.google.com/app/apikey)
+- **Google Cloud Project** with:
+  - Firestore database (native mode)
+  - Firebase Authentication enabled
+  - Gemini API access (via Google AI Studio or Vertex AI)
+  - Service account JSON with Firestore and Firebase Admin permissions
 
 ### First Time Setup
 
@@ -43,19 +48,47 @@ Before you begin, ensure you have the following installed:
    npm install
    ```
 
-5. **Set up environment variables**:
-   Create a `.env.local` file in the root directory:
+5. **Set up backend**:
+   ```bash
+   cd student-mentor-backend
+   python -m venv .venv
+   .venv\Scripts\Activate.ps1  # On Windows
+   pip install -r requirements.txt
+   ```
+   
+   Create `student-mentor-backend/.env`:
    ```env
-   VITE_MENTOR_BACKEND_URL=http://localhost:8000
+   GOOGLE_API_KEY=<your-gemini-api-key>
+   GOOGLE_APPLICATION_CREDENTIALS=<path-to-service-account.json>
+   GEMINI_MODEL=gemini-1.5-flash
+   FIRESTORE_PROJECT_ID=<your-gcp-project-id>
    ```
 
-6. **Start the development server**:
+6. **Set up frontend environment**:
+   Create `.env.local` in the root directory:
+   ```env
+   VITE_MENTOR_BACKEND_URL=http://localhost:8000
+   VITE_FIREBASE_API_KEY=<your-firebase-api-key>
+   VITE_FIREBASE_AUTH_DOMAIN=<your-project-id>.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=<your-gcp-project-id>
+   VITE_FIREBASE_STORAGE_BUCKET=<your-project-id>.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=<your-sender-id>
+   VITE_FIREBASE_APP_ID=<your-app-id>
+   ```
+
+7. **Start the backend server**:
+   ```bash
+   cd student-mentor-backend
+   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+8. **Start the frontend (in a new terminal)**:
    ```bash
    npm run dev
    ```
 
-7. **Verify setup**:
-   Open `http://localhost:5173` in your browser
+9. **Verify setup**:
+   Open `http://localhost:5173` in your browser (both frontend and backend must be running)
 
 ## 🏗️ Development Setup
 
@@ -417,7 +450,8 @@ describe('Button', () => {
 
 - **Test behavior, not implementation**
 - **Write tests for edge cases**
-- **Mock external dependencies** (API calls, localStorage)
+- **Mock external dependencies** (API calls, Firebase, Firestore)
+- **Test both frontend and backend code**
 - **Aim for >80% code coverage**
 - **Keep tests simple and readable**
 
@@ -516,11 +550,14 @@ Look for issues labeled:
 
 ### High Priority Areas
 
-- **Testing**: Add more unit and integration tests
+- **Testing**: Add more unit and integration tests (frontend and backend)
+- **AI Agents**: Enhance ADK agent capabilities and responses
+- **Backend APIs**: Improve FastAPI endpoints and Firestore queries
 - **Accessibility**: Improve keyboard navigation and screen reader support
-- **Performance**: Optimize rendering and bundle size
+- **Performance**: Optimize rendering, bundle size, and database queries
 - **Documentation**: Enhance guides and examples
 - **UI Components**: Build reusable component library
+- **Security**: Improve Firebase security rules and authentication flows
 
 ## 🏆 Recognition
 

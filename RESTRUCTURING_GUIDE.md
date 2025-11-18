@@ -128,9 +128,17 @@ student-mentor-ai/
 │   │   │   └── index.ts
 │   │   └── index.ts            # Barrel export
 │   │
+│   ├── api/                   # API client and services
+│   │   ├── client.ts          # Axios/fetch wrapper
+│   │   ├── firebase.ts        # Firebase config
+│   │   └── services/
+│   │       ├── auth.service.ts
+│   │       ├── student.service.ts
+│   │       └── chat.service.ts
+│   │
 │   ├── common/                # Shared utilities
 │   │   ├── hooks/
-│   │   │   ├── useLocalStorage.ts
+│   │   │   ├── useAuth.ts
 │   │   │   ├── useDebounce.ts
 │   │   │   └── index.ts
 │   │   ├── utils/
@@ -154,7 +162,22 @@ student-mentor-ai/
 │   ├── main.tsx
 │   └── index.css
 │
-├── tests/                     # Test files
+├── student-mentor-backend/    # FastAPI backend
+│   ├── agents.py              # ADK agent definitions
+│   ├── agent_team.py          # Multi-agent orchestration
+│   ├── main.py                # FastAPI app
+│   ├── auth.py                # Firebase auth middleware
+│   ├── db_fire_proxy.py       # Firestore data access
+│   ├── tools.py               # ADK tool definitions
+│   ├── memory.py              # Agent memory management
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   ├── .env.example
+│   └── tests/
+│       ├── test_agents.py
+│       └── conftest.py
+│
+├── tests/                     # Frontend test files
 │   ├── unit/
 │   │   ├── ui/
 │   │   │   ├── Button.test.tsx
@@ -511,14 +534,17 @@ export default defineConfig({
 - ❌ Hard to find related files
 - ❌ Difficult to understand feature scope
 - ❌ Duplicated UI code across components
+- ❌ No clear API layer separation
 
 ### After
 - ✅ Clear feature boundaries
 - ✅ Related files grouped together
 - ✅ Easy to add new features
 - ✅ Reusable UI components
-- ✅ Better testability
+- ✅ Better testability (frontend and backend)
 - ✅ Easier onboarding for new developers
+- ✅ Dedicated API services layer
+- ✅ Clean separation between frontend and backend
 
 ## 📚 Additional Resources
 
