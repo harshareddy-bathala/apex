@@ -23,7 +23,7 @@ def get_firestore_client() -> firestore.Client:
     """Return a cached Firestore client, raising if env misconfigured."""
     if not FIRESTORE_PROJECT_ID:
         raise RuntimeError("FIRESTORE_PROJECT_ID env var is required for Firestore access")
-    return firestore.Client(project=FIRESTORE_PROJECT_ID)
+    return firestore.Client(project=FIRESTORE_PROJECT_ID, database="student-mentor-db")
 
 
 def collection_ref(key: str) -> firestore.CollectionReference:

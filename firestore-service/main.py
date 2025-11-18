@@ -13,7 +13,7 @@ FIRESTORE_PROJECT_ID = os.getenv("FIRESTORE_PROJECT_ID")
 if not FIRESTORE_PROJECT_ID:
     raise RuntimeError("FIRESTORE_PROJECT_ID environment variable is required")
 
-firestore_client = firestore.Client(project=FIRESTORE_PROJECT_ID)
+firestore_client = firestore.Client(project=FIRESTORE_PROJECT_ID, database="student-mentor-db")
 
 
 class Filter(BaseModel):
