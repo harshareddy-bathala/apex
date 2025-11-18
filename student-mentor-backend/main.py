@@ -24,12 +24,18 @@ app = FastAPI(title="Student Mentor AI Backend")
 
 student_hub_agent = get_student_hub_agent()
 
+# CORS configuration for cross-origin requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://student-mentor-gamma.vercel.app",
+        "*"  # Fallback for development
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
@@ -197,7 +203,8 @@ async def create_user_doc(payload: CreateUserDocPayload) -> Dict[str, Any]:
 
 
 @app.get("/health")
-async def health(_: FirebaseUser = Depends(verify_firebase_token)) -> dict[str, str]:
+async def health() -> dict[str, str]:
+    """Public health check endpoint - no authentication required"""
     return {"status": "ok"}
 
 
