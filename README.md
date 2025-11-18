@@ -4,16 +4,18 @@ An intelligent AI-powered personal mentor system that monitors and supports stud
 
 ## 🌟 Overview
 
-Student Mentor AI is more than just a chatbot—it's a comprehensive personal guide that:
+Student Mentor AI is a comprehensive AI-powered platform that goes beyond traditional educational tools. It's your personal guide for academic success, mental wellness, and career growth.
 
-- **Monitors Daily Progress**: Tracks student behavior across studies, sports, mental health, and social activities
-- **Provides Personalized Guidance**: Multi-agent AI system adapts communication style based on student's age, maturity level, and personality
-- **Supports Career Aspirations**: Guides students toward their dream careers with targeted advice
-- **Enables Peer Collaboration**: Connect with classmates and teachers for homework help and discussions
-- **Smart Task Management**: Track homework and upcoming tests with intelligent reminders stored in Firestore
-- **AI-Powered Alerts**: Automatically notifies teachers when students need extra support
-- **Generates Teacher Reports**: Provides educators with detailed insights into student well-being and performance
-- **Ensures Holistic Development**: Balances academic excellence with mental health and physical fitness
+### What It Does
+
+- **📊 Monitors Daily Progress**: Tracks student behavior across studies, sports, mental health, and social activities
+- **🤖 Provides Personalized Guidance**: Multi-agent AI system adapts communication style based on student's age, maturity level, and personality
+- **🎯 Supports Career Aspirations**: Guides students toward their dream careers with targeted advice
+- **👥 Enables Peer Collaboration**: Connect with classmates and teachers for homework help and discussions
+- **✅ Smart Task Management**: Track homework and upcoming tests with intelligent reminders stored in Firestore
+- **🔔 AI-Powered Alerts**: Automatically notifies teachers when students need extra support
+- **📄 Generates Teacher Reports**: Provides educators with detailed insights into student well-being and performance
+- **💪 Ensures Holistic Development**: Balances academic excellence with mental health and physical fitness
 
 ## 🚀 Key Features
 
@@ -115,32 +117,34 @@ Student Mentor AI is more than just a chatbot—it's a comprehensive personal gu
 ## 🏗️ Technical Architecture
 
 ### Frontend Stack
-- **React 19** with TypeScript
-- **Vite** for blazing-fast development
-- **Tailwind CSS** + **Framer Motion** for responsive design and animations
-- **React Router v7** for navigation
-- **Firebase SDK** for authentication and Firestore integration
+- **React 19** with TypeScript for type-safe, modern UI development
+- **Vite** for blazing-fast development and optimized production builds
+- **Tailwind CSS** + **Framer Motion** for responsive design and smooth animations
+- **React Router v7** for seamless client-side navigation
+- **Firebase SDK** for authentication and real-time Firestore integration
+- **Deployed on Vercel** for global CDN distribution and instant deployments
 
 ### Backend Stack
-- **FastAPI** (Python) for RESTful API
+- **FastAPI** (Python) for high-performance RESTful API
 - **Google ADK 0.3** (Agent Development Kit) for multi-agent AI orchestration
-- **Firebase Admin SDK** for server-side authentication
-- **Google Cloud Firestore** for persistent, multi-tenant data storage
+- **Firebase Admin SDK** for server-side authentication and authorization
+- **Google Cloud Firestore** for scalable, multi-tenant data storage
+- **Hosted on DigitalOcean** for reliable, cost-effective infrastructure
 
 ### Data Management
-- **Firestore** collections for users, student profiles, teacher profiles, assignments, submissions, and check-ins
-- **Firebase Authentication** securing all endpoints
-- Comprehensive TypeScript interfaces
-- Real-time state management
-- Multi-tenant data isolation by user ID
+- **Firestore Collections**: users, student profiles, teacher profiles, assignments, submissions, and check-ins
+- **Firebase Authentication**: Securing all API endpoints with JWT tokens
+- **TypeScript Interfaces**: Comprehensive type definitions across frontend and backend
+- **Real-time Sync**: Instant data updates using Firestore listeners
+- **Multi-tenant Isolation**: Complete data separation by user ID and role
 
 ### AI Integration
-- **Google ADK** multi-agent framework
-- **Gemini 1.5 Flash** as the primary language model
-- Dynamic system instruction generation based on student context
-- Context-aware prompting with full student history from Firestore
-- Streaming responses for better UX
-- Intelligent alert detection and teacher notification system
+- **Google ADK**: Multi-agent framework for specialized AI tasks
+- **Gemini 1.5 Flash**: Primary language model for intelligent conversations
+- **Dynamic Context**: System instructions generated from student profiles and history
+- **Streaming Responses**: Real-time AI responses for better user experience
+- **Smart Alerts**: Automatic detection of students needing intervention
+- **Memory Management**: Persistent conversation context across sessions
 
 ## 📁 Project Structure
 
@@ -356,32 +360,109 @@ Daily wellness and academic check-ins created by students, including mood, sleep
 
 ## 🚀 Deployment
 
-### Build Frontend for Production
-```powershell
-npm run build
-```
+Our application uses a modern cloud deployment strategy:
 
-The optimized static files will be in the `dist/` directory.
+### Architecture Overview
+- **Frontend**: Deployed on **Vercel** for optimal performance and CDN distribution
+- **Backend**: Hosted on **DigitalOcean** for reliable API services
+- **Authentication**: **Firebase Authentication** for secure user management
+- **Database**: **Google Cloud Firestore** for scalable data storage
 
-### Preview Production Build
-```powershell
-npm run preview
-```
+### Frontend Deployment (Vercel)
 
-### Deploy to Google Cloud
+1. **Connect your repository to Vercel**:
+   - Import your GitHub repository in Vercel dashboard
+   - Configure build settings:
+     - Build Command: `npm run build`
+     - Output Directory: `dist`
 
-**Backend (Cloud Run)**:
-1. Build the Docker image for the FastAPI backend
-2. Push to Google Container Registry or Artifact Registry
-3. Deploy to Cloud Run with environment variables from `.env`
-4. Ensure service account has Firestore and Firebase Admin permissions
+2. **Configure environment variables in Vercel**:
+   ```env
+   VITE_MENTOR_BACKEND_URL=https://your-backend-domain.com
+   VITE_FIREBASE_API_KEY=<your-firebase-api-key>
+   VITE_FIREBASE_AUTH_DOMAIN=<your-project-id>.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=<your-gcp-project-id>
+   VITE_FIREBASE_STORAGE_BUCKET=<your-project-id>.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=<your-sender-id>
+   VITE_FIREBASE_APP_ID=<your-app-id>
+   ```
 
-**Frontend (Firebase Hosting or Cloud Storage + CDN)**:
-1. Build the frontend with `npm run build`
-2. Deploy `dist/` folder to Firebase Hosting: `firebase deploy --only hosting`
-3. Or upload to Cloud Storage bucket configured for static website hosting
+3. **Deploy**:
+   - Vercel automatically deploys on every push to your main branch
+   - Preview deployments are created for pull requests
 
-📖 **See [Google Cloud Run deployment guide](https://cloud.google.com/run/docs/quickstarts/build-and-deploy) for detailed instructions**
+### Backend Deployment (DigitalOcean)
+
+1. **Create a DigitalOcean Droplet** or use **App Platform**:
+   - Recommended: Ubuntu 22.04 LTS
+   - Minimum: 2GB RAM, 1 vCPU
+
+2. **Setup the application**:
+   ```bash
+   # Clone repository
+   git clone https://github.com/your-repo/student-mentor-ai.git
+   cd student-mentor-ai/student-mentor-backend
+   
+   # Create virtual environment
+   python3 -m venv .venv
+   source .venv/bin/activate
+   
+   # Install dependencies
+   pip install -r requirements.txt
+   ```
+
+3. **Configure environment variables**:
+   - Upload your service account JSON to the server
+   - Create `.env` file with production values
+
+4. **Setup process manager (PM2 or systemd)**:
+   ```bash
+   # Using uvicorn with systemd
+   sudo nano /etc/systemd/system/student-mentor.service
+   ```
+
+5. **Configure Nginx as reverse proxy**:
+   ```nginx
+   server {
+       listen 80;
+       server_name your-backend-domain.com;
+       
+       location / {
+           proxy_pass http://127.0.0.1:8000;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+       }
+   }
+   ```
+
+6. **Setup SSL with Let's Encrypt**:
+   ```bash
+   sudo certbot --nginx -d your-backend-domain.com
+   ```
+
+### Database & Authentication (Firebase/Firestore)
+
+- **No deployment needed** - Firebase services are managed by Google
+- Ensure Firestore security rules are properly configured
+- Verify Firebase Authentication methods are enabled
+- Service account must have appropriate permissions
+
+### Environment-Specific Configuration
+
+**Development**:
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:8000`
+
+**Production**:
+- Frontend: `https://your-app.vercel.app`
+- Backend: `https://api.your-domain.com`
+
+### Monitoring & Maintenance
+
+- Monitor Vercel deployment logs for frontend issues
+- Check DigitalOcean metrics for backend performance
+- Review Firebase Console for authentication and database metrics
+- Set up alerts for API downtime and error rates
 
 ## 🔐 Privacy & Security
 
@@ -442,11 +523,24 @@ All contributions must pass linting, formatting, type checking, and tests before
 
 ## 🛠️ Getting Started
 
-Ready to contribute or run the project locally? Check out our comprehensive setup guide:
+Ready to contribute or run the project locally?
 
-📖 **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Complete development setup instructions for both frontend and backend
+### 📚 Documentation
 
-📖 **[SETUP_INSTRUCTIONS.md](./SETUP_INSTRUCTIONS.md)** - Detailed linting, testing, and CI configuration
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Complete development setup for both frontend and backend
+- **[SETUP_INSTRUCTIONS.md](./SETUP_INSTRUCTIONS.md)** - Linting, testing, and CI configuration
+- **[RESTRUCTURING_GUIDE.md](./RESTRUCTURING_GUIDE.md)** - Architecture and code organization
+- **[student-mentor-backend/README.md](./student-mentor-backend/README.md)** - Backend-specific documentation
+
+### 🚀 Quick Start
+
+For detailed setup instructions, see [CONTRIBUTING.md](./CONTRIBUTING.md). Here's a quick overview:
+
+1. **Clone the repository**
+2. **Setup backend** - Python 3.11+, FastAPI, Google ADK
+3. **Setup frontend** - Node.js 18+, React, Vite
+4. **Configure Firebase** - Authentication and Firestore
+5. **Run locally** - Both services on localhost
 
 ---
 
@@ -494,6 +588,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 **Built with ❤️ to empower students and support their holistic development**
 
-**Ready to transform student mentoring? Start with the [Local Development Setup](#%EF%B8%8F-local-development-setup)** 🚀
-
-## 🙏 Acknowledgments
+**Ready to transform student mentoring? Start with our [Getting Started Guide](#%EF%B8%8F-getting-started)** 🚀
