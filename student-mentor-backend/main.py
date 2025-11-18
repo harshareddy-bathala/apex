@@ -202,6 +202,12 @@ async def create_user_doc(payload: CreateUserDocPayload) -> Dict[str, Any]:
     return record
 
 
+@app.get("/")
+async def root() -> dict[str, str]:
+    """Root endpoint"""
+    return {"message": "Student Mentor AI Backend", "status": "running"}
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     """Public health check endpoint - no authentication required"""
