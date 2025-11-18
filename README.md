@@ -1,16 +1,16 @@
-# 🎓 Student Mentor AI - Advanced MVP
+# 🎓 Student Mentor AI
 
-An intelligent AI-powered personal mentor system that monitors and supports students holistically across academics, sports, mental health, and personal development. Built for the Cloud Run Hackathon.
+An intelligent AI-powered personal mentor system that monitors and supports students holistically across academics, sports, mental health, and personal development.
 
 ## 🌟 Overview
 
 Student Mentor AI is more than just a chatbot—it's a comprehensive personal guide that:
 
 - **Monitors Daily Progress**: Tracks student behavior across studies, sports, mental health, and social activities
-- **Provides Personalized Guidance**: Adapts communication style based on student's age, maturity level, and personality
+- **Provides Personalized Guidance**: Multi-agent AI system adapts communication style based on student's age, maturity level, and personality
 - **Supports Career Aspirations**: Guides students toward their dream careers with targeted advice
 - **Enables Peer Collaboration**: Connect with classmates and teachers for homework help and discussions
-- **Smart Task Management**: Track homework and upcoming tests with intelligent reminders
+- **Smart Task Management**: Track homework and upcoming tests with intelligent reminders stored in Firestore
 - **AI-Powered Alerts**: Automatically notifies teachers when students need extra support
 - **Generates Teacher Reports**: Provides educators with detailed insights into student well-being and performance
 - **Ensures Holistic Development**: Balances academic excellence with mental health and physical fitness
@@ -93,12 +93,13 @@ Student Mentor AI is more than just a chatbot—it's a comprehensive personal gu
 - Build historical data for insights
 
 ### 9. **Advanced AI Chat** 💬
-- Context-aware conversations using Gemini 2.0 Flash
+- Multi-agent system powered by Google ADK (Agent Development Kit)
+- Context-aware conversations using Gemini models
 - Age-appropriate communication style
-- Personalized responses based on all profile data
+- Personalized responses based on all profile data from Firestore
 - Considers current goals, not hardcoded aspirations
 - Real-time streaming responses
-- Automatic activity logging
+- Automatic activity logging to backend
 - **AI Alert Triggers**: Detects when student needs teacher intervention
 - Quick prompt suggestions
 
@@ -116,21 +117,30 @@ Student Mentor AI is more than just a chatbot—it's a comprehensive personal gu
 ### Frontend Stack
 - **React 19** with TypeScript
 - **Vite** for blazing-fast development
-- **Tailwind CSS** for responsive design
-- **Google Generative AI SDK** for Gemini integration
+- **Tailwind CSS** + **Framer Motion** for responsive design and animations
+- **React Router v7** for navigation
+- **Firebase SDK** for authentication and Firestore integration
+
+### Backend Stack
+- **FastAPI** (Python) for RESTful API
+- **Google ADK 0.3** (Agent Development Kit) for multi-agent AI orchestration
+- **Firebase Admin SDK** for server-side authentication
+- **Google Cloud Firestore** for persistent, multi-tenant data storage
 
 ### Data Management
-- LocalStorage for client-side persistence
-- Comprehensive TypeScript interfaces (9+ models)
+- **Firestore** collections for users, student profiles, teacher profiles, assignments, submissions, and check-ins
+- **Firebase Authentication** securing all endpoints
+- Comprehensive TypeScript interfaces
 - Real-time state management
-- Automatic data synchronization
+- Multi-tenant data isolation by user ID
 
 ### AI Integration
-- **Gemini 2.0 Flash Experimental** model
-- Dynamic system instruction generation
-- Context-aware prompting with full student history
+- **Google ADK** multi-agent framework
+- **Gemini 1.5 Flash** as the primary language model
+- Dynamic system instruction generation based on student context
+- Context-aware prompting with full student history from Firestore
 - Streaming responses for better UX
-- Intelligent alert detection
+- Intelligent alert detection and teacher notification system
 
 ## 📁 Project Structure
 
@@ -190,74 +200,93 @@ src/
 
 📖 **See [RESTRUCTURING_GUIDE.md](./RESTRUCTURING_GUIDE.md) for detailed architecture plans**
 
-## 🛠️ Setup Instructions
+## 🛠️ Local Development Setup
 
 ### Prerequisites
-- Node.js 18+
-- npm 9+
-- Python 3.11+
-- Google Cloud project with:
-  - Firestore (native mode)
-  - Gemini API access (via Google AI Studio / Vertex AI)
-  - Service account JSON with Firestore + Vertex AI perms
+- **Node.js 18+** and **npm 9+**
+- **Python 3.11+**
+- **Google Cloud Project** with:
+  - Firestore database (native mode)
+  - Firebase Authentication enabled
+  - Gemini API access (via Google AI Studio or Vertex AI)
+  - Service account JSON with Firestore and Firebase Admin permissions
 
-### 1. Backend (FastAPI + ADK agents)
+### 1. Backend Setup (FastAPI + ADK)
+
+Navigate to the backend directory and create a virtual environment:
 
 ```powershell
-cd student-mentor-ai\student-mentor-backend
+cd student-mentor-backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-Copy-Item .env.example .env
 ```
 
-Update `.env`:
+Create a `.env` file in the `student-mentor-backend` directory:
 
-```
-GOOGLE_API_KEY=<gemini key>
+```env
+GOOGLE_API_KEY=<your-gemini-api-key>
+GOOGLE_APPLICATION_CREDENTIALS=<absolute-path-to-service-account.json>
 GEMINI_MODEL=gemini-1.5-flash
-FIRESTORE_PROJECT_ID=<gcp project id>
-GOOGLE_APPLICATION_CREDENTIALS=<abs path to service-account.json>
+FIRESTORE_PROJECT_ID=<your-gcp-project-id>
+FIREBASE_CREDENTIALS_FILE=<optional-path-if-different-from-above>
 ```
 
-Start the agent hub:
+> **Note**: The Firebase Admin SDK reuses `GOOGLE_APPLICATION_CREDENTIALS` when `FIREBASE_CREDENTIALS_FILE` is not provided. Ensure your service account has Firebase Admin, Firestore, and IAM permissions.
+
+Start the FastAPI server:
 
 ```powershell
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 2. Frontend (React + Vite)
+The backend will be available at `http://localhost:8000`.
+
+### 2. Frontend Setup (React + Vite)
+
+Navigate back to the project root and install dependencies:
 
 ```powershell
-cd student-mentor-ai
+cd ..
 npm install
-Copy-Item .env.local.example .env.local -ErrorAction SilentlyContinue
 ```
 
-Edit `.env.local`:
+Create a `.env.local` file in the project root:
 
-```
+```env
 VITE_MENTOR_BACKEND_URL=http://localhost:8000
+VITE_FIREBASE_API_KEY=<your-firebase-api-key>
+VITE_FIREBASE_AUTH_DOMAIN=<your-project-id>.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=<your-gcp-project-id>
+VITE_FIREBASE_STORAGE_BUCKET=<your-project-id>.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=<your-sender-id>
+VITE_FIREBASE_APP_ID=<your-app-id>
 ```
 
-Then run Vite:
+Start the development server:
 
 ```powershell
 npm run dev
 ```
 
-Visit `http://localhost:5173` while the backend is online.
+Visit `http://localhost:5173` in your browser. Both frontend and backend must be running simultaneously.
 
-### 3. Developer Tooling
+### 3. Developer Tools
+
+Run these commands for code quality checks:
 
 ```powershell
-npm run lint        # ESLint
-npm run format      # Prettier
-npm run test        # Vitest
-npm run type-check  # tsc --noEmit
+npm run lint           # Check for linting errors
+npm run lint:fix       # Auto-fix linting issues
+npm run format         # Format code with Prettier
+npm run format:check   # Check formatting without changes
+npm run type-check     # TypeScript type checking
+npm run test           # Run unit tests
+npm run test:ui        # Run tests with UI
+npm run test:coverage  # Generate coverage report
 ```
 
-📖 **See [SETUP_INSTRUCTIONS.md](./SETUP_INSTRUCTIONS.md) for linting + CI details**
+📖 **See [SETUP_INSTRUCTIONS.md](./SETUP_INSTRUCTIONS.md) for detailed linting, testing, and CI setup**
 
 ## 🎯 Usage Guide
 
@@ -295,14 +324,15 @@ npm run type-check  # tsc --noEmit
 
 ## 💡 Key Differentiators
 
-### What Makes This MVP Advanced?
+### What Makes This System Unique?
 
-1. **Holistic Monitoring**: Unlike simple chatbots, tracks multiple dimensions of student life
-2. **Adaptive AI**: Communication style adapts to age and maturity level
-3. **Actionable Insights**: Generates specific, data-driven recommendations
-4. **Multi-Stakeholder**: Serves students, teachers, and parents
-5. **Privacy-Focused**: Data stored locally, confidential by design
-6. **Career-Oriented**: Connects daily activities to long-term aspirations
+1. **Multi-Agent AI Architecture**: Powered by Google ADK with specialized agents for different tasks
+2. **Holistic Monitoring**: Unlike simple chatbots, tracks multiple dimensions of student life
+3. **Adaptive AI**: Communication style adapts to age and maturity level
+4. **Actionable Insights**: Generates specific, data-driven recommendations from Firestore analytics
+5. **Multi-Stakeholder**: Serves students, teachers, and parents with role-based access
+6. **Cloud-Native**: Built on Firebase and Google Cloud for scalability and reliability
+7. **Career-Oriented**: Connects daily activities to long-term aspirations
 
 ## 🔧 Configuration Options
 
@@ -322,40 +352,64 @@ The app uses Tailwind CSS. Customize colors in:
 
 ## 📊 Data Models
 
-### StudentProfile
-Complete student information including academics, aspirations, interests, sports, and challenges.
+All data is stored in **Google Cloud Firestore** with the following collections:
 
-### DailyCheckIn
-Daily tracking of mood, sleep, study hours, physical activity, and achievements.
+### `users`
+Canonical record for every authenticated user containing `uid`, `email`, and `role` (student/teacher).
 
-### ActivityLog
-Timestamped log of all student interactions and activities.
+### `studentProfiles`
+Extended student metadata including goals, interests, academic subjects, career aspirations, onboarding answers, and personalization data. Document ID matches the student's `uid`.
 
-### TeacherReport
-Comprehensive analysis with academic metrics, well-being assessment, and recommendations.
+### `teacherProfiles`
+Teacher-specific metadata and preferences, keyed by their `uid`.
+
+### `assignments`
+Homework and tests created by teachers, storing owner info, class identifiers, due dates, priority levels, and syllabus topics.
+
+### `studentSubmissions`
+Join table linking students to assignments with submission status, timestamps, and completion tracking.
+
+### `checkins`
+Daily wellness and academic check-ins created by students, including mood, sleep hours, study time, physical activity, and achievements. Used by AI agents for context-aware conversations.
 
 ## 🚀 Deployment
 
-### Build for Production
-```bash
+### Build Frontend for Production
+```powershell
 npm run build
 ```
 
+The optimized static files will be in the `dist/` directory.
+
 ### Preview Production Build
-```bash
+```powershell
 npm run preview
 ```
 
-### Deploy to Cloud Run
-Follow [Google Cloud Run deployment guide](https://cloud.google.com/run/docs/quickstarts/build-and-deploy)
+### Deploy to Google Cloud
+
+**Backend (Cloud Run)**:
+1. Build the Docker image for the FastAPI backend
+2. Push to Google Container Registry or Artifact Registry
+3. Deploy to Cloud Run with environment variables from `.env`
+4. Ensure service account has Firestore and Firebase Admin permissions
+
+**Frontend (Firebase Hosting or Cloud Storage + CDN)**:
+1. Build the frontend with `npm run build`
+2. Deploy `dist/` folder to Firebase Hosting: `firebase deploy --only hosting`
+3. Or upload to Cloud Storage bucket configured for static website hosting
+
+📖 **See [Google Cloud Run deployment guide](https://cloud.google.com/run/docs/quickstarts/build-and-deploy) for detailed instructions**
 
 ## 🔐 Privacy & Security
 
-- All data stored locally in browser
-- No server-side storage of student information
-- API keys secured via environment variables
-- Conversations are private and encrypted in transit
-- Teachers can only access reports generated by students
+- **Firebase Authentication** secures all API endpoints
+- **Multi-tenant data isolation** ensures students only access their own data
+- **Firestore security rules** enforce role-based access control
+- **Environment variables** protect API keys and credentials
+- **HTTPS encryption** for all data in transit
+- **Service account authentication** for backend-to-Firestore communication
+- Teachers can only access reports and data for students in their classes
 
 ## 🎓 Use Cases
 
@@ -499,40 +553,50 @@ Have ideas for new features? We'd love to hear them! The system is designed to b
 
 ---
 
-## 📝 License
+## 🌟 Why This System Matters
 
-This project is created for the Cloud Run Hackathon.
+Traditional education focuses on grades, but student success requires a holistic approach encompassing:
 
-## 🙏 Acknowledgments
+- **Mental Well-being**: Emotional health and stress management
+- **Physical Health**: Sleep, nutrition, and exercise habits
+- **Social Development**: Peer collaboration and communication skills
+- **Career Preparation**: Long-term goal setting and skill building
+- **Personal Growth**: Self-awareness and continuous improvement
 
-- **Google Gemini AI** for powerful language model
-- **React Team** for excellent framework
-- **Vite** for fast development experience
-- **Tailwind CSS** for beautiful styling
+Student Mentor AI provides the comprehensive support system that students need to thrive in all these areas. By combining advanced AI technology with thoughtful design, we create a personalized learning companion that adapts to each student's unique needs while keeping teachers and parents informed.
+
+Our multi-agent AI system, powered by Google's ADK, doesn't just respond to questions—it proactively monitors student well-being, identifies potential issues before they escalate, and provides actionable guidance tailored to each student's age, personality, and aspirations.
+
+---
 
 ## 📞 Support
 
 For issues or questions:
 1. Check the console for error messages
-2. Ensure API key is correctly configured
-3. Verify all dependencies are installed
+2. Ensure API keys and environment variables are correctly configured
+3. Verify all dependencies are installed (both frontend and backend)
 4. Check browser compatibility (modern browsers required)
+5. Review backend logs for FastAPI or Firestore connection issues
 
 ---
 
-**Built with ❤️ for empowering students and supporting their holistic development**
+## 📝 License
 
-### 🌟 Why This System Matters
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-Traditional education focuses on grades, but student success requires:
-- Mental well-being
-- Physical health
-- Social development
-- Career preparation
-- Personal growth
+## 🙏 Acknowledgments
 
-Student Mentor AI provides the comprehensive support system that students need to thrive in all these areas, while keeping teachers and parents informed.
+- **Google Gemini AI** and **Google ADK** for powerful AI capabilities
+- **Google Cloud Platform** for Firestore, Firebase, and Cloud Run
+- **React Team** for excellent framework
+- **Vite** for fast development experience
+- **Tailwind CSS** and **Framer Motion** for beautiful styling
+- **FastAPI** for high-performance backend framework
 
 ---
 
-**Ready to transform student mentoring? Start with `npm run dev`** 🚀
+**Built with ❤️ to empower students and support their holistic development**
+
+**Ready to transform student mentoring? Start with the [Local Development Setup](#%EF%B8%8F-local-development-setup)** 🚀
+
+## 🙏 Acknowledgments
