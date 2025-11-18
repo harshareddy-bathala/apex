@@ -97,6 +97,7 @@ const StudentLoginPage: React.FC = () => {
         }
         if (credential.user) {
           await seedStudentDoc(credential.user.uid, credential.user.email ?? normalizedEmail);
+          await credential.user.getIdToken(true);
         }
       } else {
         await signInWithEmailAndPassword(auth, normalizedEmail, password);
@@ -146,6 +147,7 @@ const StudentLoginPage: React.FC = () => {
       const isNewUser = tokenResponse?.isNewUser ?? additionalInfo?.isNewUser ?? false;
       if (isNewUser && credential.user) {
         await seedStudentDoc(credential.user.uid, credential.user.email);
+        await credential.user.getIdToken(true);
       }
     } catch (authError) {
       console.error(authError);
