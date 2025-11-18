@@ -11,7 +11,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from firebase_admin import auth as firebase_auth
 from firebase_admin import credentials
 
-from db_fire_proxy import get_document
+from db_direct import get_document
 
 _auth_app = None
 _security_scheme = HTTPBearer(auto_error=False)

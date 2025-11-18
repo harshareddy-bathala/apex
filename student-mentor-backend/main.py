@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from agents import analytics_agent, get_student_hub_agent, onboarding_agent
 from auth import FirebaseUser, verify_firebase_token
 from memory import session_service
-from db_fire_proxy import (
+from db_direct import (
     FirestoreDocument,
     add_document,
     get_document,
