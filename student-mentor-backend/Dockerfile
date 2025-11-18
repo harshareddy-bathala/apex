@@ -27,4 +27,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://127.0.0.1:8080/health || exit 1
 
-CMD bash -c 'printf "%s" "$SERVICE_ACCOUNT_JSON" > /workspace/service-account.json && uvicorn main:app --host 0.0.0.0 --port 8080'
+CMD bash -c 'echo "$GOOGLE_SERVICE_ACCOUNT" | base64 -d > /tmp/gcloud-key.json && export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud-key.json && uvicorn main:app --host 0.0.0.0 --port 8080'
