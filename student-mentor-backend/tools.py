@@ -9,7 +9,7 @@ except ImportError:  # pragma: no cover - ADK 0.3 fallback decorator.
     def tool(func):
         return func
 
-from db_fire_proxy import add_document, get_document, query_collection, upsert_document
+from db_direct import add_document, get_document, query_collection, upsert_document
 from memory import memory_bank, summarize_checkin
 
 analytics_runner: Optional[Callable[[str, str], str]] = None
