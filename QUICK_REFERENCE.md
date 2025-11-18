@@ -3,10 +3,22 @@
 ## 🚀 Getting Started
 
 ```bash
-# Install dependencies
+# Install frontend dependencies
 npm install
 
-# Start development server
+# Install backend dependencies
+cd student-mentor-backend
+python -m venv .venv
+.venv\Scripts\Activate.ps1  # Windows
+source .venv/bin/activate    # Linux/Mac
+pip install -r requirements.txt
+cd ..
+
+# Start backend server (Terminal 1)
+cd student-mentor-backend
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Start frontend dev server (Terminal 2)
 npm run dev
 
 # Open browser at http://localhost:5173
@@ -27,8 +39,10 @@ npm run preview
 
 ## 🧪 Testing
 
+### Frontend Tests
+
 ```bash
-# Run all tests
+# Run all frontend tests
 npm run test
 
 # Run tests in watch mode (auto-rerun on changes)
@@ -39,6 +53,23 @@ npm run test:ui
 
 # Generate coverage report
 npm run test:coverage
+```
+
+### Backend Tests
+
+```bash
+# Activate backend environment first
+cd student-mentor-backend
+.venv\Scripts\Activate.ps1  # Windows
+
+# Run backend tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run with coverage
+pytest --cov=. --cov-report=html
 ```
 
 ## ✨ Code Quality
@@ -106,7 +137,9 @@ npm update
 npm outdated
 ```
 
-## 🐛 Troubleshooting
+## 🐞 Troubleshooting
+
+### Frontend Issues
 
 ```bash
 # Clear npm cache
@@ -125,6 +158,26 @@ npm run type-check
 
 # View detailed test output
 npm run test -- --reporter=verbose
+```
+
+### Backend Issues
+
+```bash
+# Recreate virtual environment
+cd student-mentor-backend
+rm -rf .venv
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+# Check Firestore connection
+python -c "from google.cloud import firestore; print('Firestore OK')"
+
+# Verify ADK installation
+python -c "import google.adk; print(google.adk.__version__)"
+
+# Test backend endpoints
+curl http://localhost:8000/health
 ```
 
 ## 🔍 Useful VS Code Commands
@@ -148,10 +201,25 @@ Ctrl+.                Quick fix
 
 ## 🆘 Common Issues
 
-### Issue: Port already in use
+### Issue: Frontend port already in use
 ```bash
 # Kill process on port 5173 (PowerShell)
 Get-Process -Id (Get-NetTCPConnection -LocalPort 5173).OwningProcess | Stop-Process
+```
+
+### Issue: Backend port already in use
+```bash
+# Kill process on port 8000 (PowerShell)
+Get-Process -Id (Get-NetTCPConnection -LocalPort 8000).OwningProcess | Stop-Process
+```
+
+### Issue: Firestore authentication error
+```bash
+# Verify service account path in .env
+echo $env:GOOGLE_APPLICATION_CREDENTIALS
+
+# Check file exists
+Test-Path "path/to/service-account.json"
 ```
 
 ### Issue: Husky hooks not running
@@ -179,6 +247,7 @@ npm run lint
 
 Always run these before pushing:
 
+### Frontend
 ```bash
 npm run lint:fix      # Fix linting issues
 npm run format        # Format code
@@ -187,7 +256,16 @@ npm run test          # Run tests
 npm run build         # Verify build works
 ```
 
-Or run all at once:
+### Backend
+```bash
+cd student-mentor-backend
+.venv\Scripts\Activate.ps1
+pytest                # Run backend tests
+python -m black .     # Format Python code (if installed)
+python -m flake8 .    # Lint Python code (if installed)
+```
+
+Or run all frontend checks at once:
 ```bash
 npm run lint:fix && npm run format && npm run type-check && npm run test && npm run build
 ```
