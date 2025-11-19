@@ -272,6 +272,27 @@ export async function postCheckIn(token: string, data: Record<string, unknown>):
   return (await response.json()) as DailyCheckIn;
 }
 
+export async function getTodayCheckIn(token: string): Promise<DailyCheckIn | null> {
+  const response = await fetch(apiUrl('/checkin/today'), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    // If endpoint doesn't exist yet or fails, return null to be safe
+    return null;
+  }
+
+  const data = await response.json();
+  // Check if object is empty (no check-in)
+  if (!data || Object.keys(data).length === 0) {
+    return null;
+  }
+  
+  return data as DailyCheckIn;
+}
+
 export async function getGoals(token: string): Promise<GoalsResponse> {
   const response = await fetch(apiUrl('/goals'), {
     headers: {

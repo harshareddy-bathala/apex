@@ -197,7 +197,7 @@ def _utc_now() -> str:
 
 
 @app.post("/auth/create-user-doc")
-async def create_user_doc(payload: CreateUserDocPayload) -> Dict[str, Any]:
+async def create_user_doc(payload: CreateUserDocPayload) -> Dict[str,
     snapshot = get_document("users", payload.uid)
     existing = snapshot.data if snapshot else {}
     created_at = existing.get("createdAt") or _utc_now()
@@ -301,6 +301,25 @@ async def get_profile(user: FirebaseUser = Depends(verify_firebase_token)) -> Di
     return data
 
 
+@app.get("/checkin/today")
+async def get_today_checkin(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    _ensure_student(user)
+    
+    # We use the client's date string format "YYYY-MM-DD" which is sent in the "date" field
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    # Query for check-ins by this student with today's date
+    checkins = query_collection("checkins", filters=[("studentId", "==", user.uid), ("date", "==", today_str)])
+    
+    if checkins:
+        data = dict(checkins[0].data or {})
+        data["id"] = checkins[0].id
+        return data
+        
+    # Return empty object if no check-in found (not 404)
+    return {}
+
+
 @app.post("/checkin")
 async def create_checkin(payload: CheckInPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     _ensure_student(user)
@@ -394,9 +413,33 @@ async def update_homework_entry(
 
 @app.get("/tests")
 async def list_tests(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, List[Dict[str, Any]]]:
-    _ensure_student(user)
-
     records: List[Dict[str, Any]] = []
+
+    if user.role == "teacher":
+        # Teachers see tests they created
+        for doc in query_collection("assignments", filters=[("teacherId", "==", user.uid), ("type", "==", "test")]):
+            data = dict(doc.data or {})
+            record = {
+                "id": doc.id,
+                "studentId": None, # Not specific to one student
+                "teacherId": user.uid,
+                "teacherName": data.get("teacherName"),
+                "subject": data.get("subject") or "General",
+                "title": data.get("title") or "Test",
+                "description": data.get("description"),
+                "testDate": data.get("testDate") or data.get("dueDate") or _utc_now(),
+                "duration": data.get("duration"),
+                "syllabus": data.get("syllabus") or data.get("topics") or [],
+                "importance": data.get("importance") or data.get("type") or "quiz",
+                "preparationStatus": "teacher-view",
+                "studyMaterials": data.get("studyMaterials") or [],
+                "notes": data.get("notes"),
+                "createdAt": data.get("createdAt") or _utc_now(),
+            }
+            records.append(record)
+        return {"tests": records}
+
+    # Student logic
     for doc in query_collection("tests", filters=[("studentId", "==", user.uid)]):
         data = dict(doc.data or {})
         data.setdefault("id", doc.id)
