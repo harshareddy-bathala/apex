@@ -30,17 +30,19 @@ export default function PeerChat({ currentUserId, currentUserName, idToken }: Pe
     scrollToBottom();
   }, [messages]);
 
-  const loadContacts = useCallback(async () => {
+  const loadContacts = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setContacts([]);
+      setContactsLoading(false);
+      return;
+    }
+
     setContactsLoading(true);
     setContactsError(null);
     try {
-      const { peers } = await getPeerContacts(idToken);
+      const { peers } = await getPeerContacts(idToken, query);
       setContacts(peers);
-      if (peers.length > 0) {
-        setSelectedContact((prev) => prev ?? peers[0]);
-      } else {
-        setSelectedContact(null);
-      }
+      // Don't auto-select first contact on search, let user choose
     } catch (err) {
       setContactsError('Unable to load your peers. Please try again.');
       setContacts([]);
@@ -50,8 +52,12 @@ export default function PeerChat({ currentUserId, currentUserName, idToken }: Pe
   }, [idToken]);
 
   useEffect(() => {
-    void loadContacts();
-  }, [loadContacts]);
+    const timer = setTimeout(() => {
+      void loadContacts(searchQuery);
+    }, 300); // Debounce search
+
+    return () => clearTimeout(timer);
+  }, [loadContacts, searchQuery]);
 
   const loadConversation = useCallback(
     async (peerId: string) => {
@@ -147,7 +153,7 @@ export default function PeerChat({ currentUserId, currentUserName, idToken }: Pe
     if (contactsLoading) {
       return (
         <div className="flex items-center justify-center h-full text-muted-ink">
-          <p>Loading your peers...</p>
+          <p>Searching...</p>
         </div>
       );
     }
@@ -158,7 +164,7 @@ export default function PeerChat({ currentUserId, currentUserName, idToken }: Pe
           <p className="text-body text-red-200 mb-4">{contactsError}</p>
           <button
             type="button"
-            onClick={() => void loadContacts()}
+            onClick={() => void loadContacts(searchQuery)}
             className="px-4 py-2 rounded-lg bg-gradient-to-r from-primary-from to-primary-to text-white shadow-card"
           >
             Retry
@@ -167,15 +173,23 @@ export default function PeerChat({ currentUserId, currentUserName, idToken }: Pe
       );
     }
 
-    if (filteredContacts.length === 0) {
+    if (!searchQuery.trim()) {
       return (
         <div className="p-8 text-center text-muted-ink">
-          <p>No contacts found</p>
+          <p>Type to search for classmates.</p>
         </div>
       );
     }
 
-    return filteredContacts.map((contact) => (
+    if (contacts.length === 0) {
+      return (
+        <div className="p-8 text-center text-muted-ink">
+          <p>No classmates found.</p>
+        </div>
+      );
+    }
+
+    return contacts.map((contact) => (
       <button
         key={contact.id}
         onClick={() => setSelectedContact(contact)}
@@ -296,21 +310,30 @@ export default function PeerChat({ currentUserId, currentUserName, idToken }: Pe
   return (
     <div className="flex h-[calc(100vh-200px)] bg-bg-dark rounded-3xl shadow-card border border-card-border overflow-hidden">
       {/* Contacts Sidebar */}
-      <div className="w-80 border-r border-card-border flex flex-col bg-panel-elevated">
+      <div className="w-80 border-r border-white/10 flex flex-col bg-slate-900/50 backdrop-blur-xl">
         {/* Search */}
-        <div className="p-4 border-b border-card-border bg-panel">
-          <h2 className="text-xl font-bold text-white mb-3">💬 Messages</h2>
-          <input
-            type="text"
-            placeholder="Search contacts..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 bg-panel-elevated border border-card-border rounded-lg text-white placeholder-muted-ink focus:ring-2 focus:ring-discrete-highlight"
-          />
+        <div className="p-4 border-b border-white/10">
+          <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span className="text-2xl">💬</span> Messages
+          </h2>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search classmates..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2.5 pl-10 bg-slate-950/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500/50 transition-all outline-none text-sm"
+            />
+            <svg className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
         </div>
 
         {/* Contacts List */}
-        <div className="flex-1 overflow-y-auto">{renderContactList()}</div>
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {renderContactList()}
+        </div>
       </div>
 
       {/* Chat Area */}

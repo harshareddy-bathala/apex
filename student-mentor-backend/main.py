@@ -18,6 +18,7 @@ from db_direct import (
     get_document,
     query_collection,
     upsert_document,
+    delete_document,
 )
 
 app = FastAPI(title="Student Mentor AI Backend")
@@ -430,19 +431,35 @@ async def list_tests(user: FirebaseUser = Depends(verify_firebase_token)) -> Dic
 
 
 @app.get("/peers")
-async def list_peers(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, List[Dict[str, Any]]]:
+async def list_peers(
+    search: str | None = None,
+    user: FirebaseUser = Depends(verify_firebase_token)
+) -> Dict[str, List[Dict[str, Any]]]:
     _ensure_student(user)
 
+    if not search or not search.strip():
+        return {"peers": []}
+
     peers: List[Dict[str, Any]] = []
+    # In a real app with many users, we would use a dedicated search service or Firestore indices.
+    # For now, we fetch students and filter in memory.
     for doc in query_collection("users", filters=[("role", "==", "student")]):
         if doc.id == user.uid:
             continue
         data = dict(doc.data or {})
         profile_snapshot = get_document("studentProfiles", doc.id)
         profile = profile_snapshot.data if profile_snapshot else {}
+        
+        name = profile.get("name") or data.get("name") or (data.get("email") or "peer").split("@")[0]
+        
+        # Filter if search is provided
+        search_lower = search.lower()
+        if search_lower not in name.lower():
+            continue
+
         peer_record = {
             "id": doc.id,
-            "name": profile.get("name") or data.get("name") or (data.get("email") or "peer").split("@")[0],
+            "name": name,
             "role": "student",
             "subject": (profile.get("subjects") or [None])[0],
             "class": profile.get("grade"),
@@ -556,6 +573,23 @@ async def create_assignment(payload: AssignmentPayload, user: FirebaseUser = Dep
             )
 
     return record
+
+
+@app.delete("/assignment/{assignment_id}")
+async def delete_assignment(assignment_id: str, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, str]:
+    _ensure_teacher(user)
+
+    # Verify ownership
+    doc = get_document("assignments", assignment_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    
+    data = doc.data or {}
+    if data.get("teacherId") != user.uid:
+        raise HTTPException(status_code=403, detail="You can only delete your own assignments")
+
+    delete_document("assignments", assignment_id)
+    return {"status": "deleted", "id": assignment_id}
 
 
 @app.post("/attendance")

@@ -127,3 +127,10 @@ def add_document(
         merge=False,
         server_timestamp_fields=server_timestamp_fields,
     )
+
+
+def delete_document(collection: str, document_id: str) -> None:
+    """Delete a document by ID."""
+    client = get_firestore_client()
+    doc_ref = client.collection(_resolve_collection(collection)).document(document_id)
+    doc_ref.delete()

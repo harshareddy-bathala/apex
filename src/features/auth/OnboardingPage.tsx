@@ -1,175 +1,208 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { streamOnboardingChat } from '@/api/client';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { updateProfile } from '@/api/client';
 import { useProfile } from '@/common/context/ProfileContext';
 
 interface OnboardingPageProps {
-  /** Firebase ID token required for authenticated API calls */
   idToken: string | null;
 }
 
-type ChatAuthor = 'mentor' | 'student';
-
-interface ChatMessage {
-  id: string;
-  author: ChatAuthor;
-  content: string;
-}
-
-const INITIAL_MESSAGE: ChatMessage = {
-  id: 'mentor-welcome',
-  author: 'mentor',
-  content: "Welcome! I'm your AI mentor. I'm here to help you get set up. To start, what's your first name?",
-};
-
-const buildMessageId = (prefix: string): string => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
 const OnboardingPage: React.FC<OnboardingPageProps> = ({ idToken }) => {
+  const navigate = useNavigate();
   const { refetchProfile } = useProfile();
-  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
-  const [inputValue, setInputValue] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const controllerRef = useRef<AbortController | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  const canSend = useMemo(() => Boolean(idToken && inputValue.trim() && !isStreaming), [idToken, inputValue, isStreaming]);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    grade: '',
+    tokenNumber: '',
+    dateOfBirth: '',
+    phoneNumber: '',
+    hobbies: '',
+  });
 
-  useEffect(() => {
-    return () => {
-      controllerRef.current?.abort();
-    };
-  }, []);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const appendChunkToMessage = (messageId: string, chunk: string) => {
-    setMessages((prev) =>
-      prev.map((message) =>
-        message.id === messageId
-          ? {
-              ...message,
-              content: `${message.content}${chunk}`,
-            }
-          : message,
-      ),
-    );
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSend = async () => {
-    if (!canSend || !idToken) {
-      return;
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!idToken) return;
 
-    const trimmed = inputValue.trim();
-    const userMessage: ChatMessage = {
-      id: buildMessageId('student'),
-      author: 'student',
-      content: trimmed,
-    };
-    const mentorMessageId = buildMessageId('mentor');
-
-    setMessages((prev) => [...prev, userMessage, { id: mentorMessageId, author: 'mentor', content: '' }]);
-    setInputValue('');
-    setIsStreaming(true);
+    setLoading(true);
     setError(null);
 
-    const controller = new AbortController();
-    controllerRef.current = controller;
-
     try {
-      await streamOnboardingChat({
-        token: idToken,
-        message: trimmed,
-        signal: controller.signal,
-        onData: (chunk) => appendChunkToMessage(mentorMessageId, chunk),
+      const hobbiesList = formData.hobbies.split(',').map((h) => h.trim()).filter(Boolean);
+      
+      await updateProfile(idToken, {
+        name: formData.fullName,
+        grade: formData.grade,
+        studentId: formData.tokenNumber,
+        dateOfBirth: formData.dateOfBirth,
+        phoneNumber: formData.phoneNumber,
+        interests: hobbiesList,
+        onboardingComplete: true,
       });
-      await refetchProfile().catch(() => null);
-    } catch (err) {
-      if ((err as Error).name === 'AbortError') {
-        return;
-      }
-      setError('We hit a snag talking to your mentor. Please try again.');
-      appendChunkToMessage(mentorMessageId, 'Sorry, I lost my train of thought. Could you repeat that?');
-    } finally {
-      setIsStreaming(false);
-      controllerRef.current = null;
-    }
-  };
 
-  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      handleSend();
+      await refetchProfile();
+      navigate('/');
+    } catch (err) {
+      console.error(err);
+      setError('Failed to save profile. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
-      <header className="border-b border-white/5 px-6 py-4">
-        <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-purple-500 flex items-center justify-center text-2xl">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Background effects are handled by global CSS, but we can add a local touch */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+      </div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="w-full max-w-lg relative z-10"
+      >
+        <div className="text-center mb-8">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 to-purple-600 flex items-center justify-center text-3xl shadow-lg shadow-purple-500/20 mb-6">
             🎓
           </div>
-          <div>
-            <p className="text-sm text-slate-400">Student Mentor AI</p>
-            <h1 className="text-xl font-semibold">Let’s get to know you</h1>
-          </div>
+          <h2 className="text-4xl font-bold tracking-tight text-white text-glow">Welcome Student</h2>
+          <p className="mt-3 text-slate-400 text-lg">Let's set up your personalized profile.</p>
         </div>
-      </header>
 
-      <main className="flex-1 overflow-hidden">
-        <div className="h-full max-w-3xl mx-auto flex flex-col px-6 py-8 gap-6">
-          <div className="flex-1 overflow-y-auto rounded-2xl bg-slate-900/60 border border-white/5 p-6 space-y-4">
-            {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.author === 'student' ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                    message.author === 'student' ? 'bg-sky-600 text-white rounded-br-sm' : 'bg-white/5 text-slate-100 rounded-bl-sm'
-                  }`}
-                >
-                  {message.content || '...'}
-                </div>
+        <form className="glass-panel rounded-3xl p-8 space-y-6 border border-white/10 shadow-2xl" onSubmit={handleSubmit}>
+          <div className="space-y-5">
+            <div>
+              <label htmlFor="fullName" className="block text-sm font-medium text-slate-300 mb-1.5">
+                Full Name
+              </label>
+              <input
+                id="fullName"
+                name="fullName"
+                type="text"
+                required
+                value={formData.fullName}
+                onChange={handleChange}
+                className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-3 text-white placeholder:text-slate-600 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all outline-none"
+                placeholder="John Doe"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="grade" className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Class / Grade
+                </label>
+                <input
+                  id="grade"
+                  name="grade"
+                  type="text"
+                  required
+                  value={formData.grade}
+                  onChange={handleChange}
+                  className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-3 text-white placeholder:text-slate-600 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all outline-none"
+                  placeholder="10th"
+                />
               </div>
-            ))}
-            <div ref={bottomRef} />
+              <div>
+                <label htmlFor="tokenNumber" className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Student ID
+                </label>
+                <input
+                  id="tokenNumber"
+                  name="tokenNumber"
+                  type="text"
+                  required
+                  value={formData.tokenNumber}
+                  onChange={handleChange}
+                  className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-3 text-white placeholder:text-slate-600 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all outline-none"
+                  placeholder="STU-123"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="dateOfBirth" className="block text-sm font-medium text-slate-300 mb-1.5">
+                Date of Birth
+              </label>
+              <input
+                id="dateOfBirth"
+                name="dateOfBirth"
+                type="date"
+                required
+                value={formData.dateOfBirth}
+                onChange={handleChange}
+                className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-3 text-white placeholder:text-slate-600 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all outline-none"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="phoneNumber" className="block text-sm font-medium text-slate-300 mb-1.5">
+                Phone Number
+              </label>
+              <input
+                id="phoneNumber"
+                name="phoneNumber"
+                type="tel"
+                required
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-3 text-white placeholder:text-slate-600 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all outline-none"
+                placeholder="+1 234 567 8900"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="hobbies" className="block text-sm font-medium text-slate-300 mb-1.5">
+                Hobbies / Interests
+              </label>
+              <input
+                id="hobbies"
+                name="hobbies"
+                type="text"
+                value={formData.hobbies}
+                onChange={handleChange}
+                className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-3 text-white placeholder:text-slate-600 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all outline-none"
+                placeholder="Coding, Reading, Football..."
+              />
+            </div>
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/40 text-red-200 rounded-xl px-4 py-3 text-sm">{error}</div>
-          )}
-
-          {!idToken && (
-            <div className="bg-amber-500/10 border border-amber-500/30 text-amber-100 rounded-xl px-4 py-3 text-sm">
-              You need to be logged in before starting onboarding.
+            <div className="text-sm text-red-200 bg-red-500/10 p-3 rounded-xl border border-red-500/20">
+              {error}
             </div>
           )}
 
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                placeholder="Type your reply..."
-                value={inputValue}
-                onChange={(event) => setInputValue(event.target.value)}
-                onKeyDown={handleInputKeyDown}
-                disabled={!idToken || isStreaming}
-                className="flex-1 rounded-2xl bg-slate-900/60 border border-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-60"
-              />
-              <button
-                type="button"
-                onClick={handleSend}
-                disabled={!canSend}
-                className="rounded-2xl bg-sky-500 px-6 py-3 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed hover:bg-sky-400 transition-colors"
-              >
-                {isStreaming ? 'Mentor typing…' : 'Send'}
-              </button>
-            </div>
-            <p className="text-xs text-slate-500 text-center">Your responses are securely saved to personalize your experience.</p>
-          </div>
-        </div>
-      </main>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full premium-button py-4 px-6 rounded-xl text-base font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving Profile...
+              </span>
+            ) : (
+              'Complete Setup'
+            )}
+          </button>
+        </form>
+      </motion.div>
     </div>
   );
 };

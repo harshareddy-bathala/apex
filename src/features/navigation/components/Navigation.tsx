@@ -76,8 +76,7 @@ const Navigation: React.FC<NavigationProps> = ({
             </div>
             <div className="hidden sm:block">
               <h1
-                className="text-lg text-white font-semibold tracking-tight"
-                style={{ fontFamily: 'Space Grotesk, Inter, sans-serif' }}
+                className="text-lg text-white font-semibold tracking-tight font-display"
               >
                 Student Mentor AI
               </h1>

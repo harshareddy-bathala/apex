@@ -49,7 +49,7 @@ const TeacherApp: React.FC<TeacherAppProps> = ({ profile, idToken, authUser, onL
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-6 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-sky-300">Teacher Portal</p>
-            <h1 className="text-3xl font-semibold" style={{ fontFamily: 'Space Grotesk, Inter, sans-serif' }}>
+            <h1 className="text-3xl font-semibold font-display">
               {teacherName}
             </h1>
             <p className="text-sm text-white/70">{primaryClass}</p>

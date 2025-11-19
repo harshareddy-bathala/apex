@@ -360,8 +360,9 @@ export async function updateHomework(
   return data.homework;
 }
 
-export async function getPeerContacts(token: string): Promise<PeerContactsResponse> {
-  const response = await fetch(apiUrl('/peers'), {
+export async function getPeerContacts(token: string, search?: string): Promise<PeerContactsResponse> {
+  const query = search ? `?search=${encodeURIComponent(search)}` : '';
+  const response = await fetch(apiUrl(`/peers${query}`), {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -498,5 +499,19 @@ export async function getAnalyticsAlerts(token: string): Promise<AnalyticsAlerts
   }
 
   return (await response.json()) as AnalyticsAlertsResponse;
+}
+
+export async function deleteAssignment(token: string, assignmentId: string): Promise<void> {
+  const response = await fetch(apiUrl(`/assignment/${assignmentId}`), {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete assignment (${response.status}): ${errorText}`);
+  }
 }
 

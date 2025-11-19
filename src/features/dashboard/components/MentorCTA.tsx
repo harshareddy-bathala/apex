@@ -21,7 +21,7 @@ interface MentorCTAProps {
 export const MentorCTA: React.FC<MentorCTAProps> = ({ onOpenChat, studentName }) => {
   return (
     <div className="rounded-3xl p-6 glass-card border border-white/10 shadow-[0_25px_60px_rgba(5,8,20,0.55)] relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none opacity-60" style={{ background: 'radial-gradient(circle at top left, rgba(34,211,238,0.35), transparent 55%)' }}></div>
+      <div className="absolute inset-0 pointer-events-none opacity-60 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.35),transparent_55%)]"></div>
       <div className="relative z-10">
         {/* Avatar */}
         <div className="flex justify-center mb-4">
@@ -32,7 +32,7 @@ export const MentorCTA: React.FC<MentorCTAProps> = ({ onOpenChat, studentName })
 
         {/* Content */}
         <div className="text-center mb-5">
-          <h3 className="text-lg font-semibold text-white mb-2" style={{ fontFamily: 'Space Grotesk, Inter, sans-serif' }}>
+          <h3 className="text-lg font-semibold text-white mb-2 font-display">
             Need help planning today?
           </h3>
           <p className="text-sm text-white/70">

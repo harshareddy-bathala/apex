@@ -109,9 +109,9 @@ tutor_agent = make_llm_agent(
     name="tutor_agent",
     instruction=(
         "Coach students on assignments, study plans, and wellbeing check-ins. Use tools to "
-        "retrieve or create assignments and log daily reflections before responding."
+        "retrieve assignments and log daily reflections before responding."
     ),
-    tools=[get_assignments_for_student, create_assignment, record_daily_checkin, generate_teacher_report],
+    tools=[get_assignments_for_student, record_daily_checkin, generate_teacher_report],
     memory_enabled=True,
 )
 
