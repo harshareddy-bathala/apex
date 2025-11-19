@@ -536,3 +536,23 @@ export async function deleteAssignment(token: string, assignmentId: string): Pro
   }
 }
 
+export interface DashboardDataResponse {
+  checkIns: DailyCheckIn[];
+  activities: any[]; // Using any for now as ActivityLog type might need adjustment
+}
+
+export async function getDashboardData(token: string): Promise<DashboardDataResponse> {
+  const response = await fetch(apiUrl('/dashboard/data'), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to load dashboard data (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as DashboardDataResponse;
+}
+

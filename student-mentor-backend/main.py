@@ -732,3 +732,28 @@ async def analytics_alerts(user: FirebaseUser = Depends(verify_firebase_token)) 
             continue
 
     return {"alerts": alerts}
+
+
+@app.get("/dashboard/data")
+async def get_dashboard_data(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    _ensure_student(user)
+    
+    # Fetch recent check-ins
+    checkins = []
+    # Note: In a real app, we'd order by date desc and limit. 
+    # Firestore queries in this simple setup might need composite indexes for complex ordering.
+    # For now, we fetch all and sort in memory.
+    for doc in query_collection("checkins", filters=[("studentId", "==", user.uid)]):
+        data = dict(doc.data or {})
+        data["id"] = doc.id
+        checkins.append(data)
+    
+    checkins.sort(key=lambda x: x.get("date", ""), reverse=True)
+    
+    # We could also fetch recent activities if we stored them. 
+    # For now, we'll just return checkins and let the frontend derive insights.
+    
+    return {
+        "checkIns": checkins[:30], # Return last 30 check-ins
+        "activities": [] # Placeholder if we implement activity persistence later
+    }
