@@ -197,7 +197,7 @@ def _utc_now() -> str:
 
 
 @app.post("/auth/create-user-doc")
-async def create_user_doc(payload: CreateUserDocPayload) -> Dict[str,
+async def create_user_doc(payload: CreateUserDocPayload) -> Dict[str, Any]:
     snapshot = get_document("users", payload.uid)
     existing = snapshot.data if snapshot else {}
     created_at = existing.get("createdAt") or _utc_now()
