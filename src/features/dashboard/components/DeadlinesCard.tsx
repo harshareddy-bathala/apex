@@ -85,7 +85,8 @@ export const DeadlinesCard: React.FC<DeadlinesCardProps> = ({
           </p>
         ) : (
           deadlines.map((deadline) => {
-            const config = priorityConfig[deadline.priority];
+            const priority = (deadline.priority?.toLowerCase() || 'medium') as keyof typeof priorityConfig;
+            const config = priorityConfig[priority] || priorityConfig.medium;
             const dueDate = new Date(deadline.dueDate);
 
             return (
@@ -100,7 +101,7 @@ export const DeadlinesCard: React.FC<DeadlinesCardProps> = ({
                     <h3 className="text-sm font-semibold text-white mb-1 truncate">
                       {deadline.title}
                     </h3>
-                    
+
                     <div className="flex flex-wrap items-center gap-2 text-micro mb-2">
                       <span className="px-2 py-0.5 bg-white/5 text-white/70 rounded">
                         {deadline.subject}
@@ -141,9 +142,8 @@ export const DeadlinesCard: React.FC<DeadlinesCardProps> = ({
         onClick={onAddDeadline}
         disabled={!onAddDeadline}
         title={!onAddDeadline ? 'Coming soon' : undefined}
-        className={`w-full mt-4 py-2 text-sm text-white/60 border border-dashed border-white/15 rounded-2xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
-          onAddDeadline ? 'hover:text-white hover:border-white/35' : 'opacity-50 cursor-not-allowed'
-        }`}
+        className={`w-full mt-4 py-2 text-sm text-white/60 border border-dashed border-white/15 rounded-2xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${onAddDeadline ? 'hover:text-white hover:border-white/35' : 'opacity-50 cursor-not-allowed'
+          }`}
         aria-label="Add new deadline"
         aria-disabled={!onAddDeadline}
       >
