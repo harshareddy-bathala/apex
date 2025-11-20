@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
 
 import { useAuth } from '@/common/hooks/useAuth';
 import { getStudentProfile, type StudentProfileRecord } from '@/api/client';
@@ -9,7 +8,6 @@ import FullScreenLoader from '@/router/components/FullScreenLoader';
 import { ProfileProvider } from '@/common/context/ProfileContext';
 import TeacherApp from '@/features/teacher/components/TeacherApp';
 import ProtectedApp from '@/ProtectedApp';
-import { auth } from '@/firebase';
 import { mapFirebaseUser } from '@/utils/mapFirebaseUser';
 
 const AuthGuard: React.FC = () => {
@@ -71,10 +69,8 @@ const AuthGuard: React.FC = () => {
   const authUser = useMemo(() => mapFirebaseUser(user), [user]);
 
   const handleLogout = async () => {
-    if (!confirm('Are you sure you want to logout?')) {
-      return;
-    }
-    await signOut(auth);
+    const { confirmAndLogout } = await import('@/utils/logout');
+    await confirmAndLogout('Are you sure you want to sign out?');
   };
 
   if (!user || !idToken) {

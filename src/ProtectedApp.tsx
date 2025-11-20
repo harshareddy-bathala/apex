@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { signOut } from 'firebase/auth';
 
 import Dashboard from '@/features/dashboard/components/Dashboard';
 import Chat from '@/features/chat/components/Chat';
@@ -16,7 +15,6 @@ import ProfilePage from '@/features/profile/ProfilePage';
 import FullScreenLoader from '@/router/components/FullScreenLoader';
 import { useAuth } from '@/common/hooks/useAuth';
 import { useProfile } from '@/common/context/ProfileContext';
-import { auth } from '@/firebase';
 import { mapFirebaseUser } from '@/utils/mapFirebaseUser';
 import { getDashboardData, getHomework, getTests, updateHomework } from '@/api/client';
 import type { StudentProfileRecord } from '@/api/client';
@@ -218,10 +216,8 @@ const ProtectedApp: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    if (!confirm('Are you sure you want to logout?')) {
-      return;
-    }
-    await signOut(auth);
+    const { confirmAndLogout } = await import('@/utils/logout');
+    await confirmAndLogout('Are you sure you want to sign out?');
   };
 
   if (!idToken || !profileRecord || !authUser || !profileState) {

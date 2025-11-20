@@ -25,6 +25,7 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
   const [createdAssignment, setCreatedAssignment] = useState<AssignmentRecord | null>(null);
   const [assignToAll, setAssignToAll] = useState(false);
   const [subjects, setSubjects] = useState<string[]>([]);
+  const [dateInputType, setDateInputType] = useState<'datetime-local' | 'text'>('datetime-local');
 
   React.useEffect(() => {
     getSubjects(idToken).then(setSubjects).catch(console.error);
@@ -34,6 +35,75 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
 
   const handleChange = (field: keyof typeof defaultFormState, value: string) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
+    
+    // Clear error when user starts typing
+    if (error) {
+      setError(null);
+    }
+  };
+  
+  const handleDateChange = (value: string) => {
+    try {
+      // Validate and normalize date input
+      if (value) {
+        // Check if it's a valid datetime-local format (YYYY-MM-DDTHH:MM)
+        const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+        
+        if (dateRegex.test(value)) {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            // Valid date, store ISO string
+            setFormState((prev) => ({ ...prev, dueDate: date.toISOString() }));
+            if (error && error.includes('date')) {
+              setError(null);
+            }
+            return;
+          }
+        }
+        
+        // If not in expected format, try to parse it
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
+          setFormState((prev) => ({ ...prev, dueDate: date.toISOString() }));
+          if (error && error.includes('date')) {
+            setError(null);
+          }
+          return;
+        }
+        
+        // Invalid date format
+        setError('Invalid date format. Please use the date picker or enter a valid date.');
+      } else {
+        // Empty value is allowed (optional field)
+        setFormState((prev) => ({ ...prev, dueDate: '' }));
+        if (error && error.includes('date')) {
+          setError(null);
+        }
+      }
+    } catch (err) {
+      setError('Error processing date. Please try using the date picker.');
+      console.error('Date parsing error:', err);
+    }
+  };
+  
+  const getFormattedDateForInput = (): string => {
+    if (!formState.dueDate) return '';
+    
+    try {
+      const date = new Date(formState.dueDate);
+      if (isNaN(date.getTime())) return '';
+      
+      // Format for datetime-local input (YYYY-MM-DDTHH:MM)
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch {
+      return '';
+    }
   };
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (event) => {
@@ -134,12 +204,30 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
           </label>
           <label className="flex flex-col gap-2 text-sm text-slate-200">
             Due Date
-            <input
-              type="datetime-local"
-              value={formState.dueDate}
-              onChange={(event) => handleChange('dueDate', event.target.value)}
-              className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
-            />
+            <div className="relative">
+              <input
+                type={dateInputType}
+                value={getFormattedDateForInput()}
+                onChange={(event) => handleDateChange(event.target.value)}
+                onFocus={(e) => {
+                  // Ensure datetime-local type on focus for better UX
+                  if (dateInputType === 'text') {
+                    setDateInputType('datetime-local');
+                  }
+                }}
+                onBlur={(e) => {
+                  // If empty and was text type, keep as text
+                  if (!e.target.value && dateInputType === 'text') {
+                    setDateInputType('text');
+                  }
+                }}
+                className="w-full rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+                placeholder="Select due date and time"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 pointer-events-none">
+                Optional
+              </span>
+            </div>
           </label>
         </div>
         <label className="flex flex-col gap-2 text-sm text-slate-200">
