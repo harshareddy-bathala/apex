@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -18,6 +19,7 @@ COLLECTIONS: Dict[str, str] = {
     "checkins": "checkins",
     "attendance": "attendance",
     "timetables": "timetables",
+    "peerMessages": "peerMessages",
 }
 
 FilterExpr = Tuple[str, str, Any]
@@ -51,11 +53,11 @@ def _post(path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     try:
         response = requests.post(url, json=payload, timeout=DEFAULT_TIMEOUT)
         response.raise_for_status()
-    except requests.RequestException as exc:  # pragma: no cover - network failures
+    except requests.RequestException as exc:
         raise FirestoreProxyError(f"Firestore proxy request failed: {exc}") from exc
 
     data = response.json()
-    if not isinstance(data, dict):  # pragma: no cover - defensive guard
+    if not isinstance(data, dict):
         raise FirestoreProxyError("Firestore proxy returned unexpected payload")
     return data
 
@@ -66,6 +68,11 @@ def _doc_from_payload(payload: Dict[str, Any]) -> FirestoreDocument:
         data=payload.get("data") or {},
         exists=payload.get("exists", True),
     )
+
+
+def _utc_now() -> str:
+    """Returns current UTC timestamp in ISO 8601 format."""
+    return datetime.now(timezone.utc).isoformat()
 
 
 def get_document(collection: str, document_id: str) -> Optional[FirestoreDocument]:
@@ -140,5 +147,30 @@ def add_document(
         data,
         document_id=document_id,
         merge=False,
+        server_timestamp_fields=server_timestamp_fields,
+    )
+
+
+def delete_document(collection: str, document_id: str) -> None:
+    _post(
+        "/delete",
+        {
+            "collection": _resolve_collection(collection),
+            "documentId": document_id,
+        },
+    )
+
+
+def update_document(
+    collection: str,
+    document_id: str,
+    data: Dict[str, Any],
+    server_timestamp_fields: Optional[Iterable[str]] = None,
+) -> FirestoreDocument:
+    return upsert_document(
+        collection,
+        data,
+        document_id=document_id,
+        merge=True,
         server_timestamp_fields=server_timestamp_fields,
     )

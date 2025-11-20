@@ -1,6 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { getAnalyticsAlerts, getTests, deleteAssignment, type AnalyticsAlert, type Test } from '@/api/client';
+import { 
+  getAnalyticsAlerts, 
+  getTests, 
+  deleteAssignment, 
+  createAssignment,
+  type AnalyticsAlert, 
+  type Test,
+  type CreateAssignmentPayload 
+} from '@/api/client';
 
 interface TeacherDashboardProps {
   idToken?: string;
@@ -21,6 +29,18 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
   const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Create Assignment State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newAssignment, setNewAssignment] = useState<CreateAssignmentPayload>({
+    title: '',
+    classId: 'class-10a', // Default for now
+    subject: '',
+    type: 'homework',
+    dueDate: '',
+    description: ''
+  });
 
   const canLoad = useMemo(() => Boolean(idToken), [idToken]);
 
@@ -66,6 +86,34 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
     }
   };
 
+  const handleCreateAssignment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!idToken) return;
+
+    setCreating(true);
+    try {
+      const created = await createAssignment(idToken, newAssignment);
+      // Optimistically add to list or reload
+      // The API returns AssignmentRecord which matches Test interface roughly
+      // We'll reload to be safe and get server fields
+      await loadData();
+      setShowCreateModal(false);
+      // Reset form
+      setNewAssignment({
+        title: '',
+        classId: 'class-10a',
+        subject: '',
+        type: 'homework',
+        dueDate: '',
+        description: ''
+      });
+    } catch (err) {
+      alert('Failed to create assignment');
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const handleDownloadReport = (studentName: string, summary: string) => {
     const blob = new Blob([summary], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -79,7 +127,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
       {/* AI Alerts Section */}
       <div className="space-y-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -156,9 +204,18 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
 
       {/* Tests Section */}
       <div className="space-y-6 pt-6 border-t border-white/10">
-        <div>
-          <h2 className="text-2xl font-semibold text-white">Tests & Assignments</h2>
-          <p className="text-sm text-white/60">Manage your created tests and homework.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold text-white">Tests & Assignments</h2>
+            <p className="text-sm text-white/60">Manage your created tests and homework.</p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            disabled={!canLoad}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-medium shadow-lg hover:shadow-sky-500/20 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            + Create New
+          </button>
         </div>
 
         {tests.length === 0 ? (
@@ -207,6 +264,102 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
           </div>
         )}
       </div>
+
+      {/* Create Assignment Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-lg glass-panel rounded-3xl p-6 border border-white/10 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <button 
+              onClick={() => setShowCreateModal(false)}
+              className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <h3 className="text-xl font-bold text-white mb-6">Create Assignment</h3>
+            
+            <form onSubmit={handleCreateAssignment} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Title</label>
+                <input
+                  type="text"
+                  required
+                  value={newAssignment.title}
+                  onChange={e => setNewAssignment(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-2.5 text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none"
+                  placeholder="e.g., Algebra Quiz 1"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Subject</label>
+                  <input
+                    type="text"
+                    required
+                    value={newAssignment.subject}
+                    onChange={e => setNewAssignment(prev => ({ ...prev, subject: e.target.value }))}
+                    className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-2.5 text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none"
+                    placeholder="e.g., Math"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Type</label>
+                  <select
+                    value={newAssignment.type}
+                    onChange={e => setNewAssignment(prev => ({ ...prev, type: e.target.value }))}
+                    className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-2.5 text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none appearance-none"
+                  >
+                    <option value="homework" className="bg-slate-900">Homework</option>
+                    <option value="test" className="bg-slate-900">Test</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Due Date</label>
+                <input
+                  type="date"
+                  required
+                  value={newAssignment.dueDate}
+                  onChange={e => setNewAssignment(prev => ({ ...prev, dueDate: e.target.value }))}
+                  className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-2.5 text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Description</label>
+                <textarea
+                  rows={3}
+                  value={newAssignment.description}
+                  onChange={e => setNewAssignment(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-2.5 text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none resize-none"
+                  placeholder="Instructions for students..."
+                />
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 px-4 py-3 rounded-xl bg-white/5 text-white font-medium hover:bg-white/10 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-medium shadow-lg hover:shadow-sky-500/20 transition-all disabled:opacity-50"
+                >
+                  {creating ? 'Creating...' : 'Create Assignment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

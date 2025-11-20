@@ -3,24 +3,9 @@ from __future__ import annotations
 import os
 from typing import Callable, Sequence
 
-try:  # google-adk>=0.3.0 exposes LlmAgent; fall back gracefully otherwise.
-    from google.adk.agents import Agent, LlmAgent, ParallelAgent, SequentialAgent
-    _HAS_LLM_AGENT = True
-except ImportError:  # pragma: no cover - legacy fallback for CI environments.
-    from google.adk.agents import Agent, ParallelAgent, SequentialAgent
-
-    LlmAgent = Agent  # type: ignore[assignment]
-    _HAS_LLM_AGENT = False
-
-try:
-    from google.adk.types import Model
-except ImportError:  # pragma: no cover - fallback when ADK lacks typed models.
-    from dataclasses import dataclass
-
-    @dataclass
-    class Model:  # type: ignore[override]
-        name: str
-        temperature: float = 0.0
+# Standard imports for google-adk 0.3.0
+# User confirmed google.adk.types does not exist.
+from google.adk.agents import Agent, ParallelAgent, SequentialAgent
 
 from memory import memory_bank, session_service
 from tools import (
@@ -34,19 +19,6 @@ from tools import (
     update_student_goals,
 )
 
-# Troubleshooting commands if ADK imports break after upgrades:
-#   python -c "import google.adk.agents as g; print(dir(g))"
-#   python -c "import google.adk, inspect; print(google.adk.__version__)"
-
-def _make_model(
-    model_name: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash"),
-    temperature: float = float(os.getenv("ADK_TEMPERATURE", "0.0")),
-) -> Model:
-    """Create an ADK Model spec. Must be offline-safe and not call remote APIs."""
-
-    return Model(name=model_name, temperature=temperature)
-
-
 def make_llm_agent(
     *,
     name: str,
@@ -54,35 +26,25 @@ def make_llm_agent(
     tools: Sequence[Callable[..., str]] | None = None,
     memory_enabled: bool = False,
 ) -> Agent:
-    """Create consistent LLM agents without repeating boilerplate."""
+    """Create consistent LLM agents without repeating boilerplate.
+    
+    Note: memory_enabled parameter is kept for backward compatibility but is not used
+    in Agent construction. Memory is handled via sessions when calling agent.run().
+    """
 
-    model = _make_model()
+    model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     tool_list = list(tools) if tools else []
 
-    if not _HAS_LLM_AGENT:
-        agent_kwargs: dict[str, object] = {
-            "name": name,
-            "instructions": instruction,
-            "model": model.name,
-            "tools": tool_list,
-        }
-        if memory_enabled:
-            agent_kwargs["memory_bank"] = memory_bank
-        return Agent(**agent_kwargs)
-
+    # google-adk 0.3.0 Agent expects 'instruction' (singular), not 'instructions'
+    # Memory is not a constructor parameter; it's managed via sessions in agent.run()
     agent_kwargs = {
         "name": name,
-        "instruction": instruction,
-        "model": model,
+        "instruction": instruction,  # Changed from 'instructions' to 'instruction'
+        "model": model_name,
         "tools": tool_list,
     }
 
-    try:
-        return LlmAgent(**agent_kwargs)
-    except Exception:  # pragma: no cover - fallback for legacy signatures/validation.
-        fallback_kwargs = dict(agent_kwargs)
-        fallback_kwargs["model"] = model.name
-        return LlmAgent(**fallback_kwargs)
+    return Agent(**agent_kwargs)
 
 
 def register_analytics_runner(agent: Agent) -> None:
