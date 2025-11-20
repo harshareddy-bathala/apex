@@ -134,3 +134,25 @@ def delete_document(collection: str, document_id: str) -> None:
     client = get_firestore_client()
     doc_ref = client.collection(_resolve_collection(collection)).document(document_id)
     doc_ref.delete()
+
+
+def _utc_now() -> str:
+    """Returns current UTC timestamp in ISO 8601 format."""
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat()
+
+
+def update_document(
+    collection: str,
+    document_id: str,
+    data: Dict[str, Any],
+    server_timestamp_fields: Optional[Sequence[str]] = None,
+) -> FirestoreDocument:
+    """Update an existing document (merge=True)."""
+    return upsert_document(
+        collection,
+        data,
+        document_id=document_id,
+        merge=True,
+        server_timestamp_fields=server_timestamp_fields,
+    )

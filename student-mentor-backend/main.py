@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 from agents import get_student_hub_agent, analytics_agent
 from auth import verify_firebase_token, FirebaseUser
-from db_fire_proxy import (
+from db_direct import (
     add_document,
     delete_document,
     get_document,
