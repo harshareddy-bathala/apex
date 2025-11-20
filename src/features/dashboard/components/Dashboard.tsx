@@ -14,8 +14,8 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({
   profile,
-  checkIns,
-  activities,
+  checkIns = [],
+  activities = [],
   homework = [],
   tests = [],
   onHomeworkStatusChange,
@@ -33,32 +33,32 @@ const Dashboard: React.FC<DashboardProps> = ({
         id: `subj-${idx}`,
         name: subject
       })),
-      
+
       // Metrics
       avgStudyHours: academicMetrics.averageStudyHours,
       weeklyStudy: checkIns.slice(0, 7).reverse().map(c => c.studyHours),
       homeworkCompletionPercent: academicMetrics.homeworkCompletionRate,
       attendancePercent: academicMetrics.attendanceRate,
-      
+
       energyLevel: checkIns.length > 0
         ? (checkIns[0].energyLevel >= 7 ? 'high' : checkIns[0].energyLevel >= 4 ? 'balanced' : 'low')
         : 'balanced',
-      
+
       overallProgressPercent: Math.min(
         100,
         Math.max(
           0,
           Math.round(
             academicMetrics.homeworkCompletionRate * 0.4 +
-              academicMetrics.attendanceRate * 0.3 +
-              (academicMetrics.averageStudyHours / 3) * 100 * 0.3
+            academicMetrics.attendanceRate * 0.3 +
+            (academicMetrics.averageStudyHours / 3) * 100 * 0.3
           )
         ),
       ),
-      
+
       energyTrend: checkIns.slice(0, 7).reverse().map(c => c.energyLevel),
       attendanceTrend: checkIns.slice(0, 7).reverse().map(c => c.classesAttended),
-      
+
       // Today's focus from pending homework
       todaysFocus: homework
         .filter(h => h.status === 'pending' || h.status === 'in-progress')
@@ -73,7 +73,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           priority: (h.priority === 'urgent' ? 'high' : h.priority) as 'low' | 'medium' | 'high',
           status: h.status,
         })),
-      
+
       // Upcoming deadlines
       upcomingDeadlines: [
         ...homework
@@ -98,7 +98,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         .filter(d => d.daysLeft >= 0)
         .sort((a, b) => a.daysLeft - b.daysLeft)
         .slice(0, 5),
-      
+
       // Recent activities
       recentActivities: activities.slice(0, 10).map(a => ({
         id: a.id,
@@ -107,7 +107,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         time: getRelativeTime(a.timestamp),
         icon: getActivityIcon(a.type)
       })),
-      
+
       goals: [
         {
           id: 'goal-1',
@@ -138,11 +138,11 @@ function getRelativeTime(timestamp: string): string {
   const now = Date.now();
   const time = new Date(timestamp).getTime();
   const diff = now - time;
-  
+
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
-  
+
   if (minutes < 60) return `${minutes} min ago`;
   if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
   if (days === 1) return 'Yesterday';
