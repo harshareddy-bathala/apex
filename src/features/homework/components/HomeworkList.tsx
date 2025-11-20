@@ -26,7 +26,7 @@ interface HomeworkListProps {
 }
 
 export default function HomeworkList({
-  homework,
+  homework = [],
   onStatusChange,
   onRefresh,
   loadingExternal,
@@ -109,11 +109,17 @@ export default function HomeworkList({
   };
 
   const isOverdue = (dueDate: string, status: string) => {
-    return new Date(dueDate) < new Date() && status !== 'completed' && status !== 'submitted';
+    if (!dueDate) return false;
+    const due = new Date(dueDate);
+    return !isNaN(due.getTime()) && due < new Date() && status !== 'completed' && status !== 'submitted';
   };
 
   const getDaysUntilDue = (dueDate: string) => {
-    const days = Math.ceil((new Date(dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+    if (!dueDate) return '';
+    const due = new Date(dueDate);
+    if (isNaN(due.getTime())) return 'Invalid date';
+
+    const days = Math.ceil((due.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
     if (days < 0) return `${Math.abs(days)} days overdue`;
     if (days === 0) return 'Due today';
     if (days === 1) return 'Due tomorrow';
@@ -170,9 +176,8 @@ export default function HomeworkList({
         ].map((stat) => (
           <div
             key={stat.label}
-            className={`glass-panel rounded-2xl p-4 shadow-card ${
-              stat.highlight ? 'glass-panel--highlight ring-0' : ''
-            }`}
+            className={`glass-panel rounded-2xl p-4 shadow-card ${stat.highlight ? 'glass-panel--highlight ring-0' : ''
+              }`}
           >
             <div className="flex items-center justify-between text-muted-ink text-body-sm">
               <span>{stat.label}</span>
@@ -191,11 +196,10 @@ export default function HomeworkList({
             <button
               key={tab.id}
               onClick={() => setFilter(tab.id)}
-              className={`px-4 py-2 rounded-xl text-body-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight flex items-center gap-2 ${
-                filter === tab.id
-                  ? 'bg-gradient-to-r from-primary-from to-primary-to text-white shadow-card'
-                  : 'premium-chip hover:text-white'
-              }`}
+              className={`px-4 py-2 rounded-xl text-body-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight flex items-center gap-2 ${filter === tab.id
+                ? 'bg-gradient-to-r from-primary-from to-primary-to text-white shadow-card'
+                : 'premium-chip hover:text-white'
+                }`}
             >
               <span>{tab.icon}</span>
               {tab.label} ({filterCounts[tab.id]})
@@ -238,13 +242,12 @@ export default function HomeworkList({
           sortedHomework.map(hw => (
             <div
               key={hw.id}
-              className={`glass-panel relative overflow-hidden rounded-3xl p-5 shadow-card transition-all duration-200 hover:shadow-card-hover ${
-                isOverdue(hw.dueDate, hw.status)
-                  ? 'glass-panel--highlight'
-                  : hw.status === 'completed' || hw.status === 'submitted'
+              className={`glass-panel relative overflow-hidden rounded-3xl p-5 shadow-card transition-all duration-200 hover:shadow-card-hover ${isOverdue(hw.dueDate, hw.status)
+                ? 'glass-panel--highlight'
+                : hw.status === 'completed' || hw.status === 'submitted'
                   ? 'opacity-80'
                   : ''
-              }`}
+                }`}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
               <div className="relative flex items-start gap-4">
@@ -270,9 +273,8 @@ export default function HomeworkList({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="flex-1">
-                      <h3 className={`text-body font-semibold ${
-                        hw.status === 'completed' || hw.status === 'submitted' ? 'line-through text-muted-ink' : 'text-white'
-                      }`}>
+                      <h3 className={`text-body font-semibold ${hw.status === 'completed' || hw.status === 'submitted' ? 'line-through text-muted-ink' : 'text-white'
+                        }`}>
                         {getStatusIcon(hw.status)} {hw.title}
                       </h3>
                       <p className="text-body-sm text-muted-ink mt-1">{hw.subject} • {hw.teacherName}</p>
@@ -291,11 +293,10 @@ export default function HomeworkList({
 
                   {/* Meta Info */}
                   <div className="flex flex-wrap gap-4 text-body-sm">
-                    <span className={`font-medium ${
-                      isOverdue(hw.dueDate, hw.status) ? 'text-red-400' :
+                    <span className={`font-medium ${isOverdue(hw.dueDate, hw.status) ? 'text-red-400' :
                       new Date(hw.dueDate).getTime() - new Date().getTime() < 24 * 60 * 60 * 1000 ? 'text-orange-400' :
-                      'text-muted-ink'
-                    }`}>
+                        'text-muted-ink'
+                      }`}>
                       📅 {getDaysUntilDue(hw.dueDate)}
                     </span>
                     {hw.estimatedTime && (
@@ -312,11 +313,10 @@ export default function HomeworkList({
                       <button
                         onClick={() => void updateStatus(hw.id, 'in-progress')}
                         disabled={inFlightId === hw.id}
-                        className={`px-3 py-1 rounded-xl text-body-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight disabled:opacity-60 ${
-                          hw.status === 'in-progress'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
-                        }`}
+                        className={`px-3 py-1 rounded-xl text-body-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-discrete-highlight disabled:opacity-60 ${hw.status === 'in-progress'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
+                          }`}
                       >
                         In Progress
                       </button>

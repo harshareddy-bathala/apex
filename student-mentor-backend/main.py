@@ -68,6 +68,8 @@ class CreateAssignmentPayload(BaseModel):
     instructions: Optional[str] = None
     attachments: Optional[List[str]] = None
     studentIds: Optional[List[str]] = None
+    priority: Optional[str] = "medium"
+    estimatedTime: Optional[int] = None
 
 class AttendanceRecordPayload(BaseModel):
     studentId: str
@@ -384,13 +386,36 @@ async def analytics_alerts(user: FirebaseUser = Depends(verify_firebase_token)) 
     # Academic signals from student submissions (mock logic for now as submissions might be empty)
     # ... (Simplified for brevity, similar logic as original)
 
+    # If no alerts found, generate a positive summary for at least one student (or all)
+    # For this prototype, if we have check-in data but no risks, we'll create a "Positive" alert
+    if not alerts_map:
+        # Try to find a student with checkins to give positive feedback
+        recent_checkins = query_collection("checkins", limit=5)
+        seen_students = set()
+        for doc in recent_checkins:
+            data = doc.data or {}
+            sid = data.get("studentId")
+            if sid and sid not in seen_students:
+                seen_students.add(sid)
+                alerts_map[sid] = {
+                    "studentId": sid,
+                    "studentName": "Student", # Placeholder
+                    "riskScore": 0,
+                    "signals": [{
+                        "category": "positive",
+                        "description": "Consistent check-ins and stable mood reported.",
+                        "source": data
+                    }]
+                }
+
     alerts = sorted(alerts_map.values(), key=lambda alert: alert.get("riskScore", 0), reverse=True)
 
     for alert in alerts:
         try:
             prompt = (
-                "You are an analytics assistant helping a teacher prioritize interventions. "
-                "Based on the following JSON signals, provide one concise recommendation in plain text. "
+                "You are an analytics assistant. "
+                "Based on the following signals, provide a ONE SENTENCE summary. "
+                "If riskScore is 0, be encouraging and praise consistency. "
                 "Signals: "
                 f"{json.dumps(alert['signals'])}"
             )
@@ -400,6 +425,7 @@ async def analytics_alerts(user: FirebaseUser = Depends(verify_firebase_token)) 
             )
             alert["aiSummary"] = str(summary)
         except Exception:
+            alert["aiSummary"] = "Unable to generate summary."
             continue
 
     return {"alerts": alerts}

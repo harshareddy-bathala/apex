@@ -17,6 +17,7 @@ from tools import (
     register_analytics_runner as _register_analytics_callback,
     save_student_profile_data,
     update_student_goals,
+    get_upcoming_assignments,
 )
 
 def make_llm_agent(
@@ -73,7 +74,7 @@ tutor_agent = make_llm_agent(
         "Coach students on assignments, study plans, and wellbeing check-ins. Use tools to "
         "retrieve assignments and log daily reflections before responding."
     ),
-    tools=[get_assignments_for_student, record_daily_checkin, generate_teacher_report],
+    tools=[get_assignments_for_student, get_upcoming_assignments, record_daily_checkin, generate_teacher_report],
     memory_enabled=True,
 )
 

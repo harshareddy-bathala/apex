@@ -173,3 +173,39 @@ def generate_teacher_report(student_id: str) -> str:
         "studentSubmissions, and assignment metadata. Highlight multi-day negative trends."
     )
     return analytics_runner(student_id, prompt)
+
+
+@tool
+def get_upcoming_assignments(student_id: str) -> str:
+    """Fetch all upcoming assignments (homework/tests) that are not yet submitted."""
+    
+    # 1. Get all assignments (In a real app, filter by student's class/grade)
+    # For this prototype, we fetch all active assignments
+    all_assignments = query_collection("assignments", filters=[("status", "==", "active")])
+    
+    # 2. Get student's existing submissions to exclude them
+    submissions = query_collection(
+        "studentSubmissions",
+        filters=[("studentId", "==", student_id)],
+    )
+    submitted_assignment_ids = {sub.data.get("assignmentId") for sub in submissions if sub.data}
+    
+    upcoming = []
+    for doc in all_assignments:
+        data = doc.data or {}
+        if doc.id in submitted_assignment_ids:
+            continue
+            
+        # Filter by due date if needed (optional, but good for "upcoming")
+        # For now, return all non-submitted ones
+        upcoming.append({
+            "id": doc.id,
+            "title": data.get("title"),
+            "subject": data.get("subject"),
+            "type": data.get("type", "homework"),
+            "dueDate": data.get("dueDate"),
+            "priority": data.get("priority", "medium"),
+            "estimatedTime": data.get("estimatedTime")
+        })
+        
+    return json.dumps(upcoming)

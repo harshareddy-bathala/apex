@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { 
-  getAnalyticsAlerts, 
-  getTests, 
-  deleteAssignment, 
+import {
+  getAnalyticsAlerts,
+  getTests,
+  deleteAssignment,
   createAssignment,
-  type AnalyticsAlert, 
+  type AnalyticsAlert,
   type Test,
-  type CreateAssignmentPayload 
+  type CreateAssignmentPayload
 } from '@/api/client';
 
 interface TeacherDashboardProps {
@@ -29,7 +29,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
   const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Create Assignment State
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -86,19 +86,50 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
     }
   };
 
+  // Manage Subjects State
+  const [showSubjectsModal, setShowSubjectsModal] = useState(false);
+  const [subjects, setSubjects] = useState<string[]>(['Math', 'Science', 'English', 'History', 'Computer Science']);
+  const [newSubject, setNewSubject] = useState('');
+
+  const handleAddSubject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newSubject && !subjects.includes(newSubject)) {
+      setSubjects([...subjects, newSubject]);
+      setNewSubject('');
+    }
+  };
+
+  const handleRemoveSubject = (subject: string) => {
+    setSubjects(subjects.filter(s => s !== subject));
+  };
+
   const handleCreateAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!idToken) return;
 
+    // Validation
+    if (!newAssignment.title.trim()) {
+      alert('Please enter a title');
+      return;
+    }
+    if (!newAssignment.subject) {
+      alert('Please select a subject');
+      return;
+    }
+    if (!newAssignment.dueDate) {
+      alert('Please select a due date');
+      return;
+    }
+    if (new Date(newAssignment.dueDate) < new Date()) {
+      alert('Due date cannot be in the past');
+      return;
+    }
+
     setCreating(true);
     try {
-      const created = await createAssignment(idToken, newAssignment);
-      // Optimistically add to list or reload
-      // The API returns AssignmentRecord which matches Test interface roughly
-      // We'll reload to be safe and get server fields
+      await createAssignment(idToken, newAssignment);
       await loadData();
       setShowCreateModal(false);
-      // Reset form
       setNewAssignment({
         title: '',
         classId: 'class-10a',
@@ -209,13 +240,21 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
             <h2 className="text-2xl font-semibold text-white">Tests & Assignments</h2>
             <p className="text-sm text-white/60">Manage your created tests and homework.</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            disabled={!canLoad}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-medium shadow-lg hover:shadow-sky-500/20 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            + Create New
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowSubjectsModal(true)}
+              className="px-4 py-2 rounded-xl bg-white/5 text-white font-medium hover:bg-white/10 transition-all"
+            >
+              Manage Subjects
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              disabled={!canLoad}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-medium shadow-lg hover:shadow-sky-500/20 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              + Create New
+            </button>
+          </div>
         </div>
 
         {tests.length === 0 ? (
@@ -265,11 +304,62 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
         )}
       </div>
 
+      {/* Manage Subjects Modal */}
+      {showSubjectsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md glass-panel rounded-3xl p-6 border border-white/10 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <button
+              onClick={() => setShowSubjectsModal(false)}
+              className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <h3 className="text-xl font-bold text-white mb-6">Manage Subjects</h3>
+
+            <form onSubmit={handleAddSubject} className="flex gap-2 mb-6">
+              <input
+                type="text"
+                value={newSubject}
+                onChange={(e) => setNewSubject(e.target.value)}
+                placeholder="Add new subject..."
+                className="flex-1 rounded-xl bg-slate-950/50 border border-white/10 px-4 py-2 text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none"
+              />
+              <button
+                type="submit"
+                disabled={!newSubject.trim()}
+                className="px-4 py-2 rounded-xl bg-sky-500 text-white font-medium hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Add
+              </button>
+            </form>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {subjects.map((subject) => (
+                <div key={subject} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                  <span className="text-white">{subject}</span>
+                  <button
+                    onClick={() => handleRemoveSubject(subject)}
+                    className="text-red-400 hover:text-red-300 p-1"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Assignment Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-lg glass-panel rounded-3xl p-6 border border-white/10 shadow-2xl relative animate-in fade-in zoom-in duration-200">
-            <button 
+            <button
               onClick={() => setShowCreateModal(false)}
               className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"
             >
@@ -277,9 +367,9 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            
+
             <h3 className="text-xl font-bold text-white mb-6">Create Assignment</h3>
-            
+
             <form onSubmit={handleCreateAssignment} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">Title</label>
@@ -296,14 +386,17 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">Subject</label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={newAssignment.subject}
                     onChange={e => setNewAssignment(prev => ({ ...prev, subject: e.target.value }))}
-                    className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-2.5 text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none"
-                    placeholder="e.g., Math"
-                  />
+                    className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-2.5 text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none appearance-none"
+                  >
+                    <option value="" className="bg-slate-900">Select Subject</option>
+                    {subjects.map(subject => (
+                      <option key={subject} value={subject} className="bg-slate-900">{subject}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">Type</label>
@@ -338,6 +431,32 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
                   className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-2.5 text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none resize-none"
                   placeholder="Instructions for students..."
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Priority</label>
+                  <select
+                    value={newAssignment.priority || 'medium'}
+                    onChange={e => setNewAssignment(prev => ({ ...prev, priority: e.target.value as any }))}
+                    className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-2.5 text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none appearance-none"
+                  >
+                    <option value="low" className="bg-slate-900">Low</option>
+                    <option value="medium" className="bg-slate-900">Medium</option>
+                    <option value="high" className="bg-slate-900">High</option>
+                    <option value="urgent" className="bg-slate-900">Urgent</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Est. Time (min)</label>
+                  <input
+                    type="number"
+                    value={newAssignment.estimatedTime || ''}
+                    onChange={e => setNewAssignment(prev => ({ ...prev, estimatedTime: parseInt(e.target.value) || undefined }))}
+                    className="w-full rounded-xl bg-slate-950/50 border border-white/10 px-4 py-2.5 text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none"
+                    placeholder="e.g., 30"
+                  />
+                </div>
               </div>
 
               <div className="pt-2 flex gap-3">

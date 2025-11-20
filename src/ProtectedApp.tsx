@@ -7,11 +7,12 @@ import DailyCheckIn from '@/features/check-in/components/DailyCheckIn';
 import TeacherReport from '@/features/reports/components/TeacherReport';
 import GoalsEditor from '@/features/goals/components/GoalsEditor';
 import EditProfilePage from '@/features/profile/EditProfilePage';
+import ProfilePage from '@/features/profile/ProfilePage';
 import HomeworkList from '@/features/homework/components/HomeworkList';
 import TestsList from '@/features/tests/components/TestsList';
 import PeerChat from '@/features/peer-chat/components/PeerChat';
 import TeacherAlerts from '@/features/reports/components/TeacherAlerts';
-import Navigation from '@/features/navigation/components/Navigation';
+import Sidebar from '@/features/navigation/components/Sidebar';
 import FullScreenLoader from '@/router/components/FullScreenLoader';
 import { useAuth } from '@/common/hooks/useAuth';
 import { useProfile } from '@/common/context/ProfileContext';
@@ -28,7 +29,7 @@ import type {
   Test,
 } from '@/types';
 
-type View = 'dashboard' | 'chat' | 'checkin' | 'report' | 'homework' | 'tests' | 'peer-chat';
+type View = 'dashboard' | 'chat' | 'checkin' | 'report' | 'homework' | 'tests' | 'peer-chat' | 'profile';
 
 const ProtectedApp: React.FC = () => {
   const { user, idToken } = useAuth();
@@ -50,6 +51,8 @@ const ProtectedApp: React.FC = () => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [homeworkLoading, setHomeworkLoading] = useState(false);
   const [homeworkError, setHomeworkError] = useState<string | null>(null);
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (profileRecord) {
@@ -107,13 +110,13 @@ const ProtectedApp: React.FC = () => {
         prev.map((hw) =>
           hw.id === homeworkId
             ? {
-                ...hw,
-                status,
-                completedAt:
-                  status === 'completed' || status === 'submitted'
-                    ? new Date().toISOString()
-                    : undefined,
-              }
+              ...hw,
+              status,
+              completedAt:
+                status === 'completed' || status === 'submitted'
+                  ? new Date().toISOString()
+                  : undefined,
+            }
             : hw,
         ),
       );
@@ -150,8 +153,8 @@ const ProtectedApp: React.FC = () => {
         checkIn.mood === 'excellent' || checkIn.mood === 'good'
           ? 'positive'
           : checkIn.mood === 'okay'
-          ? 'neutral'
-          : 'negative',
+            ? 'neutral'
+            : 'negative',
     });
   };
 
@@ -197,13 +200,14 @@ const ProtectedApp: React.FC = () => {
   const todayCheckIn = checkIns.find((c) => c.date === new Date().toISOString().split('T')[0]);
 
   return (
-    <div className="min-h-screen bg-bg-dark font-sans">
-      <Navigation
+    <div className="min-h-screen bg-[var(--bg-secondary)] font-sans text-[var(--text-primary)] transition-colors duration-300">
+      <Sidebar
         authUser={authUser}
         profile={profileState}
         role={profileRecord.role === 'teacher' ? 'teacher' : 'student'}
         currentView={currentView}
-        hasTodayCheckIn={!!todayCheckIn}
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
         onViewChange={setCurrentView}
         onCheckInClick={() => setShowCheckIn(true)}
         onReportClick={() => setShowReport(true)}
@@ -212,8 +216,26 @@ const ProtectedApp: React.FC = () => {
         onLogout={handleLogout}
       />
 
-      <main className="h-[calc(100vh-4rem)] overflow-auto">
-        <div className="max-w-7xl mx-auto p-6">
+      <main className={`transition-all duration-300 ease-in-out min-h-screen ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
+        {/* Mobile Header */}
+        <div className="lg:hidden flex items-center justify-between p-4 bg-[var(--card-bg)] border-b border-[var(--border-color)] sticky top-0 z-30">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <h1 className="font-bold text-lg">Student Mentor</h1>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center text-white text-sm font-bold">
+            {profileState.name.charAt(0).toUpperCase()}
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto p-4 lg:p-8">
           {teacherAlerts.length > 0 && currentView === 'dashboard' && (
             <div className="mb-6">
               <TeacherAlerts alerts={teacherAlerts} onDismiss={handleDismissAlert} />
@@ -256,6 +278,13 @@ const ProtectedApp: React.FC = () => {
               onTriggerAlert={handleTriggerAlert}
             />
           )}
+
+          {currentView === 'profile' && (
+            <ProfilePage
+              profile={profileState}
+              onEditProfile={() => setShowEditProfile(true)}
+            />
+          )}
         </div>
       </main>
 
@@ -294,12 +323,12 @@ const ProtectedApp: React.FC = () => {
       )}
 
       {!todayCheckIn && checkIns.length > 0 && currentView !== 'dashboard' && (
-        <div className="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-bounce">
+        <div className="fixed bottom-4 right-4 bg-[var(--accent-success)] text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-bounce z-50">
           <span>📅</span>
           <span>Don't forget your daily check-in!</span>
           <button
             onClick={() => setShowCheckIn(true)}
-            className="ml-2 bg-white text-green-600 px-3 py-1 rounded font-medium hover:bg-green-50 transition-colors"
+            className="ml-2 bg-white text-[var(--accent-success)] px-3 py-1 rounded font-medium hover:bg-green-50 transition-colors"
           >
             Check In Now
           </button>

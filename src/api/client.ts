@@ -59,6 +59,8 @@ export interface CreateAssignmentPayload {
   instructions?: string;
   attachments?: string[];
   studentIds?: string[];
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  estimatedTime?: number;
 }
 
 export interface AssignmentRecord extends CreateAssignmentPayload {
@@ -289,7 +291,7 @@ export async function getTodayCheckIn(token: string): Promise<DailyCheckIn | nul
   if (!data || Object.keys(data).length === 0) {
     return null;
   }
-  
+
   return data as DailyCheckIn;
 }
 
