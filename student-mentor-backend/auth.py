@@ -23,18 +23,11 @@ def _initialize_firebase_app() -> firebase_admin.App:
     if _auth_app:
         return _auth_app
 
-    # Priority 1: JSON credentials from environment variable (for production deployment)
-    firebase_creds_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
-    if firebase_creds_json:
-        try:
-            creds_dict = json.loads(firebase_creds_json)
-            cred = credentials.Certificate(creds_dict)
-        except json.JSONDecodeError as e:
-            raise RuntimeError(f"Invalid FIREBASE_SERVICE_ACCOUNT_JSON: {e}")
-    # Priority 2: File path from environment variable (for local development)
-    elif credentials_path := (os.getenv("FIREBASE_CREDENTIALS_FILE") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")):
+    # Priority 1: Explicit file path from environment variable
+    credentials_path = os.getenv("FIREBASE_CREDENTIALS_FILE") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if credentials_path:
         cred = credentials.Certificate(credentials_path)
-    # Priority 3: Application Default Credentials (fallback)
+    # Priority 2: Application Default Credentials (fallback)
     else:
         cred = credentials.ApplicationDefault()
 
