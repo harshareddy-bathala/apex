@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { getAnalyticsAlerts, getTests, deleteAssignment, type AnalyticsAlert, type Test } from '@/api/client';
+import { getAnalyticsAlerts, getTests, deleteAssignment, getSubjects, createSubject, deleteSubject, type AnalyticsAlert } from '@/api/client';
+import { type Test } from '@/types';
 
 interface TeacherDashboardProps {
   idToken?: string;
@@ -19,6 +20,8 @@ const riskBadgeClass = (score: number): string => {
 const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
   const [alerts, setAlerts] = useState<AnalyticsAlert[]>([]);
   const [tests, setTests] = useState<Test[]>([]);
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [newSubject, setNewSubject] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,12 +39,14 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
     setError(null);
 
     try {
-      const [alertsResponse, testsResponse] = await Promise.all([
+      const [alertsResponse, testsResponse, subjectsResponse] = await Promise.all([
         getAnalyticsAlerts(idToken),
-        getTests(idToken)
+        getTests(idToken),
+        getSubjects(idToken)
       ]);
       setAlerts(alertsResponse.alerts ?? []);
       setTests(testsResponse.tests ?? []);
+      setSubjects(subjectsResponse);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load dashboard data.';
       setError(message);
@@ -63,6 +68,27 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
       setTests(prev => prev.filter(t => t.id !== testId));
     } catch (err) {
       alert('Failed to delete test');
+    }
+  };
+
+  const handleAddSubject = async () => {
+    if (!idToken || !newSubject.trim()) return;
+    try {
+      await createSubject(idToken, newSubject.trim());
+      setSubjects(prev => [...prev, newSubject.trim()]);
+      setNewSubject('');
+    } catch (err) {
+      alert('Failed to add subject');
+    }
+  };
+
+  const handleDeleteSubject = async (subject: string) => {
+    if (!idToken || !confirm(`Delete subject "${subject}"?`)) return;
+    try {
+      await deleteSubject(idToken, subject);
+      setSubjects(prev => prev.filter(s => s !== subject));
+    } catch (err) {
+      alert('Failed to delete subject');
     }
   };
 
@@ -125,7 +151,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
                       </span>
                       {alert.aiSummary && (
                         <button
-                          onClick={() => handleDownloadReport(alert.studentName ?? alert.studentId, alert.aiSummary!)}
+                          onClick={() => handleDownloadReport(alert.studentName ?? alert.studentId, alert.aiSummary ?? '')}
                           className="text-sm text-sky-400 hover:text-sky-300 underline"
                         >
                           Download Report
@@ -152,6 +178,51 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
             })}
           </div>
         )}
+      </div>
+
+      {/* Subject Management Section */}
+      <div className="space-y-6 pt-6 border-t border-white/10">
+        <div>
+          <h2 className="text-2xl font-semibold text-white">Subject Management</h2>
+          <p className="text-sm text-white/60">Manage the subjects available for assignments and tests.</p>
+        </div>
+
+        <div className="glass-card rounded-2xl p-6 border border-white/10">
+          <div className="flex gap-4 mb-6">
+            <input
+              type="text"
+              value={newSubject}
+              onChange={(e) => setNewSubject(e.target.value)}
+              placeholder="Enter new subject name..."
+              className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder-white/30 focus:border-sky-500 focus:outline-none"
+            />
+            <button
+              onClick={handleAddSubject}
+              disabled={!newSubject.trim()}
+              className="px-6 py-2 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Add Subject
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {subjects.map((subject) => (
+              <div key={subject} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 group">
+                <span className="text-white/80">{subject}</span>
+                <button
+                  onClick={() => handleDeleteSubject(subject)}
+                  className="text-white/40 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                  title="Delete subject"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {subjects.length === 0 && (
+              <p className="text-white/40 italic">No subjects added yet.</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Tests Section */}

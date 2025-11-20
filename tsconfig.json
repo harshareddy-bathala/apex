@@ -10,10 +10,9 @@
       "DOM.Iterable"
     ],
     "skipLibCheck": true,
-    "types": [
-      "node"
-    ],
     "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
     "isolatedModules": true,
     "moduleDetection": "force",
     "allowJs": true,
@@ -29,7 +28,6 @@
   },
   "include": [
     "src",
-    "tests",
-    "vite-env.d.ts"
+    "tests"
   ]
 }

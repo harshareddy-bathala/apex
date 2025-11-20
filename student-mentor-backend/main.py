@@ -148,6 +148,11 @@ class PeerMessagePayload(BaseModel):
     content: str = Field(..., min_length=1)
 
 
+class SubjectPayload(BaseModel):
+    name: str = Field(..., min_length=1)
+
+
+
 def _conversation_id(peer_a: str, peer_b: str) -> str:
     return "-".join(sorted([peer_a, peer_b]))
 
@@ -363,11 +368,55 @@ async def update_goals(payload: GoalUpdatePayload, user: FirebaseUser = Depends(
 async def list_homework(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, List[Dict[str, Any]]]:
     _ensure_student(user)
 
-    homework_items: List[Dict[str, Any]] = []
+    # 1. Get all submissions for this student
+    submissions_map = {}
     for doc in query_collection("studentSubmissions", filters=[("studentId", "==", user.uid)]):
-        item = dict(doc.data or {})
-        item.setdefault("id", doc.id)
+        data = dict(doc.data or {})
+        data["id"] = doc.id
+        if "assignmentId" in data:
+            submissions_map[data["assignmentId"]] = data
+
+    # 2. Get all assignments that are NOT tests
+    # Note: In a real app, we would filter by classId as well.
+    assignments = []
+    for doc in query_collection("assignments"):
+        data = dict(doc.data or {})
+        if data.get("type") == "test":
+            continue
+            
+        # Check if this assignment applies to the student
+        target_students = data.get("studentIds") or []
+        if target_students and user.uid not in target_students:
+            continue
+            
+        assignments.append({**data, "id": doc.id})
+
+    # 3. Merge assignments with submissions
+    homework_items: List[Dict[str, Any]] = []
+    for assignment in assignments:
+        submission = submissions_map.get(assignment["id"])
+        
+        item = {
+            "id": submission["id"] if submission else f"virtual-{assignment['id']}",
+            "assignmentId": assignment["id"],
+            "studentId": user.uid,
+            "teacherId": assignment.get("teacherId"),
+            "teacherName": assignment.get("teacherName"),
+            "subject": assignment.get("subject"),
+            "title": assignment.get("title"),
+            "description": assignment.get("description"),
+            "instructions": assignment.get("instructions"),
+            "attachments": assignment.get("attachments") or [],
+            "dueDate": assignment.get("dueDate"),
+            "assignedDate": assignment.get("createdAt"),
+            "status": submission.get("status") if submission else "pending",
+            "priority": "medium", # Could be derived from due date
+            "estimatedTime": assignment.get("estimatedTime"),
+            "notes": submission.get("notes") if submission else None,
+            "completedAt": submission.get("completedAt") if submission else None,
+        }
         homework_items.append(item)
+
     return {"homework": homework_items}
 
 
@@ -757,3 +806,76 @@ async def get_dashboard_data(user: FirebaseUser = Depends(verify_firebase_token)
         "checkIns": checkins[:30], # Return last 30 check-ins
         "activities": [] # Placeholder if we implement activity persistence later
     }
+
+
+@app.get("/subjects")
+async def list_subjects(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, List[str]]:
+    # Both teachers and students need subjects
+    subjects = []
+    for doc in query_collection("subjects"):
+        data = dict(doc.data or {})
+        if "name" in data:
+            subjects.append(data["name"])
+    
+    # Return default subjects if none exist
+    if not subjects:
+        return {"subjects": ["Mathematics", "Physics", "Chemistry", "Biology", "History", "English", "Computer Science"]}
+        
+    return {"subjects": sorted(subjects)}
+
+
+@app.post("/subjects")
+async def create_subject(payload: SubjectPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    _ensure_teacher(user)
+    
+    # Check if exists
+    existing = query_collection("subjects", filters=[("name", "==", payload.name)])
+    if existing:
+        return {"id": existing[0].id, "name": payload.name}
+        
+    doc_id = uuid.uuid4().hex
+    record = {
+        "id": doc_id,
+        "name": payload.name,
+        "createdBy": user.uid,
+        "createdAt": _utc_now()
+    }
+    add_document("subjects", record, document_id=doc_id)
+    return record
+
+
+@app.delete("/subjects/{subject_name}")
+async def delete_subject(subject_name: str, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, str]:
+    _ensure_teacher(user)
+    
+    # Find by name
+    docs = query_collection("subjects", filters=[("name", "==", subject_name)])
+    if not docs:
+        raise HTTPException(status_code=404, detail="Subject not found")
+        
+    delete_document("subjects", docs[0].id)
+    return {"status": "deleted", "name": subject_name}
+
+
+@app.get("/students")
+async def list_students(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, List[Dict[str, Any]]]:
+    _ensure_teacher(user)
+    
+    students = []
+    for doc in query_collection("users", filters=[("role", "==", "student")]):
+        data = dict(doc.data or {})
+        profile_snapshot = get_document("studentProfiles", doc.id)
+        profile = profile_snapshot.data if profile_snapshot else {}
+        
+        student = {
+            "id": doc.id,
+            "name": profile.get("name") or data.get("name") or data.get("email", "").split("@")[0],
+            "email": data.get("email"),
+            "grade": profile.get("grade"),
+            "avatarUrl": profile.get("avatarUrl")
+        }
+        students.append(student)
+        
+    students.sort(key=lambda x: x["name"])
+    return {"students": students}
+

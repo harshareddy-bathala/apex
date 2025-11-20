@@ -556,3 +556,95 @@ export async function getDashboardData(token: string): Promise<DashboardDataResp
   return (await response.json()) as DashboardDataResponse;
 }
 
+  return (await response.json()) as DashboardDataResponse;
+}
+
+
+export interface SubjectPayload {
+  name: string;
+}
+
+export interface SubjectResponse {
+  id: string;
+  name: string;
+}
+
+export interface SubjectsResponse {
+  subjects: string[];
+}
+
+export async function getSubjects(token: string): Promise<string[]> {
+  const response = await fetch(apiUrl('/subjects'), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to load subjects (${response.status}): ${errorText}`);
+  }
+
+  const data = (await response.json()) as SubjectsResponse;
+  return data.subjects;
+}
+
+export async function createSubject(token: string, name: string): Promise<SubjectResponse> {
+  const response = await fetch(apiUrl('/subjects'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ name }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create subject (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as SubjectResponse;
+}
+
+export async function deleteSubject(token: string, name: string): Promise<void> {
+  const response = await fetch(apiUrl(`/subjects/${encodeURIComponent(name)}`), {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete subject (${response.status}): ${errorText}`);
+  }
+}
+
+export interface StudentSummary {
+  id: string;
+  name: string;
+  email?: string;
+  grade?: string;
+  avatarUrl?: string;
+}
+
+export interface StudentsResponse {
+  students: StudentSummary[];
+}
+
+export async function getStudents(token: string): Promise<StudentSummary[]> {
+  const response = await fetch(apiUrl('/students'), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to load students (${response.status}): ${errorText}`);
+  }
+
+  const data = (await response.json()) as StudentsResponse;
+  return data.students;
+}

@@ -11,7 +11,8 @@ import HomeworkList from '@/features/homework/components/HomeworkList';
 import TestsList from '@/features/tests/components/TestsList';
 import PeerChat from '@/features/peer-chat/components/PeerChat';
 import TeacherAlerts from '@/features/reports/components/TeacherAlerts';
-import Navigation from '@/features/navigation/components/Navigation';
+import Sidebar from '@/features/navigation/Sidebar';
+import ProfilePage from '@/features/profile/ProfilePage';
 import FullScreenLoader from '@/router/components/FullScreenLoader';
 import { useAuth } from '@/common/hooks/useAuth';
 import { useProfile } from '@/common/context/ProfileContext';
@@ -28,7 +29,7 @@ import type {
   Test,
 } from '@/types';
 
-type View = 'dashboard' | 'chat' | 'checkin' | 'report' | 'homework' | 'tests' | 'peer-chat';
+type View = 'dashboard' | 'chat' | 'checkin' | 'report' | 'homework' | 'tests' | 'peer-chat' | 'profile';
 
 const ProtectedApp: React.FC = () => {
   const { user, idToken } = useAuth();
@@ -138,13 +139,13 @@ const ProtectedApp: React.FC = () => {
         prev.map((hw) =>
           hw.id === homeworkId
             ? {
-                ...hw,
-                status,
-                completedAt:
-                  status === 'completed' || status === 'submitted'
-                    ? new Date().toISOString()
-                    : undefined,
-              }
+              ...hw,
+              status,
+              completedAt:
+                status === 'completed' || status === 'submitted'
+                  ? new Date().toISOString()
+                  : undefined,
+            }
             : hw,
         ),
       );
@@ -181,8 +182,8 @@ const ProtectedApp: React.FC = () => {
         checkIn.mood === 'excellent' || checkIn.mood === 'good'
           ? 'positive'
           : checkIn.mood === 'okay'
-          ? 'neutral'
-          : 'negative',
+            ? 'neutral'
+            : 'negative',
     });
     // Refresh data from server to ensure consistency
     void loadDashboardData();
@@ -231,7 +232,7 @@ const ProtectedApp: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-bg-dark font-sans">
-      <Navigation
+      <Sidebar
         authUser={authUser}
         profile={profileState}
         role={profileRecord.role === 'teacher' ? 'teacher' : 'student'}
@@ -240,13 +241,11 @@ const ProtectedApp: React.FC = () => {
         onViewChange={setCurrentView}
         onCheckInClick={() => setShowCheckIn(true)}
         onReportClick={() => setShowReport(true)}
-        onEditProfile={() => setShowEditProfile(true)}
-        onEditGoals={() => setShowGoalsEditor(true)}
         onLogout={handleLogout}
       />
 
-      <main className="h-[calc(100vh-4rem)] overflow-auto">
-        <div className="max-w-7xl mx-auto p-6">
+      <main className="md:pl-64 h-screen overflow-auto transition-all duration-200">
+        <div className="max-w-7xl mx-auto p-6 pb-24 md:pb-6">
           {teacherAlerts.length > 0 && currentView === 'dashboard' && (
             <div className="mb-6">
               <TeacherAlerts alerts={teacherAlerts} onDismiss={handleDismissAlert} />
@@ -287,6 +286,13 @@ const ProtectedApp: React.FC = () => {
               activities={activities}
               onAddActivity={addActivity}
               onTriggerAlert={handleTriggerAlert}
+            />
+          )}
+
+          {currentView === 'profile' && (
+            <ProfilePage
+              profile={profileState}
+              onEdit={() => setShowEditProfile(true)}
             />
           )}
         </div>

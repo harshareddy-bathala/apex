@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 
-import { createAssignment, type AssignmentRecord, type CreateAssignmentPayload } from '@/api/client';
+import { createAssignment, getSubjects, type AssignmentRecord, type CreateAssignmentPayload } from '@/api/client';
 
 interface AssignmentCreatorProps {
   idToken: string;
@@ -23,6 +23,12 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdAssignment, setCreatedAssignment] = useState<AssignmentRecord | null>(null);
+  const [assignToAll, setAssignToAll] = useState(false);
+  const [subjects, setSubjects] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    getSubjects(idToken).then(setSubjects).catch(console.error);
+  }, [idToken]);
 
   const isSubmitDisabled = useMemo(() => !formState.title.trim() || !formState.classId.trim(), [formState.classId, formState.title]);
 
@@ -56,7 +62,7 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
       description: formState.description || undefined,
       instructions: formState.instructions || undefined,
       attachments: attachments.length ? attachments : undefined,
-      studentIds: studentIds.length ? studentIds : undefined,
+      studentIds: assignToAll ? undefined : (studentIds.length ? studentIds : undefined),
     };
 
     try {
@@ -100,12 +106,19 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
         <div className="grid gap-4 md:grid-cols-3">
           <label className="flex flex-col gap-2 text-sm text-slate-200">
             Subject
-            <input
-              type="text"
+            <select
               value={formState.subject}
               onChange={(event) => handleChange('subject', event.target.value)}
               className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
-            />
+            >
+              <option value="">Select Subject</option>
+              {subjects.map((sub) => (
+                <option key={sub} value={sub}>
+                  {sub}
+                </option>
+              ))}
+              <option value="General">General</option>
+            </select>
           </label>
           <label className="flex flex-col gap-2 text-sm text-slate-200">
             Assignment Type
@@ -157,16 +170,28 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
               className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-slate-200">
-            Target Student IDs (comma separated)
-            <input
-              type="text"
-              value={formState.studentIds}
-              onChange={(event) => handleChange('studentIds', event.target.value)}
-              className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
-              placeholder="student-123, student-456"
-            />
-          </label>
+          <div className="flex flex-col gap-2">
+            <label className="flex items-center gap-2 text-sm text-slate-200">
+              <input
+                type="checkbox"
+                checked={assignToAll}
+                onChange={(e) => setAssignToAll(e.target.checked)}
+                className="rounded border-slate-700 bg-slate-950/60 text-emerald-500 focus:ring-emerald-500"
+              />
+              Assign to All Students
+            </label>
+            <label className={`flex flex-col gap-2 text-sm text-slate-200 ${assignToAll ? 'opacity-50' : ''}`}>
+              Target Student IDs (comma separated)
+              <input
+                type="text"
+                value={formState.studentIds}
+                onChange={(event) => handleChange('studentIds', event.target.value)}
+                disabled={assignToAll}
+                className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none disabled:cursor-not-allowed"
+                placeholder="student-123, student-456"
+              />
+            </label>
+          </div>
         </div>
         {error && <p className="rounded-md border border-red-600 bg-red-950/40 px-4 py-2 text-sm text-red-200">{error}</p>}
         {createdAssignment && (
