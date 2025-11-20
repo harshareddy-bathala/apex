@@ -556,9 +556,6 @@ export async function getDashboardData(token: string): Promise<DashboardDataResp
   return (await response.json()) as DashboardDataResponse;
 }
 
-  return (await response.json()) as DashboardDataResponse;
-}
-
 
 export interface SubjectPayload {
   name: string;
