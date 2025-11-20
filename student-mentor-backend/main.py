@@ -113,7 +113,7 @@ def create_user_doc(request: CreateUserDocRequest) -> Dict[str, Any]:
     # Check if user already exists
     existing = get_document("users", request.uid)
     if existing:
-        return existing
+        return existing.data
 
     user_data = {
         "uid": request.uid,
@@ -128,11 +128,10 @@ def create_user_doc(request: CreateUserDocRequest) -> Dict[str, Any]:
 @app.get("/profile")
 def get_profile(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     profile = get_document("studentProfiles", user.uid)
-    if not profile:
-        # Return empty profile if not found, or 404 depending on frontend expectation
-        # Frontend handles 404 as null, so let's return empty dict or 404
-        raise HTTPException(status_code=404, detail="Profile not found")
-    return profile
+    if not profile or not profile.exists:
+        # Return default/empty profile structure if not found
+        return {"onboardingComplete": False}
+    return profile.data
 
 @app.post("/profile/update")
 def update_profile(payload: ProfileUpdatePayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
@@ -143,7 +142,8 @@ def update_profile(payload: ProfileUpdatePayload, user: FirebaseUser = Depends(v
     # For now, we store profile data in studentProfiles
     upsert_document("studentProfiles", data, document_id=user.uid, merge=True)
     
-    return get_document("studentProfiles", user.uid) or {}
+    updated = get_document("studentProfiles", user.uid)
+    return updated.data if updated else {}
 
 @app.post("/checkin")
 def daily_checkin(payload: CheckInPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
