@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { signOut } from 'firebase/auth';
 
 import Dashboard from '@/features/dashboard/components/Dashboard';
 import Chat from '@/features/chat/components/Chat';
@@ -10,11 +11,11 @@ import HomeworkList from '@/features/homework/components/HomeworkList';
 import TestsList from '@/features/tests/components/TestsList';
 import PeerChat from '@/features/peer-chat/components/PeerChat';
 import TeacherAlerts from '@/features/reports/components/TeacherAlerts';
-import Sidebar from '@/features/navigation/Sidebar';
-import ProfilePage from '@/features/profile/ProfilePage';
+import Navigation from '@/features/navigation/components/Navigation';
 import FullScreenLoader from '@/router/components/FullScreenLoader';
 import { useAuth } from '@/common/hooks/useAuth';
 import { useProfile } from '@/common/context/ProfileContext';
+import { auth } from '@/firebase';
 import { mapFirebaseUser } from '@/utils/mapFirebaseUser';
 import { getDashboardData, getHomework, getTests, updateHomework } from '@/api/client';
 import type { StudentProfileRecord } from '@/api/client';
@@ -27,7 +28,7 @@ import type {
   Test,
 } from '@/types';
 
-type View = 'dashboard' | 'chat' | 'checkin' | 'report' | 'homework' | 'tests' | 'peer-chat' | 'profile';
+type View = 'dashboard' | 'chat' | 'checkin' | 'report' | 'homework' | 'tests' | 'peer-chat';
 
 const ProtectedApp: React.FC = () => {
   const { user, idToken } = useAuth();
@@ -137,13 +138,13 @@ const ProtectedApp: React.FC = () => {
         prev.map((hw) =>
           hw.id === homeworkId
             ? {
-              ...hw,
-              status,
-              completedAt:
-                status === 'completed' || status === 'submitted'
-                  ? new Date().toISOString()
-                  : undefined,
-            }
+                ...hw,
+                status,
+                completedAt:
+                  status === 'completed' || status === 'submitted'
+                    ? new Date().toISOString()
+                    : undefined,
+              }
             : hw,
         ),
       );
@@ -180,8 +181,8 @@ const ProtectedApp: React.FC = () => {
         checkIn.mood === 'excellent' || checkIn.mood === 'good'
           ? 'positive'
           : checkIn.mood === 'okay'
-            ? 'neutral'
-            : 'negative',
+          ? 'neutral'
+          : 'negative',
     });
     // Refresh data from server to ensure consistency
     void loadDashboardData();
@@ -216,8 +217,10 @@ const ProtectedApp: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    const { confirmAndLogout } = await import('@/utils/logout');
-    await confirmAndLogout('Are you sure you want to sign out?');
+    if (!confirm('Are you sure you want to logout?')) {
+      return;
+    }
+    await signOut(auth);
   };
 
   if (!idToken || !profileRecord || !authUser || !profileState) {
@@ -228,7 +231,7 @@ const ProtectedApp: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-bg-dark font-sans">
-      <Sidebar
+      <Navigation
         authUser={authUser}
         profile={profileState}
         role={profileRecord.role === 'teacher' ? 'teacher' : 'student'}
@@ -237,11 +240,13 @@ const ProtectedApp: React.FC = () => {
         onViewChange={setCurrentView}
         onCheckInClick={() => setShowCheckIn(true)}
         onReportClick={() => setShowReport(true)}
+        onEditProfile={() => setShowEditProfile(true)}
+        onEditGoals={() => setShowGoalsEditor(true)}
         onLogout={handleLogout}
       />
 
-      <main className="md:pl-64 h-screen overflow-auto transition-all duration-200">
-        <div className="max-w-7xl mx-auto p-6 pb-24 md:pb-6">
+      <main className="h-[calc(100vh-4rem)] overflow-auto">
+        <div className="max-w-7xl mx-auto p-6">
           {teacherAlerts.length > 0 && currentView === 'dashboard' && (
             <div className="mb-6">
               <TeacherAlerts alerts={teacherAlerts} onDismiss={handleDismissAlert} />
@@ -282,13 +287,6 @@ const ProtectedApp: React.FC = () => {
               activities={activities}
               onAddActivity={addActivity}
               onTriggerAlert={handleTriggerAlert}
-            />
-          )}
-
-          {currentView === 'profile' && (
-            <ProfilePage
-              profile={profileState}
-              onEdit={() => setShowEditProfile(true)}
             />
           )}
         </div>

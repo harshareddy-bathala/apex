@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 
-import { getStudents, postAttendance, type AttendancePayload, type AttendanceRecordPayload, type AttendanceRecordResponse, type StudentSummary } from '@/api/client';
+import { postAttendance, type AttendancePayload, type AttendanceRecordPayload, type AttendanceRecordResponse } from '@/api/client';
 
 interface AttendanceTrackerProps {
   idToken: string;
 }
 
-type EditableRecord = AttendanceRecordPayload & { key: string; name?: string };
+type EditableRecord = AttendanceRecordPayload & { key: string };
 
 const generateKey = (): string => {
   const globalCrypto = globalThis.crypto;
@@ -26,27 +26,9 @@ const createEmptyRecord = (): EditableRecord => ({
 const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ idToken }) => {
   const [classId, setClassId] = useState('');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [records, setRecords] = useState<EditableRecord[]>([]);
+  const [records, setRecords] = useState<EditableRecord[]>([createEmptyRecord()]);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
-  const [students, setStudents] = useState<StudentSummary[]>([]);
-
-  React.useEffect(() => {
-    getStudents(idToken)
-      .then((studentList) => {
-        setStudents(studentList);
-        // Initialize records with all students present
-        const initialRecords = studentList.map((s) => ({
-          key: generateKey(),
-          studentId: s.id,
-          status: 'present' as const,
-          notes: '',
-          name: s.name, // Helper for display
-        }));
-        setRecords(initialRecords);
-      })
-      .catch(console.error);
-  }, [idToken]);
   const [error, setError] = useState<string | null>(null);
   const [lastSubmission, setLastSubmission] = useState<AttendanceRecordResponse | null>(null);
 
@@ -76,7 +58,6 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ idToken }) => {
     const payload: AttendancePayload = {
       classId: classId.trim(),
       date,
-      records: records.map(({ key, name, ...rest }) => rest),
       notes: notes || undefined,
     };
 
@@ -136,10 +117,14 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ idToken }) => {
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-3">
                 <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-slate-400">
-                  Student
-                  <div className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white">
-                    {record.name || record.studentId}
-                  </div>
+                  Student ID
+                  <input
+                    type="text"
+                    value={record.studentId}
+                    onChange={(event) => updateRecord(record.key, 'studentId', event.target.value)}
+                    className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+                    required
+                  />
                 </label>
                 <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-slate-400">
                   Status
@@ -166,15 +151,13 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ idToken }) => {
             </div>
           ))}
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={addRecord}
-            className="rounded-md border border-dashed border-slate-600 px-4 py-2 text-sm text-slate-200 hover:border-slate-400"
-          >
-            Add Manual Entry
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={addRecord}
+          className="rounded-md border border-dashed border-slate-600 px-4 py-2 text-sm text-slate-200 hover:border-slate-400"
+        >
+          Add Student
+        </button>
 
         <label className="flex flex-col gap-2 text-sm text-slate-200">
           Notes

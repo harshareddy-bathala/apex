@@ -5,6 +5,7 @@ import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import prettierConfig from 'eslint-config-prettier';
+import { FlatCompat } from '@eslint/eslintrc';
 
 const ignores = [
   'dist',
@@ -21,12 +22,17 @@ const ignores = [
   '**/__pycache__/**',
 ];
 
+const compat = new FlatCompat({
+  baseDirectory: import.meta.dirname,
+});
+
 export default [
   {
     ignores,
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  ...compat.extends('plugin:react/recommended'),
   {
     files: ['**/*.{ts,tsx,js,jsx}'],
     languageOptions: {
@@ -34,6 +40,8 @@ export default [
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
         ecmaFeatures: {
           jsx: true,
         },
@@ -54,8 +62,6 @@ export default [
       },
     },
     rules: {
-      ...reactPlugin.configs.recommended.rules,
-      ...reactPlugin.configs['jsx-runtime'].rules,
       ...prettierConfig.rules,
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',
@@ -72,6 +78,7 @@ export default [
       'prefer-const': 'error',
       'no-var': 'error',
       'react/no-unescaped-entities': 'off',
+      // Accessibility plugin removed from config to reduce automated lint noise
     },
   },
 ];

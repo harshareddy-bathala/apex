@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 
-import { createAssignment, getSubjects, type AssignmentRecord, type CreateAssignmentPayload } from '@/api/client';
+import { createAssignment, type AssignmentRecord, type CreateAssignmentPayload } from '@/api/client';
 
 interface AssignmentCreatorProps {
   idToken: string;
@@ -23,87 +23,11 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdAssignment, setCreatedAssignment] = useState<AssignmentRecord | null>(null);
-  const [assignToAll, setAssignToAll] = useState(false);
-  const [subjects, setSubjects] = useState<string[]>([]);
-  const [dateInputType, setDateInputType] = useState<'datetime-local' | 'text'>('datetime-local');
-
-  React.useEffect(() => {
-    getSubjects(idToken).then(setSubjects).catch(console.error);
-  }, [idToken]);
 
   const isSubmitDisabled = useMemo(() => !formState.title.trim() || !formState.classId.trim(), [formState.classId, formState.title]);
 
   const handleChange = (field: keyof typeof defaultFormState, value: string) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
-    
-    // Clear error when user starts typing
-    if (error) {
-      setError(null);
-    }
-  };
-  
-  const handleDateChange = (value: string) => {
-    try {
-      // Validate and normalize date input
-      if (value) {
-        // Check if it's a valid datetime-local format (YYYY-MM-DDTHH:MM)
-        const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
-        
-        if (dateRegex.test(value)) {
-          const date = new Date(value);
-          if (!isNaN(date.getTime())) {
-            // Valid date, store ISO string
-            setFormState((prev) => ({ ...prev, dueDate: date.toISOString() }));
-            if (error && error.includes('date')) {
-              setError(null);
-            }
-            return;
-          }
-        }
-        
-        // If not in expected format, try to parse it
-        const date = new Date(value);
-        if (!isNaN(date.getTime())) {
-          setFormState((prev) => ({ ...prev, dueDate: date.toISOString() }));
-          if (error && error.includes('date')) {
-            setError(null);
-          }
-          return;
-        }
-        
-        // Invalid date format
-        setError('Invalid date format. Please use the date picker or enter a valid date.');
-      } else {
-        // Empty value is allowed (optional field)
-        setFormState((prev) => ({ ...prev, dueDate: '' }));
-        if (error && error.includes('date')) {
-          setError(null);
-        }
-      }
-    } catch (err) {
-      setError('Error processing date. Please try using the date picker.');
-      console.error('Date parsing error:', err);
-    }
-  };
-  
-  const getFormattedDateForInput = (): string => {
-    if (!formState.dueDate) return '';
-    
-    try {
-      const date = new Date(formState.dueDate);
-      if (isNaN(date.getTime())) return '';
-      
-      // Format for datetime-local input (YYYY-MM-DDTHH:MM)
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      
-      return `${year}-${month}-${day}T${hours}:${minutes}`;
-    } catch {
-      return '';
-    }
   };
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (event) => {
@@ -132,7 +56,7 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
       description: formState.description || undefined,
       instructions: formState.instructions || undefined,
       attachments: attachments.length ? attachments : undefined,
-      studentIds: assignToAll ? undefined : (studentIds.length ? studentIds : undefined),
+      studentIds: studentIds.length ? studentIds : undefined,
     };
 
     try {
@@ -176,19 +100,12 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
         <div className="grid gap-4 md:grid-cols-3">
           <label className="flex flex-col gap-2 text-sm text-slate-200">
             Subject
-            <select
+            <input
+              type="text"
               value={formState.subject}
               onChange={(event) => handleChange('subject', event.target.value)}
               className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
-            >
-              <option value="">Select Subject</option>
-              {subjects.map((sub) => (
-                <option key={sub} value={sub}>
-                  {sub}
-                </option>
-              ))}
-              <option value="General">General</option>
-            </select>
+            />
           </label>
           <label className="flex flex-col gap-2 text-sm text-slate-200">
             Assignment Type
@@ -204,30 +121,12 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
           </label>
           <label className="flex flex-col gap-2 text-sm text-slate-200">
             Due Date
-            <div className="relative">
-              <input
-                type={dateInputType}
-                value={getFormattedDateForInput()}
-                onChange={(event) => handleDateChange(event.target.value)}
-                onFocus={(e) => {
-                  // Ensure datetime-local type on focus for better UX
-                  if (dateInputType === 'text') {
-                    setDateInputType('datetime-local');
-                  }
-                }}
-                onBlur={(e) => {
-                  // If empty and was text type, keep as text
-                  if (!e.target.value && dateInputType === 'text') {
-                    setDateInputType('text');
-                  }
-                }}
-                className="w-full rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
-                placeholder="Select due date and time"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 pointer-events-none">
-                Optional
-              </span>
-            </div>
+            <input
+              type="datetime-local"
+              value={formState.dueDate}
+              onChange={(event) => handleChange('dueDate', event.target.value)}
+              className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+            />
           </label>
         </div>
         <label className="flex flex-col gap-2 text-sm text-slate-200">
@@ -258,28 +157,16 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
               className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
             />
           </label>
-          <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-2 text-sm text-slate-200">
-              <input
-                type="checkbox"
-                checked={assignToAll}
-                onChange={(e) => setAssignToAll(e.target.checked)}
-                className="rounded border-slate-700 bg-slate-950/60 text-emerald-500 focus:ring-emerald-500"
-              />
-              Assign to All Students
-            </label>
-            <label className={`flex flex-col gap-2 text-sm text-slate-200 ${assignToAll ? 'opacity-50' : ''}`}>
-              Target Student IDs (comma separated)
-              <input
-                type="text"
-                value={formState.studentIds}
-                onChange={(event) => handleChange('studentIds', event.target.value)}
-                disabled={assignToAll}
-                className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none disabled:cursor-not-allowed"
-                placeholder="student-123, student-456"
-              />
-            </label>
-          </div>
+          <label className="flex flex-col gap-2 text-sm text-slate-200">
+            Target Student IDs (comma separated)
+            <input
+              type="text"
+              value={formState.studentIds}
+              onChange={(event) => handleChange('studentIds', event.target.value)}
+              className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+              placeholder="student-123, student-456"
+            />
+          </label>
         </div>
         {error && <p className="rounded-md border border-red-600 bg-red-950/40 px-4 py-2 text-sm text-red-200">{error}</p>}
         {createdAssignment && (
