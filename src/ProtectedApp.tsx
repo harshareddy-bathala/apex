@@ -17,7 +17,7 @@ import { useAuth } from '@/common/hooks/useAuth';
 import { useProfile } from '@/common/context/ProfileContext';
 import { auth } from '@/firebase';
 import { mapFirebaseUser } from '@/utils/mapFirebaseUser';
-import { getDashboardData, getHomework, getTests, updateHomework } from '@/api/client';
+import { getHomework, getTests, updateHomework } from '@/api/client';
 import type { StudentProfileRecord } from '@/api/client';
 import type {
   ActivityLog,
@@ -50,37 +50,6 @@ const ProtectedApp: React.FC = () => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [homeworkLoading, setHomeworkLoading] = useState(false);
   const [homeworkError, setHomeworkError] = useState<string | null>(null);
-
-  const loadDashboardData = useCallback(async () => {
-    if (!idToken) return;
-    try {
-      const data = await getDashboardData(idToken);
-      setCheckIns(data.checkIns);
-      // If backend returns activities, set them here. 
-      // For now, we might want to derive some activities from checkIns if the backend list is empty
-      if (data.activities && data.activities.length > 0) {
-        setActivities(data.activities);
-      } else {
-        // Optional: Reconstruct basic activities from check-ins
-        const derivedActivities = data.checkIns.map(c => ({
-          id: `activity-checkin-${c.id}`,
-          studentId: c.studentId,
-          type: 'mental-health' as const,
-          category: 'check-in',
-          description: `Completed daily check-in: ${c.mood} mood`,
-          sentiment: (c.mood === 'excellent' || c.mood === 'good' ? 'positive' : c.mood === 'okay' ? 'neutral' : 'negative') as 'positive' | 'neutral' | 'negative',
-          timestamp: c.timestamp || new Date().toISOString()
-        }));
-        setActivities(prev => [...derivedActivities, ...prev].slice(0, 50)); // Keep recent
-      }
-    } catch (error) {
-      console.error("Failed to load dashboard data", error);
-    }
-  }, [idToken]);
-
-  useEffect(() => {
-    void loadDashboardData();
-  }, [loadDashboardData]);
 
   useEffect(() => {
     if (profileRecord) {
@@ -184,8 +153,6 @@ const ProtectedApp: React.FC = () => {
           ? 'neutral'
           : 'negative',
     });
-    // Refresh data from server to ensure consistency
-    void loadDashboardData();
   };
 
   const handleDismissAlert = (alertId: string) => {
