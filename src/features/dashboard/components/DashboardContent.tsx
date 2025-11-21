@@ -147,8 +147,8 @@ const DashboardContent: React.FC<Props> = ({
 		<div className="space-y-6">
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<p className="text-xs uppercase tracking-[0.3em] text-white/50">Dashboard</p>
-					<h2 className="text-2xl font-semibold text-white/90">Today’s premium overview</h2>
+					<p className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">Dashboard</p>
+					<h2 className="text-2xl font-semibold text-[var(--text-primary)]">Today’s premium overview</h2>
 				</div>
 
 			</div>

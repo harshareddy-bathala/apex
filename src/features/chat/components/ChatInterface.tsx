@@ -254,8 +254,8 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, compact = false, times
       <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[75%]`}>
         <div
           className={`px-5 py-3.5 ${isUser
-              ? 'bg-[var(--accent-primary)] text-white rounded-lg rounded-br-none shadow-md'
-              : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-lg rounded-bl-none border border-[var(--border-color)]'
+            ? 'bg-[var(--accent-primary)] text-white rounded-lg rounded-br-none shadow-md'
+            : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-lg rounded-bl-none border border-[var(--border-color)]'
             }`}
         >
           <p className={`whitespace-pre-wrap break-words leading-relaxed ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}>
@@ -285,9 +285,9 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, compact = false, times
 
 const TypingIndicator: React.FC = () => (
   <div className="flex items-center gap-1" role="status" aria-label="AI is typing">
-    <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
-    <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
-    <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+    <div className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+    <div className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
+    <div className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
   </div>
 );
 
