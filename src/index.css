@@ -11,23 +11,36 @@
 }
 
 :root {
-  /* Light Theme - Professional Beige/Cream */
-  --bg-primary: #FDFBF7;
+  /* Light Theme - Beige/Cream Default */
+  --bg-app: #F9F7F2;
+  /* Main app background - Beige/Cream */
+  --bg-card: #FFFFFF;
+  /* Card/surface background - White */
   --bg-secondary: #F5F3EF;
-  --bg-surface: #FFFFFF;
+  /* Secondary backgrounds */
   --bg-hover: #EEEBE5;
+  /* Hover states */
 
-  --text-primary: #1A1A1A;
+  --text-primary: #000000;
+  /* Primary text - Black */
   --text-secondary: #4A4A4A;
+  /* Secondary text */
   --text-tertiary: #7A7A7A;
+  /* Tertiary text */
   --text-muted: #A0A0A0;
+  /* Muted text */
 
   --accent-primary: #2563EB;
+  /* Primary accent color */
   --accent-hover: #1D4ED8;
+  /* Accent hover state */
   --accent-light: #DBEAFE;
+  /* Light accent variant */
 
   --border-color: #E5E2DA;
+  /* Default border color */
   --border-focus: #2563EB;
+  /* Focus border color */
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08);
@@ -40,23 +53,36 @@
 }
 
 [data-theme='dark'] {
-  /* Dark Theme - Deep Gray/Black */
-  --bg-primary: #111111;
+  /* Dark Theme - Deep Black */
+  --bg-app: #0F0F0F;
+  /* Main app background - Deep Black */
+  --bg-card: #1E1E1E;
+  /* Card/surface background - Dark Gray */
   --bg-secondary: #1A1A1A;
-  --bg-surface: #1F1F1F;
+  /* Secondary backgrounds */
   --bg-hover: #2A2A2A;
+  /* Hover states */
 
-  --text-primary: #EDEDED;
+  --text-primary: #FFFFFF;
+  /* Primary text - White */
   --text-secondary: #B8B8B8;
+  /* Secondary text */
   --text-tertiary: #8A8A8A;
+  /* Tertiary text */
   --text-muted: #666666;
+  /* Muted text */
 
   --accent-primary: #3B82F6;
+  /* Primary accent color */
   --accent-hover: #60A5FA;
+  /* Accent hover state */
   --accent-light: #1E3A8A;
+  /* Light accent variant */
 
   --border-color: #2A2A2A;
+  /* Default border color */
   --border-focus: #3B82F6;
+  /* Focus border color */
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
@@ -70,7 +96,7 @@
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  background-color: var(--bg-primary);
+  background-color: var(--bg-app);
   color: var(--text-primary);
   font-size: 14px;
   line-height: 1.6;
@@ -94,7 +120,7 @@ h6 {
 
 /* Professional card styles - clean and minimal */
 .card {
-  background-color: var(--bg-surface);
+  background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   box-shadow: var(--shadow-sm);
@@ -168,7 +194,7 @@ h6 {
 input,
 textarea,
 select {
-  background-color: var(--bg-surface);
+  background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   border-radius: 6px;
@@ -202,7 +228,7 @@ select:focus {
 .premium-button,
 .premium-chip {
   /* Reset to simple card style */
-  background-color: var(--bg-surface);
+  background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   box-shadow: var(--shadow-sm);
