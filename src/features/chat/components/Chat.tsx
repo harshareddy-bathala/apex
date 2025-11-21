@@ -287,40 +287,40 @@ const Chat: React.FC<ChatProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-full glass-panel rounded-[28px] border border-white/10 shadow-[0_35px_90px_rgba(2,6,23,0.65)] overflow-hidden">
-      <header className="flex-shrink-0 p-4 sm:p-6 border-b border-white/10 bg-gradient-to-br from-[#0f1a2b] via-[#0c1422] to-[#070d18] flex items-center justify-between">
+    <div className="flex flex-col h-full min-h-0 card">
+      <header className="flex-shrink-0 p-4 sm:p-6 border-b border-[var(--border-color)] bg-[var(--bg-surface)] flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#22d3ee] via-[#34d399] to-[#a855f7] rounded-2xl flex items-center justify-center text-white font-semibold shadow-[0_15px_35px_rgba(52,211,153,0.35)]">
+            <div className="w-12 h-12 bg-[var(--accent-primary)] rounded-lg flex items-center justify-center text-white font-semibold shadow-md">
               AI
             </div>
-            <div className="absolute bottom-1 right-1 w-3 h-3 bg-accent-green rounded-full border-2 border-[#0f172a]"></div>
+            <div className="absolute bottom-1 right-1 w-3 h-3 bg-[var(--success)] rounded-full border-2 border-[var(--bg-surface)]"></div>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-[0.4em] text-white/50">Mentor</p>
-            <h1 className="text-xl font-semibold text-white">Your AI Guide</h1>
-            <p className="text-micro text-white/60">Always here to help you grow</p>
+            <p className="text-xs uppercase tracking-wider text-[var(--text-tertiary)]">Mentor</p>
+            <h1 className="text-xl font-semibold text-[var(--text-primary)]">Your AI Guide</h1>
+            <p className="text-xs text-[var(--text-secondary)]">Always here to help you grow</p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-sm font-medium text-white/90">{profile.name}</p>
-          <p className="text-xs text-white/60">Grade {profile.grade}</p>
+          <p className="text-sm font-medium text-[var(--text-primary)]">{profile.name}</p>
+          <p className="text-xs text-[var(--text-secondary)]">Grade {profile.grade}</p>
         </div>
       </header>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden min-h-0">
         {isInitializing ? (
           <div className="flex items-center justify-center h-full p-8">
-            <div className="max-w-md text-center p-6 glass-card border border-white/10 rounded-2xl">
-              <p className="text-lg font-semibold text-accent-green mb-2">Connecting to mentor brain</p>
-              <p className="text-sm text-white/70">Warming up the FastAPI + ADK backend.</p>
+            <div className="max-w-md text-center p-6 card">
+              <p className="text-lg font-semibold text-[var(--success)] mb-2">Connecting to mentor brain</p>
+              <p className="text-sm text-[var(--text-secondary)]">Warming up the FastAPI + ADK backend.</p>
             </div>
           </div>
         ) : !chatClient ? (
           <div className="flex items-center justify-center h-full p-8">
-            <div className="max-w-md text-center p-6 glass-card border border-white/10 rounded-2xl">
-              <p className="text-lg font-semibold text-accent-amber mb-2">Backend unavailable</p>
-              <p className="text-sm text-white/70">Start the FastAPI service on http://localhost:8000 to chat with the mentor.</p>
+            <div className="max-w-md text-center p-6 card">
+              <p className="text-lg font-semibold text-[var(--warning)] mb-2">Backend unavailable</p>
+              <p className="text-sm text-[var(--text-secondary)]">Start the FastAPI service on http://localhost:8000 to chat with the mentor.</p>
             </div>
           </div>
         ) : (
@@ -335,8 +335,8 @@ const Chat: React.FC<ChatProps> = ({
       </div>
 
       {chatClient && (
-        <footer className="flex-shrink-0 p-3 border-t border-white/10 bg-white/5">
-          <p className="text-micro text-white/60 text-center">
+        <footer className="flex-shrink-0 p-3 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]">
+          <p className="text-xs text-[var(--text-tertiary)] text-center">
             AI mentor powered by Google ADK agents · Your conversation stays private 💬
           </p>
         </footer>
@@ -347,9 +347,8 @@ const Chat: React.FC<ChatProps> = ({
 
 const getWelcomeMessage = (profile: StudentProfile): string => {
   const timeOfDay = new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening";
-  return `Good ${timeOfDay}, ${profile.name}! \n\nI'm your personal AI mentor, here to support you in achieving your dream of becoming ${profile.dreamJob}.\n\nWhether you need help with ${
-    profile.subjects[0] || "your studies"
-  }, want to talk about your goals, or just need someone to listen, I'm here for you. What's on your mind today?`;
+  return `Good ${timeOfDay}, ${profile.name}! \n\nI'm your personal AI mentor, here to support you in achieving your dream of becoming ${profile.dreamJob}.\n\nWhether you need help with ${profile.subjects[0] || "your studies"
+    }, want to talk about your goals, or just need someone to listen, I'm here for you. What's on your mind today?`;
 };
 
 const getDemoWelcomeMessage = (profile: StudentProfile): string => {

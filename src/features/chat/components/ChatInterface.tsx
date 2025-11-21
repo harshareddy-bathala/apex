@@ -98,18 +98,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     <div className="flex flex-col h-full bg-transparent relative">
       {/* Header (optional) */}
       {showHeader && (
-        <div className="flex-shrink-0 p-4 border-b border-white/10 bg-white/5 backdrop-blur-md">
+        <div className="flex-shrink-0 p-4 border-b border-[var(--border-color)] bg-[var(--bg-surface)]">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-sky-400 to-blue-600 rounded-2xl flex items-center justify-center text-white font-bold shadow-lg shadow-sky-500/20">
+              <div className="w-10 h-10 bg-[var(--accent-primary)] rounded-lg flex items-center justify-center text-white font-bold shadow-md">
                 AI
               </div>
-              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#0f172a]"></div>
+              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-[var(--success)] rounded-full border-2 border-[var(--bg-surface)]"></div>
             </div>
             <div>
-              <h2 className="text-base font-semibold text-white font-display">Your AI Mentor</h2>
+              <h2 className="text-base font-semibold text-[var(--text-primary)]">Your AI Mentor</h2>
               {studentName && grade && (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[var(--text-secondary)]">
                   {studentName} • {grade}
                 </p>
               )}
@@ -120,14 +120,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Messages Area */}
       <div
-        className={`flex-1 overflow-y-auto ${compact ? 'p-3 pb-20' : 'p-4 sm:p-6 pb-24'} space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent`}
+        className={`flex-1 overflow-y-auto ${compact ? 'p-3 pb-20' : 'p-4 sm:p-6 pb-24'} space-y-4`}
         role="log"
         aria-live="polite"
         aria-label="Chat messages"
       >
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <div className="text-center text-slate-500">
+            <div className="text-center text-[var(--text-tertiary)]">
               <p className="text-sm">Start a conversation with your AI Mentor</p>
             </div>
           </div>
@@ -144,11 +144,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
         {/* Typing Indicator */}
         {isLoading && (
-          <div className="flex items-start gap-3 animate-fade-in">
-            <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-white/50 text-xs font-bold flex-shrink-0 border border-white/5">
+          <div className="flex items-start gap-3 fade-in">
+            <div className="w-8 h-8 bg-[var(--bg-secondary)] rounded-lg flex items-center justify-center text-[var(--text-tertiary)] text-xs font-bold flex-shrink-0 border border-[var(--border-color)]">
               AI
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl rounded-bl-none px-4 py-3 max-w-xs sm:max-w-md backdrop-blur-sm">
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg px-4 py-3 max-w-xs sm:max-w-md">
               <TypingIndicator />
             </div>
           </div>
@@ -159,14 +159,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Suggested Prompts (show when no messages and not loading) */}
       {messages.length === 0 && !isLoading && suggestedPrompts.length > 0 && (
-        <div className={`absolute bottom-24 left-0 right-0 ${compact ? 'px-3' : 'px-6'} flex justify-center`}>
+        <div className={`absolute bottom-20 left-0 right-0 ${compact ? 'px-3' : 'px-6'} flex justify-center`}>
           <div className="flex flex-wrap gap-2 justify-center max-w-2xl">
             {suggestedPrompts.map((prompt, idx) => (
               <button
                 key={idx}
                 onClick={() => handlePromptClick(prompt)}
                 disabled={isLoading}
-                className="text-xs px-4 py-2 bg-white/5 hover:bg-white/10 backdrop-blur-md text-slate-200 rounded-full transition-all border border-white/10 hover:border-sky-500/30 hover:shadow-lg hover:shadow-sky-500/10"
+                className="text-xs px-4 py-2 bg-[var(--bg-secondary)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] rounded-lg transition-all border border-[var(--border-color)] hover:border-[var(--accent-primary)]"
               >
                 {prompt}
               </button>
@@ -175,9 +175,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </div>
       )}
 
-      {/* Input Composer - Floating Glass Bar */}
-      <div className={`absolute bottom-4 left-4 right-4 ${compact ? 'bottom-2 left-2 right-2' : ''}`}>
-        <div className="glass-panel rounded-2xl p-2 border border-white/10 shadow-2xl bg-[#0f172a]/80 backdrop-blur-xl">
+      {/* Input Composer */}
+      <div className={`absolute bottom-2 left-4 right-4 ${compact ? 'bottom-2 left-2 right-2' : ''}`}>
+        <div className="card rounded-xl p-2 shadow-lg">
           <form onSubmit={handleSubmit} className="flex items-end gap-2">
             <div className="flex-1 relative">
               <textarea
@@ -188,7 +188,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 placeholder="Ask me anything..."
                 disabled={isLoading}
                 rows={1}
-                className="w-full px-4 py-3 bg-transparent text-white placeholder-slate-500 focus:outline-none resize-none max-h-32 overflow-y-auto text-sm sm:text-base"
+                className="w-full px-4 py-3 bg-transparent text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none resize-none max-h-32 overflow-y-auto text-sm sm:text-base"
                 aria-label="Message input"
                 style={{ minHeight: '44px' }}
               />
@@ -197,7 +197,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="p-3 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:shadow-lg hover:shadow-sky-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all focus:outline-none active:scale-95 m-1"
+              className="btn-primary p-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
               aria-label="Send message"
             >
               <svg
@@ -218,7 +218,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </div>
 
         {!compact && (
-          <p className="text-[10px] text-slate-500 text-center mt-2 font-medium tracking-wide uppercase opacity-60">
+          <p className="text-[10px] text-[var(--text-muted)] text-center mt-2 uppercase tracking-wide opacity-60">
             AI Mentor • Powered by Gemini
           </p>
         )}
@@ -242,20 +242,20 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, compact = false, times
   const isUser = message.role === 'user';
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} items-end gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} items-end gap-3 fade-in`}>
       {/* AI Avatar (left side) */}
       {!isUser && (
-        <div className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center text-white/60 text-xs font-bold flex-shrink-0 border border-white/10">
+        <div className="w-8 h-8 bg-[var(--bg-secondary)] rounded-lg flex items-center justify-center text-[var(--text-tertiary)] text-xs font-bold flex-shrink-0 border border-[var(--border-color)]">
           AI
         </div>
       )}
 
       {/* Message Content */}
-      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-[75%]`}>
+      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[75%]`}>
         <div
           className={`px-5 py-3.5 ${isUser
-              ? 'bg-gradient-to-br from-sky-500 to-blue-600 text-white rounded-2xl rounded-br-none shadow-lg shadow-sky-500/20 border border-white/10'
-              : 'bg-white/5 text-slate-200 rounded-2xl rounded-bl-none border border-white/10 backdrop-blur-sm'
+              ? 'bg-[var(--accent-primary)] text-white rounded-lg rounded-br-none shadow-md'
+              : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-lg rounded-bl-none border border-[var(--border-color)]'
             }`}
         >
           <p className={`whitespace-pre-wrap break-words leading-relaxed ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}>
@@ -263,14 +263,14 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, compact = false, times
           </p>
         </div>
 
-        <span className={`text-[10px] text-slate-500 mt-1.5 px-1 font-medium ${compact ? 'hidden' : 'block'}`}>
+        <span className={`text-[10px] text-[var(--text-muted)] mt-1.5 px-1 ${compact ? 'hidden' : 'block'}`}>
           {timestamp}
         </span>
       </div>
 
       {/* User Avatar (right side) */}
       {isUser && (
-        <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-lg shadow-indigo-500/20">
+        <div className="w-8 h-8 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-hover)] rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-md">
           U
         </div>
       )}

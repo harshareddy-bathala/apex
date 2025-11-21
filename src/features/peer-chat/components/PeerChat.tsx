@@ -42,7 +42,6 @@ export default function PeerChat({ currentUserId, currentUserName, idToken }: Pe
     try {
       const { peers } = await getPeerContacts(idToken, query);
       setContacts(peers);
-      // Don't auto-select first contact on search, let user choose
     } catch (err) {
       setContactsError('Unable to load your peers. Please try again.');
       setContacts([]);
@@ -86,16 +85,6 @@ export default function PeerChat({ currentUserId, currentUserName, idToken }: Pe
       setMessages([]);
     }
   }, [selectedContact, loadConversation]);
-
-  const filteredContacts = useMemo(() => {
-    return contacts.filter((contact) => {
-      const query = searchQuery.toLowerCase();
-      return (
-        contact.name.toLowerCase().includes(query) ||
-        (!!contact.subject && contact.subject.toLowerCase().includes(query))
-      );
-    });
-  }, [contacts, searchQuery]);
 
   const currentContactName = selectedContact?.name ?? 'your peer';
 
@@ -193,9 +182,8 @@ export default function PeerChat({ currentUserId, currentUserName, idToken }: Pe
       <button
         key={contact.id}
         onClick={() => setSelectedContact(contact)}
-        className={`w-full p-4 border-b border-card-border hover:bg-panel transition-colors text-left ${
-          selectedContact?.id === contact.id ? 'bg-panel' : ''
-        }`}
+        className={`w-full p-4 border-b border-card-border hover:bg-panel transition-colors text-left ${selectedContact?.id === contact.id ? 'bg-panel' : ''
+          }`}
       >
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -207,7 +195,7 @@ export default function PeerChat({ currentUserId, currentUserName, idToken }: Pe
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-white truncate">
+            <p className="font-semibold text white truncate">
               {contact.name}
               {contact.role === 'teacher' && (
                 <span className="ml-2 text-xs bg-blue-500/20 text-blue-200 px-2 py-0.5 rounded-full border border-blue-500/40">
@@ -220,8 +208,8 @@ export default function PeerChat({ currentUserId, currentUserName, idToken }: Pe
               {contact.isOnline
                 ? 'Online now'
                 : contact.lastSeen
-                ? `Last seen ${new Date(contact.lastSeen).toLocaleString()}`
-                : 'Last seen recently'}
+                  ? `Last seen ${new Date(contact.lastSeen).toLocaleString()}`
+                  : 'Last seen recently'}
             </p>
           </div>
         </div>
@@ -284,11 +272,10 @@ export default function PeerChat({ currentUserId, currentUserName, idToken }: Pe
           return (
             <div key={msg.id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-[70%] rounded-2xl px-4 py-3 shadow-card border ${
-                  isSent
+                className={`max-w-[70%] rounded-2xl px-4 py-3 shadow-card border ${isSent
                     ? 'bg-gradient-to-r from-primary-from to-primary-to text-white border-primary-to/40'
                     : 'bg-panel text-white border-card-border'
-                } ${isPending ? 'opacity-70' : ''}`}
+                  } ${isPending ? 'opacity-70' : ''}`}
               >
                 <p className="break-words text-body-sm">{msg.message}</p>
                 <p className={`text-micro mt-1 ${isSent ? 'text-white/70' : 'text-muted-ink'}`}>

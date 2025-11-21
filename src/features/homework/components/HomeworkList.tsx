@@ -32,6 +32,9 @@ export default function HomeworkList({
   loadingExternal,
   errorMessage,
 }: HomeworkListProps) {
+  // Defensive programming - ensure homework is always an array
+  const safeHomework = Array.isArray(homework) ? homework : [];
+
   const [filter, setFilter] = useState<FilterValue>('all');
   const [sortBy, setSortBy] = useState<SortValue>('dueDate');
   const [inFlightId, setInFlightId] = useState<string | null>(null);
@@ -39,7 +42,7 @@ export default function HomeworkList({
   const [localError, setLocalError] = useState<string | null>(null);
 
   const toggleComplete = async (id: string) => {
-    const target = homework.find((item) => item.id === id);
+    const target = safeHomework.find((item) => item.id === id);
     if (!target) return;
     const nextStatus: Homework['status'] = target.status === 'completed' || target.status === 'submitted' ? 'pending' : 'completed';
     await persistStatus(id, nextStatus);
@@ -73,7 +76,7 @@ export default function HomeworkList({
     }
   };
 
-  const filteredHomework = homework.filter(hw => {
+  const filteredHomework = safeHomework.filter(hw => {
     if (filter === 'all') return true;
     if (filter === 'pending') return hw.status !== 'completed' && hw.status !== 'submitted';
     if (filter === 'completed') return hw.status === 'completed' || hw.status === 'submitted';
@@ -126,11 +129,11 @@ export default function HomeworkList({
     return `${days} days left`;
   };
 
-  const totalHomework = homework.length;
-  const pendingCount = homework.filter(h => h.status !== 'completed' && h.status !== 'submitted').length;
-  const completedCount = homework.filter(h => h.status === 'completed' || h.status === 'submitted').length;
-  const overdueCount = homework.filter(h => isOverdue(h.dueDate, h.status)).length;
-  const dueSoonCount = homework.filter(h => {
+  const totalHomework = safeHomework.length;
+  const pendingCount = safeHomework.filter(h => h.status !== 'completed' && h.status !== 'submitted').length;
+  const completedCount = safeHomework.filter(h => h.status === 'completed' || h.status === 'submitted').length;
+  const overdueCount = safeHomework.filter(h => isOverdue(h.dueDate, h.status)).length;
+  const dueSoonCount = safeHomework.filter(h => {
     const diff = new Date(h.dueDate).getTime() - new Date().getTime();
     return diff <= 3 * 24 * 60 * 60 * 1000 && diff >= -24 * 60 * 60 * 1000 && h.status !== 'completed' && h.status !== 'submitted';
   }).length;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { type User } from '@/features/auth/types';
 import { type StudentProfile } from '@/types';
 
@@ -15,8 +15,8 @@ interface SidebarProps {
     onCheckInClick: () => void;
     onReportClick: () => void;
     onEditProfile: () => void;
-    onEditGoals: () => void;
     onLogout: () => void;
+    onToggleTheme?: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -30,9 +30,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     onCheckInClick,
     onReportClick,
     onEditProfile,
-    onEditGoals,
     onLogout,
+    onToggleTheme,
 }) => {
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
     const navItems = [
         { id: 'dashboard' as View, icon: '📊', label: 'Dashboard' },
         { id: 'homework' as View, icon: '📚', label: 'Homework' },
@@ -52,8 +54,13 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Sidebar */}
             <aside
-                className={`fixed top-0 left-0 z-50 h-screen bg-[var(--card-bg)] border-r border-[var(--border-color)] transition-all duration-300 ease-in-out flex flex-col
-          ${isOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full lg:translate-x-0 lg:w-20 hover:lg:w-64 group'}
+                className={`fixed top-0 left-0 z-50 h-screen bg-[var(--bg-surface)] border-r border-[var(--border-color)] transition-all duration-300 ease-in-out flex flex-col shadow-lg
+          ${isOpen
+                        ? isCollapsed
+                            ? 'w-20 translate-x-0'
+                            : 'w-64 translate-x-0'
+                        : 'w-64 -translate-x-full lg:translate-x-0 lg:w-20'
+                    }
         `}
             >
                 {/* Header */}
@@ -131,39 +138,74 @@ const Sidebar: React.FC<SidebarProps> = ({
                     )}
                 </nav>
 
-                {/* Footer / User Profile */}
-                <div className="p-4 border-t border-[var(--border-color)]">
+                {/* Footer */}
+                <div className="p-4 border-t border-[var(--border-color)] space-y-2">
+                    {/* Collapse Button */}
                     <button
-                        onClick={onEditProfile}
-                        className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors text-left"
-                        title="Edit Profile"
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className="hidden lg:flex w-full items-center justify-center p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-all"
+                        title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
                     >
-                        <div className="w-8 h-8 min-w-[2rem] rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] font-medium border border-[var(--border-color)]">
-                            {profile.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 lg:group-hover:opacity-100 lg:group-hover:w-auto lg:w-0'}`}>
-                            <p className="text-sm font-medium text-[var(--text-primary)] truncate">{profile.name}</p>
-                            <p className="text-xs text-[var(--text-secondary)] truncate">{role}</p>
-                        </div>
+                        <span className="text-lg">{isCollapsed ? '»' : '«'}</span>
                     </button>
 
-                    <button
-                        onClick={onEditGoals}
-                        className={`mt-1 w-full flex items-center gap-3 px-2 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] rounded-lg transition-all ${isOpen ? 'justify-start' : 'justify-center lg:group-hover:justify-start'}`}
-                        title="Edit Goals"
-                    >
-                        <span className="text-lg min-w-[1.5rem]">🎯</span>
-                        <span className={`whitespace-nowrap transition-all duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 lg:group-hover:opacity-100 lg:opacity-0 w-0 lg:group-hover:w-auto'}`}>Edit Goals</span>
-                    </button>
+                    {/* User Profile - with popup menu */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowProfileMenu(!showProfileMenu)}
+                            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors text-left"
+                            title="User Menu"
+                        >
+                            <div className="w-8 h-8 min-w-[2rem] rounded-full bg-[var(--accent-primary)] flex items-center justify-center text-white font-medium">
+                                {profile.name.charAt(0).toUpperCase()}
+                            </div>
+                            {!isCollapsed && (
+                                <div className="overflow-hidden flex-1">
+                                    <p className="text-sm font-medium text-[var(--text-primary)] truncate">{profile.name}</p>
+                                    <p className="text-xs text-[var(--text-secondary)] truncate capitalize">{role}</p>
+                                </div>
+                            )}
+                        </button>
 
-                    <button
-                        onClick={onLogout}
-                        className={`mt-1 w-full flex items-center gap-3 px-2 py-2 text-sm text-rose-500 hover:bg-rose-50 rounded-lg transition-all ${isOpen ? 'justify-start' : 'justify-center lg:group-hover:justify-start'}`}
-                        title="Logout"
-                    >
-                        <span className="text-lg min-w-[1.5rem]">🚪</span>
-                        <span className={`whitespace-nowrap transition-all duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 lg:group-hover:opacity-100 lg:opacity-0 w-0 lg:group-hover:w-auto'}`}>Logout</span>
-                    </button>
+                        {/* Profile Menu Popover */}
+                        {showProfileMenu && (
+                            <div className="absolute bottom-full left-0 mb-2 w-48 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-lg shadow-lg py-2">
+                                <button
+                                    onClick={() => {
+                                        onEditProfile();
+                                        setShowProfileMenu(false);
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--bg-hover)] flex items-center gap-2"
+                                >
+                                    <span>⚙️</span>
+                                    <span>Settings</span>
+                                </button>
+                                {onToggleTheme && (
+                                    <button
+                                        onClick={() => {
+                                            onToggleTheme();
+                                            setShowProfileMenu(false);
+                                        }}
+                                        className="w-full px-4 py-2 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--bg-hover)] flex items-center gap-2"
+                                    >
+                                        <span>🌓</span>
+                                        <span>Toggle Theme</span>
+                                    </button>
+                                )}
+                                <div className="border-t border-[var(--border-color)] my-1" />
+                                <button
+                                    onClick={() => {
+                                        onLogout();
+                                        setShowProfileMenu(false);
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-sm text-[var(--error)] hover:bg-red-50 flex items-center gap-2"
+                                >
+                                    <span>🚪</span>
+                                    <span>Logout</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </aside>
         </>
