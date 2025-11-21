@@ -18,6 +18,8 @@ from tools import (
     save_student_profile_data,
     update_student_goals,
     get_upcoming_assignments,
+    get_community_posts,
+    get_resources,
 )
 
 def make_llm_agent(
@@ -72,9 +74,16 @@ tutor_agent = make_llm_agent(
     name="tutor_agent",
     instruction=(
         "Coach students on assignments, study plans, and wellbeing check-ins. Use tools to "
-        "retrieve assignments and log daily reflections before responding."
+        "retrieve assignments, search community discussions, surface shared resources, and log reflections."
     ),
-    tools=[get_assignments_for_student, get_upcoming_assignments, record_daily_checkin, generate_teacher_report],
+    tools=[
+        get_assignments_for_student,
+        get_upcoming_assignments,
+        get_community_posts,
+        get_resources,
+        record_daily_checkin,
+        generate_teacher_report,
+    ],
     memory_enabled=True,
 )
 
@@ -91,8 +100,8 @@ planner_agent = make_llm_agent(
 analytics_agent = make_llm_agent(
     name="analytics_agent",
     instruction=(
-        "Quietly analyze past sessions, submissions, and check-ins to detect risks or progress. "
-        "Only output summaries or structured insights."
+        "Quietly analyze longitudinal submissions, check-ins, and attendance to detect emerging patterns "
+        "such as multi-day mood drops or repeated missed work. Only output concise summaries or structured insights."
     ),
     memory_enabled=True,
 )

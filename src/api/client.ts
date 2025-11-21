@@ -1,4 +1,4 @@
-import type { ChatContact, DailyCheckIn, Homework, PeerMessage, StudentProfile, Test } from '@/types';
+import type { ChatContact, CommunityPost, DailyCheckIn, Homework, PeerMessage, ResourceItem, StudentProfile, Test } from '@/types';
 
 const DEFAULT_BACKEND_URL =
   import.meta.env.VITE_MENTOR_BACKEND_URL?.replace(/\/$/, '') || 'http://localhost:8000';
@@ -124,6 +124,31 @@ export interface AnalyticsAlert {
 
 interface AnalyticsAlertsResponse {
   alerts: AnalyticsAlert[];
+}
+
+export interface CreateCommunityPostPayload {
+  content: string;
+  subject?: string;
+  tags?: string[];
+  parentId?: string;
+}
+
+interface CommunityFeedResponse {
+  posts: CommunityPost[];
+}
+
+export interface UploadResourcePayload {
+  title: string;
+  subject: string;
+  topic: string;
+  url: string;
+  description?: string;
+  tags?: string[];
+  grade?: string;
+}
+
+interface ResourcesResponse {
+  resources: ResourceItem[];
 }
 
 const ensureResponseBody = (response: Response): ReadableStream<Uint8Array> => {
@@ -522,6 +547,122 @@ export async function getAnalyticsAlerts(token: string): Promise<AnalyticsAlerts
   }
 
   return (await response.json()) as AnalyticsAlertsResponse;
+}
+
+export async function getCommunityFeed(
+  token: string,
+  params?: { subject?: string; query?: string; limit?: number },
+): Promise<CommunityFeedResponse> {
+  const url = new URL(apiUrl('/community/feed'));
+  if (params?.subject) {
+    url.searchParams.set('subject', params.subject);
+  }
+  if (params?.query) {
+    url.searchParams.set('q', params.query);
+  }
+  if (params?.limit) {
+    url.searchParams.set('limit', String(params.limit));
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to load community feed (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as CommunityFeedResponse;
+}
+
+export async function createCommunityPost(
+  token: string,
+  payload: CreateCommunityPostPayload,
+): Promise<CommunityPost> {
+  const response = await fetch(apiUrl('/community/post'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to publish post (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as CommunityPost;
+}
+
+export async function toggleCommunityUpvote(token: string, postId: string): Promise<CommunityPost> {
+  const response = await fetch(apiUrl(`/community/post/${postId}/upvote`), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Unable to update upvote (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as CommunityPost;
+}
+
+export async function getResources(
+  token: string,
+  params?: { subject?: string; topic?: string; query?: string; limit?: number },
+): Promise<ResourcesResponse> {
+  const url = new URL(apiUrl('/resources'));
+  if (params?.subject) {
+    url.searchParams.set('subject', params.subject);
+  }
+  if (params?.topic) {
+    url.searchParams.set('topic', params.topic);
+  }
+  if (params?.query) {
+    url.searchParams.set('q', params.query);
+  }
+  if (params?.limit) {
+    url.searchParams.set('limit', String(params.limit));
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to load resources (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as ResourcesResponse;
+}
+
+export async function uploadResource(token: string, payload: UploadResourcePayload): Promise<ResourceItem> {
+  const response = await fetch(apiUrl('/resources'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to upload resource (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as ResourceItem;
 }
 
 export async function deleteAssignment(token: string, assignmentId: string): Promise<void> {

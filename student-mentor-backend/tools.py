@@ -209,3 +209,87 @@ def get_upcoming_assignments(student_id: str) -> str:
         })
         
     return json.dumps(upcoming)
+
+
+@tool
+def get_community_posts(subject: str = "", query: str = "", limit: int = 5) -> str:
+    """Return recent community posts filtered by subject or keyword."""
+
+    filters = []
+    if subject:
+        filters.append(("subject", "==", subject))
+    docs = query_collection("communityPosts", filters=filters)
+    normalized_query = (query or "").lower()
+    posts = []
+    for doc in docs:
+        data = doc.data or {}
+        if data.get("parentId"):
+            continue
+        record = {
+            "id": doc.id,
+            "authorName": data.get("authorName"),
+            "subject": data.get("subject"),
+            "content": data.get("content"),
+            "tags": data.get("tags", []),
+            "upvoteCount": data.get("upvoteCount", 0),
+            "replyCount": data.get("replyCount", 0),
+            "createdAt": data.get("createdAt"),
+        }
+        if normalized_query:
+            haystack = " ".join(
+                [
+                    record.get("content") or "",
+                    record.get("subject") or "",
+                    " ".join(record.get("tags") or []),
+                ]
+            ).lower()
+            if normalized_query not in haystack:
+                continue
+        posts.append(record)
+
+    posts = sorted(posts, key=lambda item: item.get("createdAt") or "", reverse=True)
+    max_items = max(1, min(limit, 10))
+    return json.dumps(posts[:max_items])
+
+
+@tool
+def get_resources(subject: str = "", topic: str = "", query: str = "", limit: int = 5) -> str:
+    """Return shared study resources with optional subject/topic filters."""
+
+    filters = []
+    if subject:
+        filters.append(("subject", "==", subject))
+    if topic:
+        filters.append(("topic", "==", topic))
+
+    docs = query_collection("resources", filters=filters)
+    normalized_query = (query or "").lower()
+    resources = []
+    for doc in docs:
+        data = doc.data or {}
+        record = {
+            "id": doc.id,
+            "title": data.get("title"),
+            "subject": data.get("subject"),
+            "topic": data.get("topic"),
+            "url": data.get("url"),
+            "description": data.get("description"),
+            "tags": data.get("tags", []),
+            "createdByName": data.get("createdByName"),
+        }
+        if normalized_query:
+            haystack = " ".join(
+                [
+                    record.get("title") or "",
+                    record.get("subject") or "",
+                    record.get("topic") or "",
+                    record.get("description") or "",
+                ]
+            ).lower()
+            if normalized_query not in haystack:
+                continue
+        resources.append(record)
+
+    resources = sorted(resources, key=lambda item: item.get("title") or "")
+    max_items = max(1, min(limit, 15))
+    return json.dumps(resources[:max_items])

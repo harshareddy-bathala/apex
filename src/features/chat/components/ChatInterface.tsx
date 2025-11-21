@@ -177,7 +177,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Input Composer */}
       <div className={`absolute bottom-2 left-4 right-4 ${compact ? 'bottom-2 left-2 right-2' : ''}`}>
-        <div className="card rounded-xl p-2 shadow-lg">
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/80 backdrop-blur-xl p-2 shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
           <form onSubmit={handleSubmit} className="flex items-end gap-2">
             <div className="flex-1 relative">
               <textarea
@@ -254,8 +254,8 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, compact = false, times
       <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[75%]`}>
         <div
           className={`px-5 py-3.5 ${isUser
-            ? 'bg-[var(--accent-primary)] text-white rounded-lg rounded-br-none shadow-md'
-            : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-lg rounded-bl-none border border-[var(--border-color)]'
+            ? 'bg-[#1E49FF] text-white rounded-2xl rounded-br-sm shadow-[0_10px_30px_rgba(30,73,255,0.35)]'
+            : 'bg-white/5 text-[var(--text-primary)] rounded-2xl rounded-bl-sm border border-white/10 backdrop-blur-md'
             }`}
         >
           <p className={`whitespace-pre-wrap break-words leading-relaxed ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}>

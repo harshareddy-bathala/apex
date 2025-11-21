@@ -77,6 +77,12 @@ const AuthGuard: React.FC = () => {
     await signOut(auth);
   };
 
+  useEffect(() => {
+    if (profileRole === 'teacher' && location.pathname !== '/teacher') {
+      navigate('/teacher', { replace: true });
+    }
+  }, [profileRole, location.pathname, navigate]);
+
   if (!user || !idToken) {
     return <FullScreenLoader message="Securing your session..." />;
   }

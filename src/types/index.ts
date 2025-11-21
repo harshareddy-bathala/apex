@@ -268,6 +268,35 @@ export interface Conversation {
   type: 'peer' | 'teacher' | 'group';
 }
 
+export interface CommunityPost {
+  id: string;
+  parentId?: string;
+  authorId: string;
+  authorName: string;
+  subject?: string;
+  content: string;
+  tags?: string[];
+  upvoteCount: number;
+  replyCount: number;
+  createdAt: string;
+  hasUpvoted?: boolean;
+  replies?: CommunityPost[];
+}
+
+export interface ResourceItem {
+  id: string;
+  title: string;
+  subject: string;
+  topic: string;
+  url: string;
+  description?: string;
+  tags?: string[];
+  grade?: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+}
+
 // Teacher Alert (AI-triggered)
 export interface TeacherAlert {
   id: string;

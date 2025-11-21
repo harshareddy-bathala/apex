@@ -127,7 +127,14 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
 
     setCreating(true);
     try {
-      await createAssignment(idToken, newAssignment);
+      await createAssignment(idToken, {
+        title: newAssignment.title.trim(),
+        classId: newAssignment.classId.trim(),
+        subject: newAssignment.subject,
+        type: newAssignment.type as 'homework' | 'test',
+        dueDate: new Date(newAssignment.dueDate).toISOString(),
+        description: newAssignment.description?.trim() || undefined,
+      });
       await loadData();
       setShowCreateModal(false);
       setNewAssignment({

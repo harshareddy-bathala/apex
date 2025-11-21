@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { StudentProfile, DailyCheckIn, ActivityLog, Homework, Test } from '@/types';
+import { StudentProfile, DailyCheckIn, ActivityLog, Homework, Test, CommunityPost } from '@/types';
 import { calculateAcademicMetrics } from '@/common/utils/aiHelpers';
 import DashboardContent from './DashboardContent';
 
@@ -9,6 +9,7 @@ interface DashboardProps {
   activities: ActivityLog[];
   homework?: Homework[];
   tests?: Test[];
+  communityPosts?: CommunityPost[];
   onHomeworkStatusChange?: (homeworkId: string, status: Homework['status']) => Promise<void> | void;
 }
 
@@ -18,6 +19,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   activities = [],
   homework = [],
   tests = [],
+  communityPosts = [],
   onHomeworkStatusChange,
 }) => {
   const academicMetrics = useMemo(() => calculateAcademicMetrics(checkIns), [checkIns]);
@@ -108,6 +110,16 @@ const Dashboard: React.FC<DashboardProps> = ({
         icon: getActivityIcon(a.type)
       })),
 
+      communityActivity: communityPosts.slice(0, 4).map((post) => ({
+        id: post.id,
+        authorName: post.authorName,
+        subject: post.subject,
+        content: post.content,
+        createdAt: post.createdAt,
+        upvoteCount: post.upvoteCount,
+        replyCount: post.replyCount,
+      })),
+
       goals: [
         {
           id: 'goal-1',
@@ -123,7 +135,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
       ]
     };
-  }, [profile, checkIns, academicMetrics, homework, tests, activities]);
+  }, [profile, checkIns, academicMetrics, homework, tests, activities, communityPosts]);
 
   return (
     <DashboardContent

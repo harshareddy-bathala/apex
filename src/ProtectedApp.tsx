@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { CalendarCheck2, FileBarChart2, Target } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 
 import Dashboard from '@/features/dashboard/components/Dashboard';
@@ -8,20 +9,19 @@ import TeacherReport from '@/features/reports/components/TeacherReport';
 import GoalsEditor from '@/features/goals/components/GoalsEditor';
 import EditProfilePage from '@/features/profile/EditProfilePage';
 import ProfilePage from '@/features/profile/ProfilePage';
-import HomeworkList from '@/features/homework/components/HomeworkList';
-import TestsList from '@/features/tests/components/TestsList';
-import PeerChat from '@/features/peer-chat/components/PeerChat';
 import TeacherAlerts from '@/features/reports/components/TeacherAlerts';
-import Sidebar from '@/features/navigation/components/Sidebar';
+import AppShell, { type AppShellView } from '@/features/app-shell/AppShell';
+import CommunityHub from '@/features/community/CommunityHub';
+import ResourceHub from '@/features/resources/ResourceHub';
 import FullScreenLoader from '@/router/components/FullScreenLoader';
 import { useAuth } from '@/common/hooks/useAuth';
 import { useProfile } from '@/common/context/ProfileContext';
 import { auth } from '@/firebase';
-import { mapFirebaseUser } from '@/utils/mapFirebaseUser';
-import { getHomework, getTests, updateHomework } from '@/api/client';
+import { getCommunityFeed, getHomework, getTests, updateHomework } from '@/api/client';
 import type { StudentProfileRecord } from '@/api/client';
 import type {
   ActivityLog,
+  CommunityPost,
   DailyCheckIn as DailyCheckInType,
   Homework,
   StudentProfile,
@@ -29,12 +29,9 @@ import type {
   Test,
 } from '@/types';
 
-type View = 'dashboard' | 'chat' | 'checkin' | 'report' | 'homework' | 'tests' | 'peer-chat' | 'profile';
-
 const ProtectedApp: React.FC = () => {
   const { user, idToken } = useAuth();
   const { profile: profileRecord, refetchProfile } = useProfile();
-  const authUser = useMemo(() => mapFirebaseUser(user), [user]);
 
   const [profileState, setProfileState] = useState<StudentProfile | null>(() =>
     profileRecord ? normalizeProfile(profileRecord) : null,
@@ -44,15 +41,13 @@ const ProtectedApp: React.FC = () => {
   const [homework, setHomework] = useState<Homework[]>([]);
   const [tests, setTests] = useState<Test[]>([]);
   const [teacherAlerts, setTeacherAlerts] = useState<TeacherAlert[]>([]);
-  const [currentView, setCurrentView] = useState<View>('dashboard');
+  const [communityDigest, setCommunityDigest] = useState<CommunityPost[]>([]);
+  const [currentView, setCurrentView] = useState<AppShellView>('dashboard');
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [showGoalsEditor, setShowGoalsEditor] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [homeworkLoading, setHomeworkLoading] = useState(false);
   const [homeworkError, setHomeworkError] = useState<string | null>(null);
-
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (profileRecord) {
@@ -82,7 +77,6 @@ const ProtectedApp: React.FC = () => {
       return;
     }
 
-    setHomeworkLoading(true);
     try {
       const { homework: assignments } = await getHomework(idToken);
       setHomework(assignments);
@@ -90,14 +84,28 @@ const ProtectedApp: React.FC = () => {
     } catch {
       setHomework([]);
       setHomeworkError('Unable to load homework.');
-    } finally {
-      setHomeworkLoading(false);
     }
   }, [idToken]);
 
   useEffect(() => {
     void loadHomework();
   }, [loadHomework]);
+
+  const loadCommunityDigest = useCallback(async () => {
+    if (!idToken) {
+      return;
+    }
+    try {
+      const { posts } = await getCommunityFeed(idToken, { limit: 5 });
+      setCommunityDigest(posts);
+    } catch {
+      setCommunityDigest([]);
+    }
+  }, [idToken]);
+
+  useEffect(() => {
+    void loadCommunityDigest();
+  }, [loadCommunityDigest]);
 
   const handleHomeworkStatusChange = useCallback(
     async (homeworkId: string, status: Homework['status']) => {
@@ -193,100 +201,98 @@ const ProtectedApp: React.FC = () => {
     await signOut(auth);
   };
 
-  if (!idToken || !profileRecord || !authUser || !profileState) {
+  if (!idToken || !profileRecord || !profileState) {
     return <FullScreenLoader message="Preparing your dashboard..." />;
   }
 
   const todayCheckIn = checkIns.find((c) => c.date === new Date().toISOString().split('T')[0]);
 
-  return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] font-sans text-[var(--text-primary)] transition-colors duration-300">
-      <Sidebar
-        authUser={authUser}
-        profile={profileState}
-        role={profileRecord.role === 'teacher' ? 'teacher' : 'student'}
-        currentView={currentView}
-        isOpen={isSidebarOpen}
-        setIsOpen={setIsSidebarOpen}
-        onViewChange={setCurrentView}
-        onCheckInClick={() => setShowCheckIn(true)}
-        onReportClick={() => setShowReport(true)}
-        onEditProfile={() => setShowEditProfile(true)}
-        onEditGoals={() => setShowGoalsEditor(true)}
-        onLogout={handleLogout}
-      />
+  const quickActions = useMemo(
+    () => [
+      {
+        label: 'Daily Check-in',
+        icon: CalendarCheck2,
+        onClick: () => setShowCheckIn(true),
+      },
+      {
+        label: 'AI Report',
+        icon: FileBarChart2,
+        onClick: () => setShowReport(true),
+      },
+      {
+        label: 'Edit Goals',
+        icon: Target,
+        onClick: () => setShowGoalsEditor(true),
+      },
+    ],
+    [],
+  );
 
-      <main className={`transition-all duration-300 ease-in-out min-h-screen ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
-        {/* Mobile Header */}
-        <div className="lg:hidden flex items-center justify-between p-4 bg-[var(--card-bg)] border-b border-[var(--border-color)] sticky top-0 z-30">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <h1 className="font-bold text-lg">Student Mentor</h1>
-          </div>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center text-white text-sm font-bold">
-            {profileState.name.charAt(0).toUpperCase()}
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto p-4 lg:p-8">
-          {teacherAlerts.length > 0 && currentView === 'dashboard' && (
-            <div className="mb-6">
-              <TeacherAlerts alerts={teacherAlerts} onDismiss={handleDismissAlert} />
-            </div>
-          )}
-
-          {currentView === 'dashboard' && (
+  const renderView = () => {
+    switch (currentView) {
+      case 'dashboard':
+        return (
+          <>
+            {teacherAlerts.length > 0 && (
+              <div className="mb-6">
+                <TeacherAlerts alerts={teacherAlerts} onDismiss={handleDismissAlert} />
+              </div>
+            )}
             <Dashboard
               profile={profileState}
               checkIns={checkIns}
               activities={activities}
               homework={homework}
               tests={tests}
+              communityPosts={communityDigest}
               onHomeworkStatusChange={handleHomeworkStatusChange}
             />
-          )}
+          </>
+        );
+      case 'community':
+        return <CommunityHub />;
+      case 'resources':
+        return <ResourceHub />;
+      case 'chat':
+        return (
+          <Chat
+            profile={profileState}
+            checkIns={checkIns}
+            activities={activities}
+            onAddActivity={addActivity}
+            onTriggerAlert={handleTriggerAlert}
+            idToken={idToken}
+          />
+        );
+      case 'profile':
+        return <ProfilePage profile={profileState} onEditProfile={() => setShowEditProfile(true)} />;
+      default:
+        return null;
+    }
+  };
 
-          {currentView === 'homework' && (
-            <HomeworkList
-              homework={homework}
-              onStatusChange={handleHomeworkStatusChange}
-              onRefresh={loadHomework}
-              loadingExternal={homeworkLoading}
-              errorMessage={homeworkError}
-            />
-          )}
-
-          {currentView === 'tests' && <TestsList idToken={idToken} />}
-
-          {currentView === 'peer-chat' && (
-            <PeerChat currentUserId={profileState.id} currentUserName={profileState.name} idToken={idToken} />
-          )}
-
-          {currentView === 'chat' && (
-            <Chat
-              profile={profileState}
-              checkIns={checkIns}
-              activities={activities}
-              onAddActivity={addActivity}
-              onTriggerAlert={handleTriggerAlert}
-            />
-          )}
-
-          {currentView === 'profile' && (
-            <ProfilePage
-              profile={profileState}
-              onEditProfile={() => setShowEditProfile(true)}
-            />
-          )}
-        </div>
-      </main>
+  return (
+    <>
+      <AppShell
+        activeView={currentView}
+        onNavigate={setCurrentView}
+        userName={profileState.name}
+        userRole={profileRecord.role === 'teacher' ? 'teacher' : 'student'}
+        onLogout={handleLogout}
+        quickActions={quickActions}
+        subHeader={
+          homeworkError ? (
+            <p className="text-sm text-[var(--warning-foreground)]">
+              {homeworkError}{' '}
+              <button type="button" onClick={() => void loadHomework()} className="underline">
+                Retry
+              </button>
+            </p>
+          ) : null
+        }
+      >
+        <div className="mx-auto max-w-6xl space-y-6">{renderView()}</div>
+      </AppShell>
 
       {showCheckIn && (
         <DailyCheckIn
@@ -322,19 +328,20 @@ const ProtectedApp: React.FC = () => {
         />
       )}
 
-      {!todayCheckIn && checkIns.length > 0 && currentView !== 'dashboard' && (
-        <div className="fixed bottom-4 right-4 bg-[var(--accent-success)] text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-bounce z-50">
-          <span>📅</span>
-          <span>Don't forget your daily check-in!</span>
+      {!todayCheckIn && checkIns.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-card)]/90 px-5 py-4 text-sm shadow-[0_20px_60px_rgba(0,0,0,0.15)] backdrop-blur">
+          <p className="font-semibold text-[var(--text-primary)]">Daily check-in pending</p>
+          <p className="mt-1 text-[var(--text-secondary)]">Log today&apos;s mood to keep the AI mentor calibrated.</p>
           <button
+            type="button"
             onClick={() => setShowCheckIn(true)}
-            className="ml-2 bg-white text-[var(--accent-success)] px-3 py-1 rounded font-medium hover:bg-green-50 transition-colors"
+            className="mt-3 rounded-xl bg-[var(--accent-primary)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white"
           >
-            Check In Now
+            Launch Check-in
           </button>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

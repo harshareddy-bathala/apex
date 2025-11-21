@@ -373,7 +373,7 @@ const ensureResponseBody = (response: Response): ReadableStream<Uint8Array> => {
   return response.body;
 };
 
-export function createBackendChatClient(baseUrl: string = DEFAULT_BACKEND_URL): BackendChatClient {
+export function createBackendChatClient(baseUrl: string = DEFAULT_BACKEND_URL, authToken?: string): BackendChatClient {
   const sanitizedBaseUrl = baseUrl.replace(/\/$/, '');
 
   return {
@@ -386,11 +386,16 @@ export function createBackendChatClient(baseUrl: string = DEFAULT_BACKEND_URL): 
       }
     },
     async *sendMessageStream({ studentId, message }): AsyncGenerator<BackendStreamChunk> {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${sanitizedBaseUrl}/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ student_id: studentId, message }),
       });
 

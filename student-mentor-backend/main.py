@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 import uuid
+from collections import defaultdict
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -94,11 +96,71 @@ class TimetablePayload(BaseModel):
     week_of: str = Field(..., alias="weekOf")
     entries: List[TimetableEntryPayload]
 
+class CommunityPostPayload(BaseModel):
+    content: str
+    subject: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    parentId: Optional[str] = None
+
+class ResourceUploadPayload(BaseModel):
+    title: str
+    subject: str
+    topic: str
+    url: str
+    description: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    grade: Optional[str] = None
+
 # --- Helper Functions ---
 
 def _ensure_teacher(user: FirebaseUser):
     if user.role != "teacher":
         raise HTTPException(status_code=403, detail="Teacher access required")
+
+def _get_student_display_name(student_id: str) -> str:
+    profile = get_document("studentProfiles", student_id)
+    if profile and profile.data.get("name"):
+        return profile.data["name"]
+    user_doc = get_document("users", student_id)
+    if user_doc and user_doc.data.get("email"):
+        return user_doc.data["email"]
+    return "Student"
+
+def _parse_iso(date_str: Optional[str]) -> Optional[datetime]:
+    if not date_str:
+        return None
+    try:
+        return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+def _serialize_post(doc_id: str, data: Dict[str, Any], current_user_id: str) -> Dict[str, Any]:
+    upvoters = data.get("upvoters", [])
+    post = {
+        "id": doc_id,
+        "authorId": data.get("authorId"),
+        "authorName": data.get("authorName"),
+        "subject": data.get("subject"),
+        "content": data.get("content"),
+        "tags": data.get("tags", []),
+        "upvoteCount": int(data.get("upvoteCount") or 0),
+        "replyCount": int(data.get("replyCount") or 0),
+        "createdAt": data.get("createdAt"),
+        "hasUpvoted": current_user_id in (upvoters or []),
+    }
+    if data.get("parentId"):
+        post["parentId"] = data["parentId"]
+    return post
+
+def _ensure_alert_entry(alerts_map: Dict[str, Dict[str, Any]], student_id: str) -> Dict[str, Any]:
+    if student_id not in alerts_map:
+        alerts_map[student_id] = {
+            "studentId": student_id,
+            "studentName": _get_student_display_name(student_id),
+            "riskScore": 0,
+            "signals": [],
+        }
+    return alerts_map[student_id]
 
 # --- Endpoints ---
 
@@ -258,6 +320,184 @@ def send_peer_message(payload: SendMessagePayload, user: FirebaseUser = Depends(
     add_document("peerMessages", message_data, document_id=message_id)
     return {"message": message_data}
 
+@app.get("/community/feed")
+def get_community_feed(
+    subject: Optional[str] = None,
+    q: Optional[str] = None,
+    limit: int = 20,
+    user: FirebaseUser = Depends(verify_firebase_token),
+) -> Dict[str, Any]:
+    filters = []
+    if subject:
+        filters.append(("subject", "==", subject))
+    docs = query_collection("communityPosts", filters=filters)
+
+    top_level: List[Dict[str, Any]] = []
+    replies: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    query_lower = (q or "").lower()
+
+    for doc in docs:
+        data = doc.data or {}
+        post = _serialize_post(doc.id, data, user.uid)
+
+        if query_lower:
+            haystack = " ".join(
+                [
+                    post.get("content") or "",
+                    post.get("subject") or "",
+                    " ".join(post.get("tags") or []),
+                ]
+            ).lower()
+            if query_lower not in haystack:
+                continue
+
+        parent_id = data.get("parentId")
+        if parent_id:
+            replies[parent_id].append(post)
+        else:
+            top_level.append(post)
+
+    sorted_posts = sorted(
+        top_level,
+        key=lambda item: item.get("createdAt") or "",
+        reverse=True,
+    )
+    max_posts = max(1, min(limit, 50))
+    response_posts = []
+    for post in sorted_posts[:max_posts]:
+        child_replies = sorted(
+            replies.get(post["id"], []),
+            key=lambda item: item.get("createdAt") or "",
+            reverse=True,
+        )
+        post["replies"] = child_replies[:5]
+        response_posts.append(post)
+
+    return {"posts": response_posts}
+
+@app.post("/community/post")
+def create_community_post(payload: CommunityPostPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    post_id = uuid.uuid4().hex
+    author_name = _get_student_display_name(user.uid)
+    data = {
+        "authorId": user.uid,
+        "authorName": author_name,
+        "subject": payload.subject,
+        "content": payload.content,
+        "tags": payload.tags,
+        "parentId": payload.parentId,
+        "upvoteCount": 0,
+        "replyCount": 0,
+        "createdAt": _utc_now(),
+        "upvoters": [],
+    }
+    add_document("communityPosts", data, document_id=post_id)
+
+    if payload.parentId:
+        parent_doc = get_document("communityPosts", payload.parentId)
+        if parent_doc:
+            current = int(parent_doc.data.get("replyCount") or 0) + 1
+            update_document("communityPosts", payload.parentId, {"replyCount": current})
+
+    return _serialize_post(post_id, data, user.uid)
+
+@app.post("/community/post/{post_id}/upvote")
+def toggle_upvote(post_id: str, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    document = get_document("communityPosts", post_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    data = dict(document.data or {})
+    upvoters = data.get("upvoters", [])
+    if user.uid in upvoters:
+        upvoters.remove(user.uid)
+        data["upvoteCount"] = max(0, int(data.get("upvoteCount") or 1) - 1)
+    else:
+        upvoters.append(user.uid)
+        data["upvoteCount"] = int(data.get("upvoteCount") or 0) + 1
+
+    data["upvoters"] = upvoters
+    update_document(
+        "communityPosts",
+        post_id,
+        {
+            "upvoters": upvoters,
+            "upvoteCount": data["upvoteCount"],
+        },
+    )
+    return _serialize_post(post_id, data, user.uid)
+
+@app.get("/resources")
+def list_resources(
+    subject: Optional[str] = None,
+    topic: Optional[str] = None,
+    q: Optional[str] = None,
+    limit: int = 40,
+    user: FirebaseUser = Depends(verify_firebase_token),
+) -> Dict[str, Any]:
+    filters = []
+    if subject:
+        filters.append(("subject", "==", subject))
+    if topic:
+        filters.append(("topic", "==", topic))
+
+    docs = query_collection("resources", filters=filters)
+    query_lower = (q or "").lower()
+    rows = []
+    for doc in docs:
+        data = doc.data or {}
+        record = {
+            "id": doc.id,
+            "title": data.get("title"),
+            "subject": data.get("subject"),
+            "topic": data.get("topic"),
+            "url": data.get("url"),
+            "description": data.get("description"),
+            "tags": data.get("tags", []),
+            "grade": data.get("grade"),
+            "createdBy": data.get("createdBy"),
+            "createdByName": data.get("createdByName"),
+            "createdAt": data.get("createdAt"),
+        }
+        if query_lower:
+            haystack = " ".join(
+                [
+                    record.get("title") or "",
+                    record.get("subject") or "",
+                    record.get("topic") or "",
+                    record.get("description") or "",
+                ]
+            ).lower()
+            if query_lower not in haystack:
+                continue
+        rows.append(record)
+
+    rows = sorted(rows, key=lambda item: item.get("createdAt") or "", reverse=True)
+    max_rows = max(1, min(limit, 60))
+    return {"resources": rows[:max_rows]}
+
+@app.post("/resources")
+def upload_resource(payload: ResourceUploadPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    resource_id = uuid.uuid4().hex
+    author_name = _get_student_display_name(user.uid)
+    data = {
+        "title": payload.title,
+        "subject": payload.subject,
+        "topic": payload.topic,
+        "url": payload.url,
+        "description": payload.description,
+        "tags": payload.tags,
+        "grade": payload.grade,
+        "createdBy": user.uid,
+        "createdByName": author_name,
+        "createdAt": _utc_now(),
+    }
+    add_document("resources", data, document_id=resource_id)
+    return {
+        "id": resource_id,
+        **data,
+    }
+
 @app.post("/assignment")
 def create_assignment(payload: CreateAssignmentPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     _ensure_teacher(user)
@@ -355,41 +595,89 @@ async def analytics_alerts(user: FirebaseUser = Depends(verify_firebase_token)) 
     _ensure_teacher(user)
 
     alerts_map: Dict[str, Dict[str, Any]] = {}
+    history_map: Dict[str, Dict[str, Any]] = defaultdict(dict)
     LOW_MOOD_STATES = {"sad", "anxious", "stressed", "tired", "overwhelmed"}
 
-    # Wellbeing signals from check-ins
+    checkins_by_student: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+
     for doc in query_collection("checkins"):
         checkin = dict(doc.data or {})
         student_id = checkin.get("studentId")
         if not student_id:
             continue
+        checkin["id"] = doc.id
+        checkins_by_student[student_id].append(checkin)
         mood = (checkin.get("mood") or "").lower()
         stress_level = int(checkin.get("stressLevel") or 0)
         if mood in LOW_MOOD_STATES or stress_level >= 7:
-            description = f"Low mood '{mood or 'unknown'}' with stress level {stress_level}"
-            # Helper to add signal
-            if student_id not in alerts_map:
-                alerts_map[student_id] = {
-                    "studentId": student_id,
-                    "studentName": "Unknown", # Would fetch from profile
-                    "riskScore": 0,
-                    "signals": []
-                }
-            
-            alerts_map[student_id]["signals"].append({
+            entry = _ensure_alert_entry(alerts_map, student_id)
+            entry["signals"].append({
                 "category": "wellbeing",
-                "description": description,
-                "source": checkin | {"id": doc.id}
+                "description": f"Low mood '{mood or 'unknown'}' with stress level {stress_level}",
+                "source": checkin,
             })
-            alerts_map[student_id]["riskScore"] += 20
+            entry["riskScore"] += 20
 
-    # Academic signals from student submissions (mock logic for now as submissions might be empty)
-    # ... (Simplified for brevity, similar logic as original)
+    for student_id, records in checkins_by_student.items():
+        sorted_records = sorted(records, key=lambda item: item.get("timestamp") or "", reverse=True)
+        history_map[student_id]["recentCheckins"] = sorted_records[:7]
+        streak = 0
+        for record in sorted_records:
+            if (record.get("mood") or "").lower() in LOW_MOOD_STATES:
+                streak += 1
+            else:
+                break
+        if streak >= 5:
+            entry = _ensure_alert_entry(alerts_map, student_id)
+            entry["signals"].append({
+                "category": "pattern",
+                "description": f"Low mood reported for {streak} consecutive check-ins.",
+                "source": {"recentCheckins": sorted_records[:streak]},
+            })
+            entry["riskScore"] += 25
 
-    # If no alerts found, generate a positive summary for at least one student (or all)
-    # For this prototype, if we have check-in data but no risks, we'll create a "Positive" alert
+    assignments_index = {
+        doc.id: doc.data or {}
+        for doc in query_collection("assignments")
+    }
+    submissions_by_student: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for submission_doc in query_collection("studentSubmissions"):
+        data = dict(submission_doc.data or {})
+        student_id = data.get("studentId")
+        if not student_id:
+            continue
+        data["id"] = submission_doc.id
+        submissions_by_student[student_id].append(data)
+
+    now = datetime.now(timezone.utc)
+    for student_id, submissions in submissions_by_student.items():
+        missed: List[Dict[str, Any]] = []
+        for submission in submissions:
+            assignment_id = submission.get("assignmentId")
+            assignment = assignments_index.get(assignment_id or "")
+            if not assignment:
+                continue
+            due = _parse_iso(assignment.get("dueDate"))
+            if due and due < now:
+                status = (submission.get("status") or "pending").lower()
+                if status not in {"submitted", "completed"}:
+                    missed.append({
+                        "assignmentId": assignment_id,
+                        "title": assignment.get("title"),
+                        "dueDate": assignment.get("dueDate"),
+                        "status": status,
+                    })
+        if len(missed) >= 3:
+            entry = _ensure_alert_entry(alerts_map, student_id)
+            entry["signals"].append({
+                "category": "academic",
+                "description": f"{len(missed)} past-due assignments without submissions.",
+                "source": {"missedAssignments": missed[:5]},
+            })
+            entry["riskScore"] += 20
+            history_map[student_id]["missedAssignments"] = missed[:5]
+
     if not alerts_map:
-        # Try to find a student with checkins to give positive feedback
         recent_checkins = query_collection("checkins", limit=5)
         seen_students = set()
         for doc in recent_checkins:
@@ -397,35 +685,31 @@ async def analytics_alerts(user: FirebaseUser = Depends(verify_firebase_token)) 
             sid = data.get("studentId")
             if sid and sid not in seen_students:
                 seen_students.add(sid)
-                alerts_map[sid] = {
-                    "studentId": sid,
-                    "studentName": "Student", # Placeholder
-                    "riskScore": 0,
-                    "signals": [{
-                        "category": "positive",
-                        "description": "Consistent check-ins and stable mood reported.",
-                        "source": data
-                    }]
-                }
+                entry = _ensure_alert_entry(alerts_map, sid)
+                entry["signals"].append({
+                    "category": "positive",
+                    "description": "Consistent check-ins and stable mood reported.",
+                    "source": data,
+                })
 
     alerts = sorted(alerts_map.values(), key=lambda alert: alert.get("riskScore", 0), reverse=True)
 
     for alert in alerts:
+        alert["history"] = history_map.get(alert["studentId"], {})
         try:
             prompt = (
-                "You are an analytics assistant. "
-                "Based on the following signals, provide a ONE SENTENCE summary. "
-                "If riskScore is 0, be encouraging and praise consistency. "
-                "Signals: "
-                f"{json.dumps(alert['signals'])}"
+                "You are an analytics assistant monitoring longitudinal student data. "
+                "Summarize risks or positive trends in one sentence. "
+                "Highlight repeated missed assignments or multi-day mood drops when present. "
+                f"Signals: {json.dumps(alert['signals'])}\n"
+                f"Historical context: {json.dumps(alert.get('history', {}))}"
             )
             summary = analytics_agent.run(
                 prompt,
-                session=session_service.get_session(f"teacher-analytics:{user.uid}:{alert['studentId']}")
+                session=session_service.get_session(f"teacher-analytics:{user.uid}:{alert['studentId']}"),
             )
             alert["aiSummary"] = str(summary)
         except Exception:
             alert["aiSummary"] = "Unable to generate summary."
-            continue
 
     return {"alerts": alerts}

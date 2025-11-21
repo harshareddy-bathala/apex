@@ -35,6 +35,7 @@ interface ChatProps {
   activities: ActivityLog[];
   onAddActivity: (activity: Omit<ActivityLog, "id" | "timestamp">) => void;
   onTriggerAlert?: (alert: Omit<TeacherAlert, "id" | "createdAt">) => void;
+  idToken?: string | null;
 }
 
 const Chat: React.FC<ChatProps> = ({
@@ -43,6 +44,7 @@ const Chat: React.FC<ChatProps> = ({
   activities,
   onAddActivity,
   onTriggerAlert,
+  idToken,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,7 +58,7 @@ const Chat: React.FC<ChatProps> = ({
       setIsInitializing(true);
       setMessages([]);
 
-      const backendClient = createBackendChatClient();
+      const backendClient = createBackendChatClient(undefined, idToken ?? undefined);
       try {
         await backendClient.healthcheck();
         if (cancelled) return;
@@ -78,7 +80,7 @@ const Chat: React.FC<ChatProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [profile]);
+  }, [profile, idToken]);
 
   const handleSendMessage = async (userMessageContent: string) => {
     if (!userMessageContent.trim() || isLoading) return;
@@ -287,7 +289,7 @@ const Chat: React.FC<ChatProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-full min-h-0 card">
+    <div className="flex flex-col h-full min-h-0 rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 backdrop-blur-md shadow-[0_20px_60px_rgba(15,23,42,0.25)]">
       <header className="flex-shrink-0 p-4 sm:p-6 border-b border-[var(--border-color)] bg-[var(--bg-surface)] flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative">

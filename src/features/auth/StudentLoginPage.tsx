@@ -170,85 +170,92 @@ const StudentLoginPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-purple-500 text-3xl">
-            🎓
+    <div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-lg space-y-8">
+        <div className="space-y-2 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-card">
+            <Lock className="h-6 w-6" />
           </div>
-          <h1 className="text-3xl font-semibold text-white">Student Mentor AI</h1>
-          <p className="text-slate-400">Sign in to meet your personal mentor</p>
+          <p className="text-[11px] uppercase tracking-[0.4em] text-[var(--text-muted)]">Student Mentor AI</p>
+          <h1 className="text-3xl font-semibold text-[var(--text-primary)]">Welcome back</h1>
+          <p className="text-sm text-[var(--text-secondary)]">Secure access to your learning cockpit</p>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-slate-900/70 backdrop-blur p-6 space-y-6">
+        <div className="glass-panel space-y-6 rounded-3xl">
           <button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={isSubmitting}
-            className="w-full flex items-center justify-center gap-3 rounded-2xl bg-white py-3 font-medium text-slate-900 hover:bg-slate-100 transition disabled:opacity-60"
+            className="w-full rounded-2xl border border-[var(--border-color)] bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:shadow-md disabled:opacity-60"
           >
-            <span className="text-lg">🔐</span> Continue with Google
+            Continue with Google
           </button>
 
-          <div className="flex items-center gap-4 text-slate-500 text-sm">
-            <span className="flex-1 border-t border-white/10" />
+          <div className="flex items-center gap-4 text-[var(--text-muted)] text-sm">
+            <span className="flex-1 border-t border-[var(--border-subtle)]" />
             or
-            <span className="flex-1 border-t border-white/10" />
+            <span className="flex-1 border-t border-[var(--border-subtle)]" />
           </div>
 
           <form onSubmit={handleEmailAuth} className="space-y-4">
             {mode === 'signup' && (
-              <div>
-                <label className="text-sm text-slate-400 mb-1 block">Full name</label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(event) => setFullName(event.target.value)}
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  placeholder="Alex Rivera"
-                />
-              </div>
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Full name</span>
+                <div className="mt-1 flex items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/60 px-4 py-3">
+                  <UserRound className="h-4 w-4 text-[var(--text-muted)]" />
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(event) => setFullName(event.target.value)}
+                    className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+                    placeholder="Jordan Patel"
+                  />
+                </div>
+              </label>
             )}
 
-            <div>
-              <label className="text-sm text-slate-400 mb-1 block">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                placeholder="you@example.com"
-              />
-            </div>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Email</span>
+              <div className="mt-1 flex items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/60 px-4 py-3">
+                <Mail className="h-4 w-4 text-[var(--text-muted)]" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+                  placeholder="you@example.com"
+                />
+              </div>
+            </label>
 
-            <div>
-              <label className="text-sm text-slate-400 mb-1 block">Password</label>
-              <div className="relative">
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Password</span>
+              <div className="mt-1 flex items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/60 px-4 py-3">
+                <Lock className="h-4 w-4 text-[var(--text-muted)]" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-4 py-3 pr-12 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((visible) => !visible)}
-                  className="absolute inset-y-0 right-3 text-slate-400 hover:text-white text-sm"
+                  className="text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? 'Hide' : 'View'}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-            </div>
+            </label>
 
             {error && (
-              <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                {error}
-              </div>
+              <div className="rounded-2xl border border-red-200/60 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
             )}
+
             {infoMessage && (
-              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+              <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                 {infoMessage}
               </div>
             )}
@@ -256,7 +263,7 @@ const StudentLoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-2xl bg-gradient-to-r from-sky-500 to-purple-500 py-3 font-semibold text-white hover:from-sky-400 hover:to-purple-400 transition disabled:opacity-60"
+              className="w-full rounded-2xl bg-[var(--accent-primary)] py-3 text-sm font-semibold text-white shadow-md transition hover:shadow-lg disabled:opacity-60"
             >
               {isSubmitting ? 'Please wait…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
             </button>
@@ -267,18 +274,24 @@ const StudentLoginPage: React.FC = () => {
               type="button"
               onClick={handlePasswordReset}
               disabled={isResetting}
-              className="w-full text-center text-sm text-slate-400 hover:text-white"
+              className="w-full text-center text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
             >
               {isResetting ? 'Sending reset email…' : 'Forgot password?'}
             </button>
           )}
 
-          <button type="button" onClick={toggleMode} className="w-full text-center text-sm text-slate-400 hover:text-white">
+          <button
+            type="button"
+            onClick={toggleMode}
+            className="w-full text-center text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+          >
             {mode === 'signin' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
           </button>
         </div>
 
-        <p className="text-center text-xs text-slate-500">By continuing you agree to our Terms of Service and Privacy Policy.</p>
+        <p className="text-center text-xs text-[var(--text-muted)]">
+          By continuing you agree to the Student Mentor AI Terms and Privacy Policy.
+        </p>
       </div>
     </div>
   );

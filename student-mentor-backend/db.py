@@ -17,6 +17,8 @@ COLLECTIONS: Dict[str, str] = {
     "timetables": "timetables",
     "tests": "tests",
     "peerMessages": "peerMessages",
+    "communityPosts": "communityPosts",
+    "resources": "resources",
 }
 
 
