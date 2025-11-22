@@ -2,6 +2,12 @@ fastapi==0.115.2
 uvicorn[standard]==0.34.0
 motor==3.4.0
 beanie==1.26.0
+python-dotenv
+firebase-admin
+google-adk==0.3.0
+google-cloud-firestore
+google-cloud-storage
+google-generativeai
 pytest
 httpx
 deprecated
