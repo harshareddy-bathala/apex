@@ -7,8 +7,9 @@ import {
   createAssignment,
   type AnalyticsAlert,
   type Test,
-  type CreateAssignmentPayload
+  type CreateAssignmentPayload,
 } from '@/api/client';
+import { emitAssignmentBroadcast } from '@/common/utils/liveUpdates';
 
 interface TeacherDashboardProps {
   idToken?: string;
@@ -80,6 +81,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
     if (!idToken || !confirm('Are you sure you want to delete this test?')) return;
     try {
       await deleteAssignment(idToken, testId);
+      emitAssignmentBroadcast({ type: 'assignment-deleted', assignmentId: testId });
       setTests(prev => prev.filter(t => t.id !== testId));
     } catch (err) {
       alert('Failed to delete test');
@@ -127,7 +129,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
 
     setCreating(true);
     try {
-      await createAssignment(idToken, {
+      const created = await createAssignment(idToken, {
         title: newAssignment.title.trim(),
         classId: newAssignment.classId.trim(),
         subject: newAssignment.subject,
@@ -135,6 +137,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ idToken }) => {
         dueDate: new Date(newAssignment.dueDate).toISOString(),
         description: newAssignment.description?.trim() || undefined,
       });
+      emitAssignmentBroadcast({ type: 'assignment-created', assignment: created });
       await loadData();
       setShowCreateModal(false);
       setNewAssignment({

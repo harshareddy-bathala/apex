@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+
 import { updateProfile } from '@/api/client';
 import type { StudentProfile } from '@/types';
 
@@ -13,9 +14,20 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ profile, idToken, onC
   const initialDob = profile.dateOfBirth ? profile.dateOfBirth.split('T')[0] : '';
   const [name, setName] = useState(profile.name ?? '');
   const [dateOfBirth, setDateOfBirth] = useState(initialDob);
+  const [bio, setBio] = useState(profile.bio ?? '');
+  const [hobbiesInput, setHobbiesInput] = useState(profile.hobbies?.join(', ') ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const parsedHobbies = useMemo(
+    () =>
+      hobbiesInput
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+    [hobbiesInput],
+  );
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -28,16 +40,21 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ profile, idToken, onC
     setError(null);
     setSuccessMessage(null);
     try {
-      const updated = await updateProfile(idToken, {
+      const payload = {
         name: name.trim(),
         dateOfBirth: dateOfBirth || undefined,
-      });
+        bio: bio.trim() || undefined,
+        hobbies: parsedHobbies.length > 0 ? parsedHobbies : undefined,
+      };
+      const updated = await updateProfile(idToken, payload);
       onProfileUpdated({
-        name: updated.name ?? name,
-        dateOfBirth: updated.dateOfBirth ?? dateOfBirth,
+        name: updated.name ?? payload.name,
+        dateOfBirth: updated.dateOfBirth ?? payload.dateOfBirth,
+        bio: updated.bio ?? payload.bio,
+        hobbies: updated.hobbies ?? parsedHobbies,
         updatedAt: updated.updatedAt,
       });
-      setSuccessMessage('Profile updated successfully!');
+      setSuccessMessage('Profile updated successfully');
       setTimeout(() => {
         setSuccessMessage(null);
         onClose();
@@ -51,58 +68,82 @@ const EditProfilePage: React.FC<EditProfilePageProps> = ({ profile, idToken, onC
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-lg bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 p-8 space-y-6"
+        className="w-full max-w-xl space-y-5 rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)] p-8 shadow-[0_30px_60px_rgba(0,0,0,0.25)]"
       >
-        <header className="space-y-1">
-          <h2 className="text-2xl font-semibold text-white">Edit Profile</h2>
-          <p className="text-slate-400 text-sm">Keep your personal details up to date.</p>
+        <header>
+          <p className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">Update profile</p>
+          <h2 className="mt-1 text-2xl font-display text-[var(--text-primary)]">Keep your brief current</h2>
         </header>
 
         <div className="space-y-4">
-          <label className="block">
-            <span className="text-sm font-medium text-slate-300">Full Name</span>
+          <label className="block text-sm font-medium text-[var(--text-secondary)]">
+            Full Name
             <input
               type="text"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-to"
+              className="mt-1 w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]/50 px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
               placeholder="e.g. Maya Patel"
               required
             />
           </label>
 
-          <label className="block">
-            <span className="text-sm font-medium text-slate-300">Date of Birth</span>
+          <label className="block text-sm font-medium text-[var(--text-secondary)]">
+            Date of Birth
             <input
               type="date"
               value={dateOfBirth}
               onChange={(event) => setDateOfBirth(event.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-to"
+              className="mt-1 w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]/50 px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
+            />
+          </label>
+
+          <label className="block text-sm font-medium text-[var(--text-secondary)]">
+            Bio
+            <textarea
+              value={bio}
+              onChange={(event) => setBio(event.target.value)}
+              rows={4}
+              className="mt-1 w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]/50 px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
+              placeholder="Share what motivates you, your favorite projects, or learning goals."
+            />
+          </label>
+
+          <label className="block text-sm font-medium text-[var(--text-secondary)]">
+            Hobbies (comma separated)
+            <input
+              type="text"
+              value={hobbiesInput}
+              onChange={(event) => setHobbiesInput(event.target.value)}
+              className="mt-1 w-full rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]/50 px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
+              placeholder="Photography, debating, robotics"
             />
           </label>
         </div>
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        {successMessage && <p className="text-sm text-accent-green">{successMessage}</p>}
+        {error && <p className="rounded-2xl border border-red-200/60 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
+        {successMessage && (
+          <p className="rounded-2xl border border-emerald-200/60 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">{successMessage}</p>
+        )}
 
-        <div className="flex justify-end gap-3 pt-4">
+        <div className="flex justify-end gap-3 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl border border-slate-600 text-slate-200 hover:bg-slate-800"
+            className="rounded-2xl border border-[var(--border-color)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/60"
             disabled={isSubmitting}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-5 py-2 rounded-xl bg-gradient-to-r from-primary-from to-primary-to text-white font-semibold shadow-card hover:shadow-card-hover disabled:opacity-60"
+            className="rounded-2xl bg-[var(--accent-primary)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-hover)] disabled:opacity-60"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Saving...' : 'Save Changes'}
+            {isSubmitting ? 'Saving…' : 'Save changes'}
           </button>
         </div>
       </form>

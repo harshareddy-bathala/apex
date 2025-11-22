@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowBigUp, Filter, Loader2, MessageCircle, Send, Tag } from 'lucide-react';
+import { ArrowBigUp, Filter, Loader2, MessageCircle, Send, ShieldCheck, Tag } from 'lucide-react';
 
 import { useAuth } from '@/common/hooks/useAuth';
 import { createCommunityPost, getCommunityFeed, toggleCommunityUpvote } from '@/api/client';
@@ -146,16 +146,34 @@ const CommunityHub: React.FC = () => {
     const replies = isExpanded ? post.replies : post.replies.slice(0, 2);
 
     return (
-      <div className="mt-4 space-y-3 border-t border-white/5 pt-4">
-        {replies.map((reply) => (
-          <div key={reply.id} className="rounded-2xl border border-white/5 bg-white/5/20 px-4 py-3">
-            <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
-              <div className="font-semibold text-[var(--text-primary)]">{reply.authorName}</div>
-              <span>{formatRelativeTime(reply.createdAt)}</span>
+      <div className="mt-4 space-y-3 border-t border-[var(--border-subtle)] pt-4">
+        {replies.map((reply) => {
+          const isTeacher = reply.authorRole === 'teacher' || reply.isTeacher;
+          return (
+            <div
+              key={reply.id}
+              className={`rounded-2xl border px-4 py-3 ${
+                isTeacher
+                  ? 'border-[var(--accent-primary)]/60 bg-[var(--accent-primary)]/5'
+                  : 'border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40'
+              }`}
+            >
+              <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                <div className="flex items-center gap-2 font-semibold text-[var(--text-primary)]">
+                  {reply.authorName}
+                  {isTeacher && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-primary)]/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-primary)]">
+                      <ShieldCheck size={12} />
+                      Teacher
+                    </span>
+                  )}
+                </div>
+                <span>{formatRelativeTime(reply.createdAt)}</span>
+              </div>
+              <p className="mt-2 text-sm text-[var(--text-primary)] whitespace-pre-wrap">{reply.content}</p>
             </div>
-            <p className="mt-2 text-sm text-[var(--text-primary)] whitespace-pre-wrap">{reply.content}</p>
-          </div>
-        ))}
+          );
+        })}
         {post.replies.length > 2 && (
           <button
             type="button"
@@ -297,10 +315,16 @@ const CommunityHub: React.FC = () => {
                 className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/70 p-5 transition hover:border-[var(--border-strong)]"
               >
                 <div className="flex flex-col gap-1">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)]">
-                    <span className="font-semibold text-[var(--text-primary)]">{post.authorName}</span>
-                    <span>•</span>
-                    <span>{formatRelativeTime(post.createdAt)}</span>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)]">
+                  <span className="font-semibold text-[var(--text-primary)]">{post.authorName}</span>
+                  {post.authorRole === 'teacher' && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-primary)]/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-primary)]">
+                      <ShieldCheck size={12} />
+                      Teacher
+                    </span>
+                  )}
+                  <span>•</span>
+                  <span>{formatRelativeTime(post.createdAt)}</span>
                     {post.subject && (
                       <>
                         <span>•</span>

@@ -2,25 +2,27 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BookOpen, Loader2, Plus, Search, Upload } from 'lucide-react';
 
 import { useAuth } from '@/common/hooks/useAuth';
+import { useProfile } from '@/common/context/ProfileContext';
 import { getResources, uploadResource, type UploadResourcePayload } from '@/api/client';
 import type { ResourceItem } from '@/types';
 
 const ResourceHub: React.FC = () => {
   const { idToken } = useAuth();
+  const { refetchProfile } = useProfile();
   const [resources, setResources] = useState<ResourceItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [subjectFilter, setSubjectFilter] = useState('');
-  const [topicFilter, setTopicFilter] = useState('');
+  const [chapterFilter, setChapterFilter] = useState('');
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState<UploadResourcePayload>({
+  const [draft, setDraft] = useState({
     title: '',
     subject: '',
-    topic: '',
+    chapter: '',
     url: '',
     description: '',
-    tags: [],
+    tagsInput: '',
   });
 
   const loadResources = useCallback(async () => {
@@ -30,8 +32,7 @@ const ResourceHub: React.FC = () => {
     try {
       const { resources: rows } = await getResources(idToken, {
         subject: subjectFilter || undefined,
-        topic: topicFilter || undefined,
-        query: query || undefined,
+        chapter: chapterFilter || undefined,
         limit: 40,
       });
       setResources(rows);
@@ -41,7 +42,7 @@ const ResourceHub: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [idToken, subjectFilter, topicFilter, query]);
+  }, [chapterFilter, idToken, subjectFilter]);
 
   useEffect(() => {
     void loadResources();
@@ -53,9 +54,14 @@ const ResourceHub: React.FC = () => {
     return Array.from(set).sort();
   }, [resources]);
 
-  const topics = useMemo(() => {
+  const chapters = useMemo(() => {
     const set = new Set<string>();
-    resources.forEach((resource) => set.add(resource.topic));
+    resources.forEach((resource) => {
+      const label = resource.chapter || resource.topic;
+      if (label) {
+        set.add(label);
+      }
+    });
     return Array.from(set).sort();
   }, [resources]);
 
@@ -66,7 +72,8 @@ const ResourceHub: React.FC = () => {
       (item) =>
         item.title.toLowerCase().includes(search) ||
         item.subject.toLowerCase().includes(search) ||
-        item.topic.toLowerCase().includes(search) ||
+        (item.topic ?? '').toLowerCase().includes(search) ||
+        (item.chapter ?? '').toLowerCase().includes(search) ||
         item.description?.toLowerCase().includes(search),
     );
   }, [resources, query]);
@@ -78,25 +85,28 @@ const ResourceHub: React.FC = () => {
     setIsSaving(true);
     setError(null);
     try {
+      const tags = draft.tagsInput
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean);
       const payload: UploadResourcePayload = {
         title: draft.title.trim(),
         subject: draft.subject.trim(),
-        topic: draft.topic.trim() || 'General',
+        chapter: draft.chapter.trim() || undefined,
         url: draft.url.trim(),
         description: draft.description?.trim() || undefined,
-        tags: draft.tags?.filter(Boolean),
-        grade: draft.grade?.trim() || undefined,
+        tags: tags.length ? tags : undefined,
       };
       const saved = await uploadResource(idToken, payload);
       setResources((prev) => [saved, ...prev]);
+      void refetchProfile();
       setDraft({
         title: '',
         subject: '',
-        topic: '',
+        chapter: '',
         url: '',
         description: '',
-        tags: [],
-        grade: undefined,
+        tagsInput: '',
       });
     } catch (err) {
       console.error(err);
@@ -143,12 +153,12 @@ const ResourceHub: React.FC = () => {
             />
           </label>
           <label className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-            Topic
+            Chapter / Unit
             <input
               type="text"
-              value={draft.topic}
-              onChange={(event) => setDraft((prev) => ({ ...prev, topic: event.target.value }))}
-              placeholder="Derivatives / Grade 11"
+              value={draft.chapter}
+              onChange={(event) => setDraft((prev) => ({ ...prev, chapter: event.target.value }))}
+              placeholder="Chapter 4 • Derivatives"
               className="mt-1 w-full rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
             />
           </label>
@@ -170,6 +180,16 @@ const ResourceHub: React.FC = () => {
           placeholder="What does this PDF cover? Any special instructions?"
           className="w-full rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
         />
+        <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+          Tags (comma separated)
+          <input
+            type="text"
+            value={draft.tagsInput}
+            onChange={(event) => setDraft((prev) => ({ ...prev, tagsInput: event.target.value }))}
+            placeholder="board exam, grade 12, calculus"
+            className="mt-1 w-full rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
+          />
+        </label>
         <div className="flex justify-end">
           <button
             type="button"
@@ -192,7 +212,7 @@ const ResourceHub: React.FC = () => {
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search subjects, topics, or keywords"
+                placeholder="Search subjects, chapters, or tags"
                 className="w-full bg-transparent text-sm text-[var(--text-primary)] focus:outline-none"
               />
             </div>
@@ -209,14 +229,14 @@ const ResourceHub: React.FC = () => {
               ))}
             </select>
             <select
-              value={topicFilter}
-              onChange={(event) => setTopicFilter(event.target.value)}
+              value={chapterFilter}
+              onChange={(event) => setChapterFilter(event.target.value)}
               className="rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
             >
-              <option value="">All topics</option>
-              {topics.map((topic) => (
-                <option key={topic} value={topic}>
-                  {topic}
+              <option value="">All chapters</option>
+              {chapters.map((chapter) => (
+                <option key={chapter} value={chapter}>
+                  {chapter}
                 </option>
               ))}
             </select>
@@ -244,13 +264,12 @@ const ResourceHub: React.FC = () => {
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {filteredResources.map((resource) => (
-              <article key={resource.id} className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/70 p-5">
+              <article key={resource.id} className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">{resource.title}</h3>
-                    <p className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-                      {resource.subject} • {resource.topic}
-                    </p>
+                    <p className="text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">{resource.subject}</p>
+                    <h3 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">{resource.title}</h3>
+                    <p className="text-sm text-[var(--text-secondary)]">{resource.chapter ?? resource.topic}</p>
                   </div>
                   <a
                     href={resource.url}
@@ -264,10 +283,10 @@ const ResourceHub: React.FC = () => {
                 {resource.description && (
                   <p className="mt-3 text-sm text-[var(--text-secondary)]">{resource.description}</p>
                 )}
-                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)]">
-                  <span className="rounded-full bg-white/5 px-3 py-1">Uploaded by {resource.createdByName}</span>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)]">
+                  <span className="rounded-full border border-[var(--border-subtle)] px-3 py-1">Uploaded by {resource.createdByName}</span>
                   {resource.tags?.map((tag) => (
-                    <span key={tag} className="rounded-full bg-white/5 px-3 py-1">
+                    <span key={tag} className="rounded-full border border-[var(--border-subtle)] px-3 py-1">
                       #{tag}
                     </span>
                   ))}

@@ -6,6 +6,9 @@ export interface StudentProfile {
   age: number;
   grade: string;
   gender?: 'male' | 'female' | 'other' | 'prefer-not-to-say';
+  bio?: string;
+  followers?: number;
+  notesShared?: number;
   
   // Academic Information
   subjects: string[];
@@ -273,6 +276,8 @@ export interface CommunityPost {
   parentId?: string;
   authorId: string;
   authorName: string;
+  authorRole?: 'student' | 'teacher';
+  isTeacher?: boolean;
   subject?: string;
   content: string;
   tags?: string[];
@@ -288,6 +293,7 @@ export interface ResourceItem {
   title: string;
   subject: string;
   topic: string;
+  chapter?: string;
   url: string;
   description?: string;
   tags?: string[];

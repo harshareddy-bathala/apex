@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 
 import { createAssignment, deleteAssignment, type AssignmentRecord, type CreateAssignmentPayload } from '@/api/client';
+import { emitAssignmentBroadcast } from '@/common/utils/liveUpdates';
 
 interface AssignmentCreatorProps {
   idToken: string;
@@ -56,6 +57,7 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
     try {
       const assignment = await createAssignment(idToken, payload);
       setCreatedAssignment(assignment);
+      emitAssignmentBroadcast({ type: 'assignment-created', assignment });
       setFormState(defaultFormState);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create assignment');
@@ -71,6 +73,7 @@ const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ idToken }) => {
     setDeleting(true);
     try {
       await deleteAssignment(idToken, createdAssignment.id);
+      emitAssignmentBroadcast({ type: 'assignment-deleted', assignmentId: createdAssignment.id });
       setCreatedAssignment(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to delete assignment');

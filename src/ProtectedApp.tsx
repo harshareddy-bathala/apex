@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarCheck2, FileBarChart2, Target } from 'lucide-react';
+import { CalendarCheck2, PenSquare, Target } from 'lucide-react';
 import { signOut } from 'firebase/auth';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 import Dashboard from '@/features/dashboard/components/Dashboard';
 import Chat from '@/features/chat/components/Chat';
 import DailyCheckIn from '@/features/check-in/components/DailyCheckIn';
-import TeacherReport from '@/features/reports/components/TeacherReport';
 import GoalsEditor from '@/features/goals/components/GoalsEditor';
 import EditProfilePage from '@/features/profile/EditProfilePage';
 import ProfilePage from '@/features/profile/ProfilePage';
@@ -16,6 +16,7 @@ import ResourceHub from '@/features/resources/ResourceHub';
 import FullScreenLoader from '@/router/components/FullScreenLoader';
 import { useAuth } from '@/common/hooks/useAuth';
 import { useProfile } from '@/common/context/ProfileContext';
+import { subscribeToAssignmentBroadcast } from '@/common/utils/liveUpdates';
 import { auth } from '@/firebase';
 import { getCommunityFeed, getHomework, getTests, updateHomework } from '@/api/client';
 import type { StudentProfileRecord } from '@/api/client';
@@ -32,6 +33,8 @@ import type {
 const ProtectedApp: React.FC = () => {
   const { user, idToken } = useAuth();
   const { profile: profileRecord, refetchProfile } = useProfile();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [profileState, setProfileState] = useState<StudentProfile | null>(() =>
     profileRecord ? normalizeProfile(profileRecord) : null,
@@ -42,9 +45,7 @@ const ProtectedApp: React.FC = () => {
   const [tests, setTests] = useState<Test[]>([]);
   const [teacherAlerts, setTeacherAlerts] = useState<TeacherAlert[]>([]);
   const [communityDigest, setCommunityDigest] = useState<CommunityPost[]>([]);
-  const [currentView, setCurrentView] = useState<AppShellView>('dashboard');
   const [showCheckIn, setShowCheckIn] = useState(false);
-  const [showReport, setShowReport] = useState(false);
   const [showGoalsEditor, setShowGoalsEditor] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [homeworkError, setHomeworkError] = useState<string | null>(null);
@@ -90,6 +91,23 @@ const ProtectedApp: React.FC = () => {
   useEffect(() => {
     void loadHomework();
   }, [loadHomework]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToAssignmentBroadcast((event) => {
+      if (event.type === 'assignment-created') {
+        if ((event.assignment.type ?? 'homework') === 'test') {
+          void loadTests();
+        } else {
+          void loadHomework();
+        }
+      }
+      if (event.type === 'assignment-deleted') {
+        void loadHomework();
+        void loadTests();
+      }
+    });
+    return unsubscribe;
+  }, [loadHomework, loadTests]);
 
   const loadCommunityDigest = useCallback(async () => {
     if (!idToken) {
@@ -207,6 +225,34 @@ const ProtectedApp: React.FC = () => {
 
   const todayCheckIn = checkIns.find((c) => c.date === new Date().toISOString().split('T')[0]);
 
+  const currentView = useMemo<AppShellView>(() => {
+    const path = location.pathname || '';
+    if (path.startsWith('/community')) {
+      return 'community';
+    }
+    if (path.startsWith('/resources')) {
+      return 'resources';
+    }
+    if (path.startsWith('/chat')) {
+      return 'chat';
+    }
+    if (path.startsWith('/profile')) {
+      return 'profile';
+    }
+    return 'dashboard';
+  }, [location.pathname]);
+
+  const handleNavigate = useCallback(
+    (view: AppShellView) => {
+      const targetPath = view === 'dashboard' ? '/dashboard' : `/${view}`;
+      if (location.pathname === targetPath) {
+        return;
+      }
+      navigate(targetPath);
+    },
+    [location.pathname, navigate],
+  );
+
   const quickActions = useMemo(
     () => [
       {
@@ -215,67 +261,24 @@ const ProtectedApp: React.FC = () => {
         onClick: () => setShowCheckIn(true),
       },
       {
-        label: 'AI Report',
-        icon: FileBarChart2,
-        onClick: () => setShowReport(true),
-      },
-      {
         label: 'Edit Goals',
         icon: Target,
         onClick: () => setShowGoalsEditor(true),
       },
+      {
+        label: 'Update Profile',
+        icon: PenSquare,
+        onClick: () => setShowEditProfile(true),
+      },
     ],
-    [],
+    [setShowCheckIn, setShowEditProfile, setShowGoalsEditor],
   );
-
-  const renderView = () => {
-    switch (currentView) {
-      case 'dashboard':
-        return (
-          <>
-            {teacherAlerts.length > 0 && (
-              <div className="mb-6">
-                <TeacherAlerts alerts={teacherAlerts} onDismiss={handleDismissAlert} />
-              </div>
-            )}
-            <Dashboard
-              profile={profileState}
-              checkIns={checkIns}
-              activities={activities}
-              homework={homework}
-              tests={tests}
-              communityPosts={communityDigest}
-              onHomeworkStatusChange={handleHomeworkStatusChange}
-            />
-          </>
-        );
-      case 'community':
-        return <CommunityHub />;
-      case 'resources':
-        return <ResourceHub />;
-      case 'chat':
-        return (
-          <Chat
-            profile={profileState}
-            checkIns={checkIns}
-            activities={activities}
-            onAddActivity={addActivity}
-            onTriggerAlert={handleTriggerAlert}
-            idToken={idToken}
-          />
-        );
-      case 'profile':
-        return <ProfilePage profile={profileState} onEditProfile={() => setShowEditProfile(true)} />;
-      default:
-        return null;
-    }
-  };
 
   return (
     <>
       <AppShell
         activeView={currentView}
-        onNavigate={setCurrentView}
+        onNavigate={handleNavigate}
         userName={profileState.name}
         userRole={profileRecord.role === 'teacher' ? 'teacher' : 'student'}
         onLogout={handleLogout}
@@ -291,7 +294,52 @@ const ProtectedApp: React.FC = () => {
           ) : null
         }
       >
-        <div className="mx-auto max-w-6xl space-y-6">{renderView()}</div>
+        <div className="mx-auto max-w-6xl space-y-6">
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route
+              path="/dashboard"
+              element={
+                <>
+                  {teacherAlerts.length > 0 && (
+                    <div className="mb-6">
+                      <TeacherAlerts alerts={teacherAlerts} onDismiss={handleDismissAlert} />
+                    </div>
+                  )}
+                  <Dashboard
+                    profile={profileState}
+                    checkIns={checkIns}
+                    activities={activities}
+                    homework={homework}
+                    tests={tests}
+                    communityPosts={communityDigest}
+                    onHomeworkStatusChange={handleHomeworkStatusChange}
+                  />
+                </>
+              }
+            />
+            <Route path="/community" element={<CommunityHub />} />
+            <Route path="/resources" element={<ResourceHub />} />
+            <Route
+              path="/chat"
+              element={
+                <Chat
+                  profile={profileState}
+                  checkIns={checkIns}
+                  activities={activities}
+                  onAddActivity={addActivity}
+                  onTriggerAlert={handleTriggerAlert}
+                  idToken={idToken}
+                />
+              }
+            />
+            <Route
+              path="/profile"
+              element={<ProfilePage profile={profileState} onEditProfile={() => setShowEditProfile(true)} />}
+            />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </div>
       </AppShell>
 
       {showCheckIn && (
@@ -301,10 +349,6 @@ const ProtectedApp: React.FC = () => {
           onComplete={handleCheckInComplete}
           onClose={() => setShowCheckIn(false)}
         />
-      )}
-
-      {showReport && (
-        <TeacherReport profile={profileState} checkIns={checkIns} activities={activities} onClose={() => setShowReport(false)} />
       )}
 
       {showGoalsEditor && (
@@ -356,6 +400,9 @@ function normalizeProfile(record: StudentProfileRecord): StudentProfile {
     age: record.age ?? 15,
     grade: record.grade ?? 'Grade 10',
     gender: record.gender,
+    bio: record.bio ?? '',
+    followers: typeof record.followers === 'number' ? record.followers : 0,
+    notesShared: typeof record.notesShared === 'number' ? record.notesShared : 0,
     subjects: record.subjects ?? [],
     academicGoals: record.academicGoals ?? 'Grow every day',
     learningStyle: record.learningStyle,

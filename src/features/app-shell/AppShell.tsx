@@ -13,7 +13,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 
-type ThemeMode = 'light' | 'dark';
+import { useTheme } from '@/common/context/ThemeContext';
 
 export type AppShellView = 'dashboard' | 'community' | 'resources' | 'chat' | 'profile';
 
@@ -42,8 +42,6 @@ const NAV_LINKS: Array<{ id: AppShellView; label: string; icon: LucideIcon }> = 
   { id: 'profile', label: 'Profile', icon: UserRound },
 ];
 
-const STORAGE_KEY = 'student-mentor-theme';
-
 const AppShell: React.FC<AppShellProps> = ({
   activeView,
   onNavigate,
@@ -59,13 +57,7 @@ const AppShell: React.FC<AppShellProps> = ({
   const [isDesktop, setIsDesktop] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth >= 1024 : false,
   );
-  const [theme, setTheme] = useState<ThemeMode>(() => {
-    if (typeof window === 'undefined') {
-      return 'light';
-    }
-    const stored = window.localStorage.getItem(STORAGE_KEY) as ThemeMode | null;
-    return stored ?? 'light';
-  });
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -75,16 +67,6 @@ const AppShell: React.FC<AppShellProps> = ({
     window.addEventListener('resize', handler);
     return () => window.removeEventListener('resize', handler);
   }, []);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    root.setAttribute('data-theme', theme);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, theme);
-    } catch {
-      // ignore storage failures in restricted environments
-    }
-  }, [theme]);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -98,8 +80,6 @@ const AppShell: React.FC<AppShellProps> = ({
     () => (isDesktop ? { marginLeft: sidebarWidth } : {}),
     [isDesktop, sidebarWidth],
   );
-
-  const toggleTheme = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
 
   const handleNavigate = (view: AppShellView) => {
     onNavigate(view);
@@ -115,22 +95,22 @@ const AppShell: React.FC<AppShellProps> = ({
     <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] transition-colors duration-300">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-full flex-col border-r border-[var(--border-strong)] bg-[var(--bg-elevated)]/90 backdrop-blur-md shadow-xl shadow-black/5 transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-full flex-col border-r border-[var(--border-color)] bg-[var(--bg-elevated)]/95 backdrop-blur transition-transform duration-300 ease-in-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
         style={{
           width: isDesktop ? sidebarWidth : 280,
         }}
       >
-        <div className="flex items-center justify-between px-5 py-6">
+        <div className="flex items-center justify-between px-5 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-gradient-start)] text-lg font-semibold text-white shadow-lg shadow-[var(--brand-gradient-start)]/40">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] text-sm font-semibold font-display tracking-wide text-[var(--text-primary)]">
               SM
             </div>
             {(!isCollapsed || !isDesktop) && (
               <div>
-                <p className="text-sm uppercase tracking-[0.24em] text-[var(--text-muted)]">Student Mentor</p>
-                <p className="text-base font-semibold text-[var(--text-primary)]">AI Command</p>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--text-muted)]">Student Mentor</p>
+                <p className="text-base font-semibold text-[var(--text-primary)] font-display">Workspace</p>
               </div>
             )}
           </div>
@@ -138,7 +118,7 @@ const AppShell: React.FC<AppShellProps> = ({
             <button
               type="button"
               onClick={() => setIsCollapsed((prev) => !prev)}
-              className="hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/60 p-2 text-[var(--text-secondary)] transition hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] lg:block"
+              className="hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 p-2 text-[var(--text-secondary)] transition hover:border-[var(--border-color)] hover:text-[var(--text-primary)] lg:block"
               aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               <CollapseIcon size={18} />
@@ -157,15 +137,15 @@ const AppShell: React.FC<AppShellProps> = ({
                 onClick={() => handleNavigate(item.id)}
                 className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
                   active
-                    ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] shadow-[0_8px_30px_rgb(0_0_0_/_0.08)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card)]/80 hover:text-[var(--text-primary)]'
+                    ? 'border border-[var(--accent-primary)]/30 bg-[var(--bg-card)] text-[var(--text-primary)]'
+                    : 'border border-transparent text-[var(--text-secondary)] hover:border-[var(--border-color)] hover:bg-[var(--bg-card)]/70 hover:text-[var(--text-primary)]'
                 }`}
               >
                 <span
                   className={`flex h-10 w-10 items-center justify-center rounded-xl border ${
                     active
                       ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
-                      : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
+                      : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)]'
                   }`}
                 >
                   <Icon size={18} />

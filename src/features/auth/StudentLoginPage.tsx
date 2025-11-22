@@ -1,3 +1,4 @@
+import { Mail, Lock, UserRound, EyeOff, Eye } from 'lucide-react';
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import {

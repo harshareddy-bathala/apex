@@ -49,6 +49,10 @@ class ProfileUpdatePayload(BaseModel):
     dateOfBirth: Optional[str] = None
     phoneNumber: Optional[str] = None
     interests: Optional[List[str]] = None
+    bio: Optional[str] = None
+    hobbies: Optional[List[str]] = None
+    followers: Optional[int] = None
+    notesShared: Optional[int] = None
     onboardingComplete: Optional[bool] = None
 
 class CheckInPayload(BaseModel):
@@ -105,7 +109,8 @@ class CommunityPostPayload(BaseModel):
 class ResourceUploadPayload(BaseModel):
     title: str
     subject: str
-    topic: str
+    topic: Optional[str] = None
+    chapter: Optional[str] = None
     url: str
     description: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
@@ -140,6 +145,7 @@ def _serialize_post(doc_id: str, data: Dict[str, Any], current_user_id: str) -> 
         "id": doc_id,
         "authorId": data.get("authorId"),
         "authorName": data.get("authorName"),
+        "authorRole": data.get("authorRole", "student"),
         "subject": data.get("subject"),
         "content": data.get("content"),
         "tags": data.get("tags", []),
@@ -148,6 +154,7 @@ def _serialize_post(doc_id: str, data: Dict[str, Any], current_user_id: str) -> 
         "createdAt": data.get("createdAt"),
         "hasUpvoted": current_user_id in (upvoters or []),
     }
+    post["isTeacher"] = post["authorRole"] == "teacher"
     if data.get("parentId"):
         post["parentId"] = data["parentId"]
     return post
@@ -382,6 +389,7 @@ def create_community_post(payload: CommunityPostPayload, user: FirebaseUser = De
     data = {
         "authorId": user.uid,
         "authorName": author_name,
+        "authorRole": user.role,
         "subject": payload.subject,
         "content": payload.content,
         "tags": payload.tags,
@@ -431,6 +439,7 @@ def toggle_upvote(post_id: str, user: FirebaseUser = Depends(verify_firebase_tok
 def list_resources(
     subject: Optional[str] = None,
     topic: Optional[str] = None,
+    chapter: Optional[str] = None,
     q: Optional[str] = None,
     limit: int = 40,
     user: FirebaseUser = Depends(verify_firebase_token),
@@ -438,8 +447,10 @@ def list_resources(
     filters = []
     if subject:
         filters.append(("subject", "==", subject))
-    if topic:
-        filters.append(("topic", "==", topic))
+    if chapter:
+        filters.append(("chapter", "==", chapter))
+    elif topic:
+        filters.append(("chapter", "==", topic))
 
     docs = query_collection("resources", filters=filters)
     query_lower = (q or "").lower()
@@ -451,6 +462,7 @@ def list_resources(
             "title": data.get("title"),
             "subject": data.get("subject"),
             "topic": data.get("topic"),
+            "chapter": data.get("chapter"),
             "url": data.get("url"),
             "description": data.get("description"),
             "tags": data.get("tags", []),
@@ -480,10 +492,12 @@ def list_resources(
 def upload_resource(payload: ResourceUploadPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     resource_id = uuid.uuid4().hex
     author_name = _get_student_display_name(user.uid)
+    chapter = payload.chapter or payload.topic or "General"
     data = {
         "title": payload.title,
         "subject": payload.subject,
-        "topic": payload.topic,
+        "topic": payload.topic or chapter,
+        "chapter": chapter,
         "url": payload.url,
         "description": payload.description,
         "tags": payload.tags,
@@ -493,6 +507,22 @@ def upload_resource(payload: ResourceUploadPayload, user: FirebaseUser = Depends
         "createdAt": _utc_now(),
     }
     add_document("resources", data, document_id=resource_id)
+    
+    try:
+        profile_doc = get_document("studentProfiles", user.uid)
+        current_notes = 0
+        if profile_doc and profile_doc.data:
+            current_notes = int(profile_doc.data.get("notesShared") or 0)
+        update_document(
+            "studentProfiles",
+            user.uid,
+            {"notesShared": current_notes + 1},
+            server_timestamp_fields=["updatedAt"],
+        )
+    except Exception:
+        # Do not block uploads if stats update fails
+        pass
+
     return {
         "id": resource_id,
         **data,

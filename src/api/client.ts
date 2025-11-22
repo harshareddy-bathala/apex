@@ -140,7 +140,8 @@ interface CommunityFeedResponse {
 export interface UploadResourcePayload {
   title: string;
   subject: string;
-  topic: string;
+  topic?: string;
+  chapter?: string;
   url: string;
   description?: string;
   tags?: string[];
@@ -617,7 +618,7 @@ export async function toggleCommunityUpvote(token: string, postId: string): Prom
 
 export async function getResources(
   token: string,
-  params?: { subject?: string; topic?: string; query?: string; limit?: number },
+  params?: { subject?: string; topic?: string; chapter?: string; query?: string; limit?: number },
 ): Promise<ResourcesResponse> {
   const url = new URL(apiUrl('/resources'));
   if (params?.subject) {
@@ -625,6 +626,9 @@ export async function getResources(
   }
   if (params?.topic) {
     url.searchParams.set('topic', params.topic);
+  }
+  if (params?.chapter) {
+    url.searchParams.set('chapter', params.chapter);
   }
   if (params?.query) {
     url.searchParams.set('q', params.query);

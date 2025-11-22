@@ -1,98 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&family=Patrick+Hand&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: light;
-  --font-sans: 'Inter', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-display: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-accent: 'Caveat', 'Outfit', 'Inter', cursive;
+  --font-accent: 'Patrick Hand', 'Outfit', 'Inter', cursive;
 
   --bg-app: #fdfbf7;
-  --bg-elevated: #f8f4ec;
+  --bg-elevated: #f6f0e4;
   --bg-card: #ffffff;
-  --bg-secondary: #f4ede3;
-  --bg-tertiary: #eae1d5;
-  --bg-hover: #f0e7dc;
-  --bg-surface: #fffdf8;
+  --bg-secondary: #f2ebe0;
+  --bg-tertiary: #ebe3d7;
+  --bg-hover: #f0e8dc;
+  --bg-surface: #fefcf8;
 
-  --text-primary: #1f1a17;
-  --text-secondary: #4b433a;
-  --text-tertiary: #7c7367;
-  --text-muted: #b1a79c;
+  --text-primary: #1f1b16;
+  --text-secondary: #4b443c;
+  --text-tertiary: #6d6256;
+  --text-muted: #9a8f7f;
 
-  --accent-primary: #3a3fad;
-  --accent-secondary: #d88243;
-  --accent-hover: #2c2f8f;
-  --accent-light: #ebecff;
+  --accent-primary: #2f3c7e;
+  --accent-secondary: #c96f3b;
+  --accent-hover: #243066;
+  --accent-light: rgba(47, 60, 126, 0.1);
   --accent-success: #0f9d58;
 
-  --border-color: #e4dbcf;
-  --border-subtle: rgba(31, 26, 23, 0.08);
-  --border-strong: #d1c4b4;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-subtle: rgba(0, 0, 0, 0.05);
+  --border-strong: rgba(0, 0, 0, 0.18);
   --border-focus: var(--accent-primary);
 
-  --shadow-sm: 0 6px 20px rgba(31, 26, 23, 0.08);
-  --shadow-md: 0 20px 45px rgba(31, 26, 23, 0.12);
-  --shadow-lg: 0 45px 85px rgba(31, 26, 23, 0.16);
+  --shadow-sm: 0 8px 24px rgba(23, 16, 5, 0.04);
+  --shadow-md: 0 18px 45px rgba(23, 16, 5, 0.07);
+  --shadow-lg: 0 35px 80px rgba(23, 16, 5, 0.08);
 
-  --glass-bg: rgba(255, 255, 255, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.35);
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(17, 17, 17, 0.08);
 
   --success: #0f9d58;
   --warning: #f59e0b;
   --warning-foreground: #b45309;
-  --error: #e3514d;
+  --error: #d94841;
   --info: #2563eb;
-
-  --brand-gradient-start: #4338ca;
-  --brand-gradient-stop: #c084fc;
 }
 
 [data-theme='dark'] {
   color-scheme: dark;
-  --bg-app: #050505;
-  --bg-elevated: #121212;
-  --bg-card: #151515;
+  --bg-app: #121212;
+  --bg-elevated: #171717;
+  --bg-card: #1e1e1e;
   --bg-secondary: #1b1b1b;
-  --bg-tertiary: #202020;
-  --bg-hover: #272727;
+  --bg-tertiary: #222222;
+  --bg-hover: #2b2b2b;
   --bg-surface: #151515;
 
-  --text-primary: #f7f4ef;
-  --text-secondary: #c4bcb2;
-  --text-tertiary: #9a9083;
-  --text-muted: #6f655a;
+  --text-primary: #f5f3ef;
+  --text-secondary: #c7c0b4;
+  --text-tertiary: #9b9182;
+  --text-muted: #7c7367;
 
-  --accent-primary: #a5b4ff;
+  --accent-primary: #9fb4ff;
   --accent-secondary: #f2b98b;
-  --accent-hover: #8c9aff;
-  --accent-light: rgba(165, 180, 255, 0.15);
+  --accent-hover: #7f91d6;
+  --accent-light: rgba(159, 180, 255, 0.15);
   --accent-success: #52c98f;
 
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-subtle: rgba(255, 255, 255, 0.05);
-  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.2);
   --border-focus: var(--accent-primary);
 
-  --shadow-sm: 0 6px 25px rgba(2, 2, 2, 0.6);
-  --shadow-md: 0 25px 55px rgba(0, 0, 0, 0.65);
-  --shadow-lg: 0 60px 120px rgba(0, 0, 0, 0.8);
+  --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 24px 50px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 35px 90px rgba(0, 0, 0, 0.55);
 
-  --glass-bg: rgba(10, 10, 10, 0.75);
+  --glass-bg: rgba(12, 12, 12, 0.85);
   --glass-border: rgba(255, 255, 255, 0.08);
 
   --success: #68d6a6;
   --warning: #f5b452;
   --warning-foreground: #f5b452;
   --error: #ff8a80;
-  --info: #60a5fa;
+  --info: #7db4ff;
 }
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-hand {
+  font-family: var(--font-accent);
 }
 
 body {
@@ -176,10 +186,6 @@ select:focus-visible {
   padding: clamp(1.5rem, 3vw, 2.5rem);
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(30px);
-}
-
-.brand-gradient {
-  background-image: linear-gradient(120deg, var(--brand-gradient-start), var(--brand-gradient-stop));
 }
 
 .text-muted {
