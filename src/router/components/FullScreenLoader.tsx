@@ -5,9 +5,9 @@ interface FullScreenLoaderProps {
 }
 
 const FullScreenLoader: React.FC<FullScreenLoaderProps> = ({ message = 'Loading...' }) => (
-  <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center gap-4">
-    <div className="w-14 h-14 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
-    <p className="text-slate-400 text-sm">{message}</p>
+  <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] flex flex-col items-center justify-center gap-4 font-display">
+    <div className="w-14 h-14 border-4 border-[var(--accent-primary)] border-t-transparent rounded-full animate-spin" />
+    <p className="text-[var(--text-secondary)] text-sm">{message}</p>
   </div>
 );
 
