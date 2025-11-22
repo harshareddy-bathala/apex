@@ -12,7 +12,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from firebase_admin import auth as firebase_auth
 from firebase_admin import credentials
 
-from db_direct import get_document
+from models import User
 
 _auth_app = None
 _security_scheme = HTTPBearer(auto_error=False)
@@ -62,15 +62,24 @@ async def verify_firebase_token(
     if not uid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token missing uid claim")
 
-    user_snapshot = get_document("users", uid)
-    if not user_snapshot:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User record not provisioned")
+    # Query MongoDB for the user using Beanie ODM
+    user = await User.find_one(User.id == uid)
+    
+    # Auto-Heal / Lazy Creation: If user doesn't exist, create a new one
+    if user is None:
+        email = decoded.get("email") or ""
+        user = User(
+            id=uid,
+            email=email,
+            role="student",
+        )
+        await user.insert()
+        print(f"✅ Auto-created user document for {email} (UID: {uid})")
 
-    user_data = user_snapshot.data or {}
-    role = user_data.get("role")
+    role = user.role
     if role not in ("student", "teacher"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User role missing or unsupported")
 
-    email = user_data.get("email") or decoded.get("email") or ""
+    email = user.email or decoded.get("email") or ""
 
     return FirebaseUser(uid=uid, email=email, role=role, claims=decoded)
