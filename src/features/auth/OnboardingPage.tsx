@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CalendarDays, IdCard, ListChecks, Sparkles, UserRound } from 'lucide-react';
 
@@ -11,7 +10,6 @@ interface OnboardingPageProps {
 }
 
 const OnboardingPage: React.FC<OnboardingPageProps> = ({ idToken }) => {
-  const navigate = useNavigate();
   const { refetchProfile } = useProfile();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +47,7 @@ const OnboardingPage: React.FC<OnboardingPageProps> = ({ idToken }) => {
       });
 
       await refetchProfile();
-      navigate('/');
+      // AuthGuard will automatically redirect to dashboard when onboarding is complete
     } catch (err) {
       console.error(err);
       setError('Failed to save profile. Please try again.');

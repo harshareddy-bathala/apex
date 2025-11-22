@@ -30,7 +30,6 @@ const StudentLoginPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [shouldForceOnboarding, setShouldForceOnboarding] = useState(false);
 
   const normalizeEmail = (value: string) => value.trim().toLowerCase();
 
@@ -100,10 +99,8 @@ const StudentLoginPage: React.FC = () => {
           await seedStudentDoc(credential.user.uid, credential.user.email ?? normalizedEmail);
           await credential.user.getIdToken(true);
         }
-        setShouldForceOnboarding(true);
       } else {
         await signInWithEmailAndPassword(auth, normalizedEmail, password);
-        setShouldForceOnboarding(false);
       }
     } catch (authError) {
       const code = (authError as { code?: string })?.code;
@@ -150,7 +147,6 @@ const StudentLoginPage: React.FC = () => {
         await seedStudentDoc(credential.user.uid, credential.user.email);
         await credential.user.getIdToken(true);
       }
-      setShouldForceOnboarding(isNewUser);
     } catch (authError) {
       setError('Google sign-in failed. Please try again.');
     } finally {
@@ -178,9 +174,10 @@ const StudentLoginPage: React.FC = () => {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-card">
             <Lock className="h-6 w-6" />
           </div>
-          <p className="text-[11px] uppercase tracking-[0.4em] text-[var(--text-muted)]">Student Mentor AI</p>
+          <p className="text-[11px] uppercase tracking-[0.4em] text-[var(--text-muted)]">APEX</p>
           <h1 className="text-3xl font-semibold text-[var(--text-primary)]">Welcome back</h1>
-          <p className="text-sm text-[var(--text-secondary)]">Secure access to your learning cockpit</p>
+          <p className="text-sm text-[var(--text-secondary)] font-display">APEX: Beyond Grades. Beyond Graduation.</p>
+          <p className="text-sm text-[var(--text-muted)]">Secure access to your learning cockpit</p>
         </div>
 
         <div className="glass-panel space-y-6 rounded-3xl">
@@ -292,7 +289,7 @@ const StudentLoginPage: React.FC = () => {
         </div>
 
         <p className="text-center text-xs text-[var(--text-muted)]">
-          By continuing you agree to the Student Mentor AI Terms and Privacy Policy.
+          By continuing you agree to the APEX Terms and Privacy Policy.
         </p>
       </div>
     </div>

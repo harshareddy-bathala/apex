@@ -143,25 +143,25 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
         aria-describedby="chat-drawer-description"
       >
         {/* Header */}
-        <div className="flex-shrink-0 p-4 border-b border-slate-800 bg-panel">
+        <div className="flex-shrink-0 p-4 border-b border-[var(--border-color)] bg-[var(--bg-elevated)]">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h2 id="chat-drawer-title" className="text-lg font-semibold text-white mb-1">
+              <h2 id="chat-drawer-title" className="text-lg font-semibold text-[var(--text-primary)] mb-1">
                 AI Mentor Chat
               </h2>
-              <p id="chat-drawer-description" className="text-xs text-muted-ink">
+              <p id="chat-drawer-description" className="text-xs text-[var(--text-secondary)]">
                 {studentName} • {grade}
                 {lastCheckIn && ` • Last check-in: ${lastCheckIn}`}
               </p>
-              
+
               {/* Context bullets */}
               {contextBullets.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-slate-800">
-                  <p className="text-xs text-slate-500 mb-1">Context:</p>
+                <div className="mt-2 pt-2 border-t border-[var(--border-color)]">
+                  <p className="text-xs text-[var(--text-muted)] mb-1">Context:</p>
                   <ul className="space-y-0.5">
                     {contextBullets.slice(0, 3).map((bullet, idx) => (
-                      <li key={idx} className="text-xs text-slate-400 flex items-start gap-1">
-                        <span className="text-discrete-highlight mt-0.5">•</span>
+                      <li key={idx} className="text-xs text-[var(--text-secondary)] flex items-start gap-1">
+                        <span className="text-[var(--accent-primary)] mt-0.5">•</span>
                         <span className="flex-1">{bullet}</span>
                       </li>
                     ))}
@@ -174,10 +174,10 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
             <button
               ref={closeButtonRef}
               onClick={onClose}
-              className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-discrete-highlight"
+              className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--bg-secondary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
               aria-label="Close chat drawer"
             >
-              <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>

@@ -104,7 +104,7 @@ const TestsList: React.FC<TestsListProps> = ({ idToken }) => {
       case 'quiz':
         return 'bg-emerald-100/20 text-emerald-600 border-emerald-200/50';
       default:
-        return 'bg-slate-100/10 text-slate-500 border-slate-200/30';
+        return 'bg-[var(--bg-secondary)]/60 text-[var(--text-muted)] border-[var(--border-subtle)]';
     }
   };
 

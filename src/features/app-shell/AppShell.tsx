@@ -140,7 +140,7 @@ const AppShell: React.FC<AppShellProps> = ({
     <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] transition-colors duration-300">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-full flex-col border-r border-[var(--border-color)] bg-[var(--bg-elevated)]/95 backdrop-blur transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-full flex-col border-r border-[var(--border-color)] bg-[var(--bg-elevated)]/95 backdrop-blur transition-transform duration-300 ease-in-out overflow-y-auto ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
         style={{
@@ -149,12 +149,16 @@ const AppShell: React.FC<AppShellProps> = ({
       >
         <div className="flex items-center justify-between px-5 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] text-sm font-semibold font-display tracking-wide text-[var(--text-primary)]">
-              SM
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]">
+              <img
+                src="/logo.ico"
+                alt="APEX Logo"
+                className="h-8 w-8 object-contain"
+              />
             </div>
             {(!isCollapsed || !isDesktop) && (
               <div>
-                <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--text-muted)]">Student Mentor</p>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--text-muted)]">APEX</p>
                 <p className="text-base font-semibold text-[var(--text-primary)] font-display">Workspace</p>
               </div>
             )}
@@ -180,17 +184,17 @@ const AppShell: React.FC<AppShellProps> = ({
                 key={item.id}
                 type="button"
                 onClick={() => handleNavigate(item.id)}
-                className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
+                className={`group flex items-center rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
                   active
                     ? 'border border-[var(--accent-primary)]/30 bg-[var(--bg-card)] text-[var(--text-primary)]'
                     : 'border border-transparent text-[var(--text-secondary)] hover:border-[var(--border-color)] hover:bg-[var(--bg-card)]/70 hover:text-[var(--text-primary)]'
-                }`}
+                } ${isCollapsed && isDesktop ? 'justify-center' : 'gap-3'}`}
               >
                 <span
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl border ${
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-colors ${
                     active
                       ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
-                      : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)]'
+                      : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'
                   }`}
                 >
                   <Icon size={18} />
@@ -220,9 +224,11 @@ const AppShell: React.FC<AppShellProps> = ({
                       setMobileOpen(false);
                     }
                   }}
-                  className="flex items-center gap-3 rounded-2xl border border-transparent px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:border-[var(--border-color)] hover:bg-[var(--bg-card)]/70 hover:text-[var(--text-primary)]"
+                  className={`flex items-center rounded-2xl border border-transparent px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:border-[var(--border-color)] hover:bg-[var(--bg-card)]/70 hover:text-[var(--text-primary)] ${
+                    isCollapsed && isDesktop ? 'justify-center' : 'gap-3'
+                  }`}
                 >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)]">
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
                     <ItemIcon size={16} />
                   </span>
                   {(!isCollapsed || !isDesktop) && <span>{item.label}</span>}
@@ -244,7 +250,7 @@ const AppShell: React.FC<AppShellProps> = ({
       )}
 
       {/* Main content */}
-      <div className="min-h-screen pt-20 lg:pt-0" style={mainStyle}>
+      <div className="min-h-screen" style={mainStyle}>
         <header
           className="fixed top-0 left-0 right-0 z-30 border-b border-[var(--border-subtle)] bg-[var(--bg-app)]/85 backdrop-blur-xl transition-all"
           style={headerStyle}
@@ -292,7 +298,7 @@ const AppShell: React.FC<AppShellProps> = ({
           {subHeader && <div className="border-t border-[var(--border-subtle)] px-4 py-3 lg:px-8">{subHeader}</div>}
         </header>
 
-        <main className="px-4 py-6 lg:px-8 lg:py-10">{children}</main>
+        <main className="px-4 py-6 lg:px-8 lg:py-10" style={{ paddingTop: isDesktop ? '100px' : '120px' }}>{children}</main>
       </div>
     </div>
   );

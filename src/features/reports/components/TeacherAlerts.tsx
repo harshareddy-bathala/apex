@@ -23,7 +23,7 @@ export default function TeacherAlerts({ alerts, onDismiss }: TeacherAlertsProps)
       case 'high': return 'bg-orange-50 border-orange-300 text-orange-900';
       case 'medium': return 'bg-yellow-50 border-yellow-300 text-yellow-900';
       case 'low': return 'bg-blue-50 border-blue-300 text-blue-900';
-      default: return 'bg-gray-50 border-gray-300 text-gray-900';
+      default: return 'bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-primary)]';
     }
   };
 
@@ -42,7 +42,7 @@ export default function TeacherAlerts({ alerts, onDismiss }: TeacherAlertsProps)
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <h3 className="text-lg font-semibold text-gray-900">🔔 AI-Generated Teacher Alerts</h3>
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">🔔 AI-Generated Teacher Alerts</h3>
         <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full font-medium">
           {alerts.length}
         </span>
@@ -64,7 +64,7 @@ export default function TeacherAlerts({ alerts, onDismiss }: TeacherAlertsProps)
                       <span className={`text-xs px-2 py-1 rounded font-semibold ${getSeverityBadge(alert.severity)}`}>
                         {alert.severity.toUpperCase()}
                       </span>
-                      <span className="text-xs text-gray-600">
+                      <span className="text-xs text-[var(--text-muted)]">
                         {new Date(alert.createdAt).toLocaleDateString()}
                       </span>
                     </div>
@@ -72,7 +72,7 @@ export default function TeacherAlerts({ alerts, onDismiss }: TeacherAlertsProps)
                   {onDismiss && alert.status === 'new' && (
                     <button
                       onClick={() => onDismiss(alert.id)}
-                      className="text-gray-500 hover:text-gray-700 text-xl"
+                      className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xl"
                     >
                       ✕
                     </button>
@@ -81,14 +81,14 @@ export default function TeacherAlerts({ alerts, onDismiss }: TeacherAlertsProps)
                 
                 <p className="text-sm mb-3">{alert.description}</p>
                 
-                <div className="bg-white/50 rounded-lg p-3 mb-3">
-                  <p className="text-xs font-semibold text-gray-700 mb-1">AI Insight:</p>
+                <div className="bg-[var(--bg-card)] rounded-lg p-3 mb-3">
+                  <p className="text-xs font-semibold text-[var(--text-primary)] mb-1">AI Insight:</p>
                   <p className="text-sm italic">{alert.aiInsight}</p>
                 </div>
 
                 {alert.suggestedActions.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-700 mb-2">Suggested Actions:</p>
+                    <p className="text-xs font-semibold text-[var(--text-primary)] mb-2">Suggested Actions:</p>
                     <ul className="space-y-1">
                       {alert.suggestedActions.map((action, idx) => (
                         <li key={idx} className="text-sm flex items-start gap-2">

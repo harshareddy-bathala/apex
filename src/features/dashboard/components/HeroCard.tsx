@@ -66,13 +66,13 @@ export const HeroCard: React.FC<HeroCardProps> = ({
             {subjects.slice(0, 3).map((subject) => (
               <span
                 key={subject.id}
-                className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/10 text-slate-100 text-xs"
+                className="inline-flex items-center px-3 py-1.5 rounded-full bg-[var(--bg-secondary)] text-[var(--text-primary)] text-xs"
               >
                 {subject.name}
               </span>
             ))}
             {subjects.length > 3 && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 text-slate-100 text-micro">
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--bg-secondary)] text-[var(--text-primary)] text-micro">
                 +{subjects.length - 3} more
               </span>
             )}

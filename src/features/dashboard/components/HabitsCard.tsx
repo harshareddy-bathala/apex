@@ -28,16 +28,16 @@ const HabitsCard: React.FC<HabitsCardProps> = ({ habits }) => {
 	return (
 		<Link to="/habits" className="block h-full">
 			<article className="glass-panel flex h-full flex-col rounded-3xl border border-[var(--border-subtle)] hover:border-[var(--border-color)] transition-colors cursor-pointer">
-				<header className="flex items-center justify-between">
-					<div>
-						<p className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">Daily habits</p>
-						<h3 className="text-lg font-semibold text-[var(--text-primary)]">Micro habits tracker</h3>
-					</div>
+			<header className="flex items-center justify-between">
+				<div>
+					<p className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">Daily habits</p>
+					<h3 className="text-lg font-semibold text-[var(--text-primary)]">Micro habits tracker</h3>
+				</div>
 					<ArrowRight size={18} className="text-[var(--text-muted)]" />
-				</header>
+			</header>
 
 				<div className="mt-4 flex-1 flex flex-col justify-center">
-					{habits.length === 0 ? (
+				{habits.length === 0 ? (
 						<div className="text-center">
 							<p className="text-sm text-[var(--text-secondary)] mb-3">No habits yet</p>
 							<p className="text-xs text-[var(--text-muted)]">Build consistency with small daily wins</p>
@@ -67,15 +67,15 @@ const HabitsCard: React.FC<HabitsCardProps> = ({ habits }) => {
 								{completionRate}% completion rate
 							</p>
 						</div>
-					)}
-				</div>
+				)}
+			</div>
 
 				<div className="mt-4 text-center">
 					<p className="text-xs text-[var(--text-muted)]">
 						{habits.length === 0 ? 'Create your first habit →' : 'Manage habits →'}
 					</p>
 				</div>
-			</article>
+		</article>
 		</Link>
 	);
 };

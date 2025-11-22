@@ -75,28 +75,28 @@ const TimetableEditor: React.FC<TimetableEditorProps> = ({ idToken }) => {
   };
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg">
-      <h2 className="text-xl font-semibold text-white">Timetable Editor</h2>
-      <p className="mt-1 text-sm text-slate-400">Maintain up-to-date schedules for every class.</p>
+    <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-elevated)] p-6 shadow-lg">
+      <h2 className="text-xl font-semibold text-[var(--text-primary)]">Timetable Editor</h2>
+      <p className="mt-1 text-sm text-[var(--text-secondary)]">Maintain up-to-date schedules for every class.</p>
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-2 text-sm text-slate-200">
+          <label className="flex flex-col gap-2 text-sm text-[var(--text-primary)]">
             Class ID
             <input
               type="text"
               value={classId}
               onChange={(event) => setClassId(event.target.value)}
-              className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+              className="rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
               required
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-slate-200">
+          <label className="flex flex-col gap-2 text-sm text-[var(--text-primary)]">
             Week Of
             <input
               type="date"
               value={weekOf}
               onChange={(event) => setWeekOf(event.target.value)}
-              className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+              className="rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
               required
             />
           </label>
@@ -104,25 +104,25 @@ const TimetableEditor: React.FC<TimetableEditorProps> = ({ idToken }) => {
 
         <div className="space-y-4">
           {entries.map((entry, index) => (
-            <div key={entry.key} className="rounded-lg border border-slate-800/80 p-4">
+            <div key={entry.key} className="rounded-lg border border-[var(--border-subtle)] p-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-300">Entry {index + 1}</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">Entry {index + 1}</p>
                 <button
                   type="button"
                   onClick={() => removeEntry(entry.key)}
-                  className="text-xs text-slate-400 hover:text-red-300"
+                  className="text-xs text-[var(--text-muted)] hover:text-red-600"
                   disabled={entries.length === 1}
                 >
                   Remove
                 </button>
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-4">
-                <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-slate-400">
+                <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-[var(--text-muted)]">
                   Day
                   <select
                     value={entry.day}
                     onChange={(event) => updateEntry(entry.key, 'day', event.target.value)}
-                    className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+                    className="rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
                   >
                     {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day) => (
                       <option key={day} value={day}>
@@ -131,44 +131,44 @@ const TimetableEditor: React.FC<TimetableEditorProps> = ({ idToken }) => {
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-slate-400">
+                <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-[var(--text-muted)]">
                   Start Time
                   <input
                     type="time"
                     value={entry.startTime}
                     onChange={(event) => updateEntry(entry.key, 'startTime', event.target.value)}
-                    className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+                    className="rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
                     required
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-slate-400">
+                <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-[var(--text-muted)]">
                   End Time
                   <input
                     type="time"
                     value={entry.endTime}
                     onChange={(event) => updateEntry(entry.key, 'endTime', event.target.value)}
-                    className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+                    className="rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
                     required
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-slate-400">
+                <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-[var(--text-muted)]">
                   Subject
                   <input
                     type="text"
                     value={entry.subject}
                     onChange={(event) => updateEntry(entry.key, 'subject', event.target.value)}
-                    className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+                    className="rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
                     required
                   />
                 </label>
               </div>
-              <label className="mt-3 flex flex-col gap-1 text-xs uppercase tracking-wide text-slate-400">
+              <label className="mt-3 flex flex-col gap-1 text-xs uppercase tracking-wide text-[var(--text-muted)]">
                 Location
                 <input
                   type="text"
                   value={entry.location ?? ''}
                   onChange={(event) => updateEntry(entry.key, 'location', event.target.value)}
-                  className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+                  className="rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
                 />
               </label>
             </div>
@@ -178,14 +178,14 @@ const TimetableEditor: React.FC<TimetableEditorProps> = ({ idToken }) => {
         <button
           type="button"
           onClick={addEntry}
-          className="rounded-md border border-dashed border-slate-600 px-4 py-2 text-sm text-slate-200 hover:border-slate-400"
+          className="rounded-md border border-dashed border-[var(--border-color)] px-4 py-2 text-sm text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
         >
           Add Entry
         </button>
 
-        {error && <p className="rounded-md border border-red-600 bg-red-950/40 px-4 py-2 text-sm text-red-200">{error}</p>}
+        {error && <p className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
         {latestTimetable && (
-          <p className="rounded-md border border-emerald-600 bg-emerald-950/40 px-4 py-2 text-sm text-emerald-200">
+          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
             Timetable saved for week starting {latestTimetable.weekOf}.
           </p>
         )}

@@ -98,7 +98,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-sky-400 to-purple-500 rounded-2xl mb-4 shadow-2xl">
             <span className="text-4xl">🎓</span>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Student Mentor AI</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">APEX</h1>
           <p className="text-slate-400">Your personal guide to academic excellence</p>
         </div>
 

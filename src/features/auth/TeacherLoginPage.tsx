@@ -114,7 +114,8 @@ const TeacherLoginPage: React.FC = () => {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/80 text-3xl">🏫</div>
-          <h1 className="text-3xl font-semibold text-white">Teacher Access</h1>
+          <h1 className="text-3xl font-semibold text-white">APEX</h1>
+          <p className="text-white font-display">APEX: Beyond Grades. Beyond Graduation.</p>
           <p className="text-slate-400">Secure sign-in for verified educators</p>
         </div>
 
