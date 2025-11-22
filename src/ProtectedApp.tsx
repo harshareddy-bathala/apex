@@ -13,6 +13,7 @@ import TeacherAlerts from '@/features/reports/components/TeacherAlerts';
 import AppShell, { type AppShellView } from '@/features/app-shell/AppShell';
 import CommunityFeed from '@/features/community/components/CommunityFeed';
 import ResourceGrid from '@/features/resources/components/ResourceGrid';
+import HabitDashboard from '@/features/habits/components/HabitDashboard';
 import FullScreenLoader from '@/router/components/FullScreenLoader';
 import { useAuth } from '@/common/hooks/useAuth';
 import { useProfile } from '@/common/context/ProfileContext';
@@ -285,6 +286,9 @@ const ProtectedApp: React.FC = () => {
     if (path.startsWith('/profile')) {
       return 'profile';
     }
+    if (path.startsWith('/habits')) {
+      return 'habits';
+    }
     return 'dashboard';
   }, [location.pathname]);
 
@@ -365,6 +369,16 @@ const ProtectedApp: React.FC = () => {
                     onHabitCreate={handleHabitCreate}
                   />
                 </>
+              }
+            />
+            <Route
+              path="/habits"
+              element={
+                <HabitDashboard
+                  habits={habits}
+                  onHabitToggle={handleHabitToggle}
+                  onHabitCreate={handleHabitCreate}
+                />
               }
             />
             <Route path="/community" element={<CommunityFeed />} />

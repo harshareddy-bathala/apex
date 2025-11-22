@@ -98,7 +98,7 @@ const TeacherLoginPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-300">
+      <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center text-[var(--text-primary)] font-display">
         Checking your session…
       </div>
     );
@@ -109,7 +109,7 @@ const TeacherLoginPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center px-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/80 text-3xl">🏫</div>

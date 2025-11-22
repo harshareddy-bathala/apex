@@ -1,5 +1,6 @@
 import React from 'react';
-import { CheckCircle2, Circle, Plus } from 'lucide-react';
+import { CheckCircle2, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface HabitSummary {
 	id: string;
@@ -20,56 +21,62 @@ const timeBadges: Record<HabitSummary['timeOfDay'], string> = {
 	evening: 'bg-violet-100/40 text-violet-700 border-violet-200/60',
 };
 
-const HabitsCard: React.FC<HabitsCardProps> = ({ habits, onToggleHabit, onAddHabit }) => {
+const HabitsCard: React.FC<HabitsCardProps> = ({ habits }) => {
+	const completedToday = habits.filter(h => h.completedToday).length;
+	const completionRate = habits.length > 0 ? Math.round((completedToday / habits.length) * 100) : 0;
+
 	return (
-		<article className="glass-panel flex h-full flex-col rounded-3xl border border-[var(--border-subtle)]">
-			<header className="flex items-center justify-between">
-				<div>
-					<p className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">Daily habits</p>
-					<h3 className="text-lg font-semibold text-[var(--text-primary)]">Micro habits tracker</h3>
-				</div>
-				<button
-					type="button"
-					onClick={onAddHabit}
-					className="inline-flex items-center gap-1 rounded-xl border border-[var(--border-color)] px-3 py-1.5 text-sm font-semibold text-[var(--text-primary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
-				>
-					<Plus size={16} />
-					Add
-				</button>
-			</header>
-			<div className="mt-4 space-y-3">
-				{habits.length === 0 ? (
-					<p className="text-sm text-[var(--text-secondary)]">No habits yet. Start with one micro commitment.</p>
-				) : (
-					habits.map((habit) => (
-						<button
-							type="button"
-							key={habit.id}
-							onClick={() => onToggleHabit?.(habit.id, !habit.completedToday)}
-							className="flex w-full items-center gap-3 rounded-2xl border border-transparent px-3 py-2 text-left transition hover:border-[var(--border-color)] hover:bg-[var(--bg-secondary)]/60"
-						>
-							<span
-								className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${
-									habit.completedToday
-										? 'bg-[var(--accent-success)]/15 text-[var(--accent-success)] border border-[var(--accent-success)]/40'
-										: 'border border-[var(--border-color)] text-[var(--text-muted)]'
-								}`}
-							>
-								{habit.completedToday ? <CheckCircle2 size={18} /> : <Circle size={16} />}
-							</span>
-							<div className="flex-1">
-								<p className="text-sm font-semibold text-[var(--text-primary)]">{habit.name}</p>
-								<span
-									className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${timeBadges[habit.timeOfDay]}`}
-								>
-									{habit.timeOfDay}
-								</span>
+		<Link to="/habits" className="block h-full">
+			<article className="glass-panel flex h-full flex-col rounded-3xl border border-[var(--border-subtle)] hover:border-[var(--border-color)] transition-colors cursor-pointer">
+				<header className="flex items-center justify-between">
+					<div>
+						<p className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">Daily habits</p>
+						<h3 className="text-lg font-semibold text-[var(--text-primary)]">Micro habits tracker</h3>
+					</div>
+					<ArrowRight size={18} className="text-[var(--text-muted)]" />
+				</header>
+
+				<div className="mt-4 flex-1 flex flex-col justify-center">
+					{habits.length === 0 ? (
+						<div className="text-center">
+							<p className="text-sm text-[var(--text-secondary)] mb-3">No habits yet</p>
+							<p className="text-xs text-[var(--text-muted)]">Build consistency with small daily wins</p>
+						</div>
+					) : (
+						<div className="text-center">
+							<div className="flex items-center justify-center gap-2 mb-2">
+								<div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-success)]/10 text-[var(--accent-success)]">
+									<CheckCircle2 size={24} />
+								</div>
+								<div>
+									<p className="text-2xl font-bold text-[var(--text-primary)]">
+										{completedToday}/{habits.length}
+									</p>
+									<p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide">
+										Done today
+									</p>
+								</div>
 							</div>
-						</button>
-					))
-				)}
-			</div>
-		</article>
+							<div className="w-full bg-[var(--bg-secondary)] rounded-full h-2 mb-2">
+								<div
+									className="bg-[var(--accent-success)] h-2 rounded-full transition-all duration-300"
+									style={{ width: `${completionRate}%` }}
+								></div>
+							</div>
+							<p className="text-sm text-[var(--text-secondary)]">
+								{completionRate}% completion rate
+							</p>
+						</div>
+					)}
+				</div>
+
+				<div className="mt-4 text-center">
+					<p className="text-xs text-[var(--text-muted)]">
+						{habits.length === 0 ? 'Create your first habit →' : 'Manage habits →'}
+					</p>
+				</div>
+			</article>
+		</Link>
 	);
 };
 

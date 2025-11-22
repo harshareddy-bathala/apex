@@ -109,20 +109,20 @@ const AuthGuard: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center gap-4 px-6 text-center">
+      <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] flex flex-col items-center justify-center gap-4 px-6 text-center font-display">
         <p className="text-xl font-semibold">{error}</p>
         <div className="flex flex-wrap gap-3 justify-center">
           <button
             type="button"
             onClick={() => fetchProfile()}
-            className="px-5 py-2 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-400"
+            className="px-5 py-2 rounded-lg bg-[var(--accent-primary)] text-white font-medium hover:bg-[var(--accent-primary-dark)] transition-colors"
           >
             Retry
           </button>
           <button
             type="button"
             onClick={handleLogout}
-            className="px-5 py-2 rounded-lg border border-white/30 text-white font-medium hover:bg-white/10"
+            className="px-5 py-2 rounded-lg border border-[var(--border-color)] text-[var(--text-primary)] font-medium hover:bg-[var(--bg-secondary)] transition-colors"
           >
             Sign out
           </button>

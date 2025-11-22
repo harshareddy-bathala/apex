@@ -160,7 +160,7 @@ const StudentLoginPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-300">
+      <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center text-[var(--text-primary)] font-display">
         Checking your session…
       </div>
     );

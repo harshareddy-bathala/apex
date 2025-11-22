@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from '@/common/hooks/useAuth';
 import StudentLoginPage from '@/features/auth/StudentLoginPage';
 import TeacherLoginPage from '@/features/auth/TeacherLoginPage';
+import RoleSelector from '@/features/auth/RoleSelector';
 import AuthGuard from '@/router/AuthGuard';
 import FullScreenLoader from '@/router/components/FullScreenLoader';
 
@@ -15,7 +16,7 @@ const ProtectedRoutes: React.FC = () => {
   }
 
   if (!user) {
-    return <Navigate to="/login/student" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <AuthGuard />;
@@ -25,6 +26,8 @@ const AppRouter: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<RoleSelector />} />
+        <Route path="/login" element={<RoleSelector />} />
         <Route path="/login/student" element={<StudentLoginPage />} />
         <Route path="/login/teacher" element={<TeacherLoginPage />} />
         <Route path="/*" element={<ProtectedRoutes />} />
