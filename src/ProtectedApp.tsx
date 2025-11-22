@@ -11,8 +11,8 @@ import EditProfilePage from '@/features/profile/EditProfilePage';
 import ProfilePage from '@/features/profile/ProfilePage';
 import TeacherAlerts from '@/features/reports/components/TeacherAlerts';
 import AppShell, { type AppShellView } from '@/features/app-shell/AppShell';
-import CommunityHub from '@/features/community/CommunityHub';
-import ResourceHub from '@/features/resources/ResourceHub';
+import CommunityFeed from '@/features/community/components/CommunityFeed';
+import ResourceGrid from '@/features/resources/components/ResourceGrid';
 import FullScreenLoader from '@/router/components/FullScreenLoader';
 import { useAuth } from '@/common/hooks/useAuth';
 import { useProfile } from '@/common/context/ProfileContext';
@@ -367,8 +367,8 @@ const ProtectedApp: React.FC = () => {
                 </>
               }
             />
-            <Route path="/community" element={<CommunityHub />} />
-            <Route path="/resources" element={<ResourceHub />} />
+            <Route path="/community" element={<CommunityFeed />} />
+            <Route path="/resources" element={<ResourceGrid />} />
             <Route
               path="/chat"
               element={

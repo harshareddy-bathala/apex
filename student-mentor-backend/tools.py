@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from typing import Callable, Dict, Optional
 
 try:
@@ -9,7 +10,10 @@ except ImportError:  # pragma: no cover - ADK 0.3 fallback decorator.
     def tool(func):
         return func
 
-from db_direct import add_document, delete_document, get_document, query_collection, upsert_document, _utc_now
+from models import (
+    User, Habit, CommunityPost, Resource, Assignment,
+    CheckIn, StudentSubmission
+)
 from memory import memory_bank, summarize_checkin
 
 analytics_runner: Optional[Callable[[str, str], str]] = None
@@ -21,26 +25,22 @@ def register_analytics_runner(callback: Callable[[str, str], str]) -> None:
 
 
 @tool
-def get_assignments_for_student(student_id: str) -> str:
+async def get_assignments_for_student(student_id: str) -> str:
     """Return submissions plus assignment metadata for a student."""
 
-    submissions = query_collection(
-        "studentSubmissions",
-        filters=[("studentId", "==", student_id)],
-    )
+    submissions = await StudentSubmission.find(StudentSubmission.studentId == student_id).to_list()
     assignment_cache: Dict[str, Optional[Dict[str, object]]] = {}
     payload = []
 
     for submission in submissions:
-        submission_data = dict(submission.data)
-        submission_data["id"] = submission.id
-        assignment_id = submission_data.get("assignmentId")
+        submission_data = submission.model_dump()
+        assignment_id = submission.assignmentId
         if assignment_id:
             if assignment_id not in assignment_cache:
-                assignment_doc = get_document("assignments", assignment_id)
+                assignment = await Assignment.find_one(Assignment.id == assignment_id)
                 assignment_cache[assignment_id] = (
-                    assignment_doc.data | {"id": assignment_doc.id}
-                    if assignment_doc
+                    assignment.model_dump() | {"id": assignment.id}
+                    if assignment
                     else None
                 )
             assignment_data = assignment_cache.get(assignment_id)
@@ -52,73 +52,82 @@ def get_assignments_for_student(student_id: str) -> str:
 
 
 @tool
-def create_assignment(teacher_id: str, assignment_payload: str) -> str:
+async def create_assignment(teacher_id: str, assignment_payload: str) -> str:
     """Create an assignment and optional student submissions."""
 
     data = json.loads(assignment_payload)
     student_ids = data.pop("studentIds", [])
-    data["assignedBy"] = teacher_id
-    timestamp_fields = ["createdAt"] if "createdAt" not in data else None
 
-    assignment_doc = add_document(
-        "assignments",
-        data,
-        server_timestamp_fields=timestamp_fields,
+    # Create assignment
+    assignment = Assignment(
+        title=data.get("title", ""),
+        subject=data.get("subject"),
+        type=data.get("type", "homework"),
+        dueDate=data.get("dueDate"),
+        description=data.get("description"),
+        instructions=data.get("instructions"),
+        attachments=data.get("attachments", []),
+        studentIds=student_ids,
+        priority=data.get("priority", "medium"),
+        estimatedTime=data.get("estimatedTime"),
+        teacherId=teacher_id,
+        classId=data.get("classId", ""),
     )
+
+    await assignment.insert()
 
     created_submissions = 0
     for student_id in student_ids:
-        add_document(
-            "studentSubmissions",
-            {
-                "assignmentId": assignment_doc.id,
-                "studentId": student_id,
-                "status": "pending",
-            },
-            server_timestamp_fields=["createdAt"],
+        submission = StudentSubmission(
+            assignmentId=assignment.id,
+            studentId=student_id,
+            status="pending"
         )
+        await submission.insert()
         created_submissions += 1
 
-    return json.dumps({"assignmentId": assignment_doc.id, "linkedStudents": created_submissions})
+    return json.dumps({"assignmentId": assignment.id, "linkedStudents": created_submissions})
 
 
 @tool
-def get_student_profile(student_id: str) -> str:
+async def get_student_profile(student_id: str) -> str:
     """Fetch a student's profile document."""
 
-    document = get_document("studentProfiles", student_id)
-    if not document:
+    user = await User.find_one(User.id == student_id)
+    if not user or not user.profile:
         return json.dumps({})
 
-    data = dict(document.data)
-    data["id"] = document.id
-    return json.dumps(data)
+    profile_data = user.profile.model_dump()
+    profile_data["id"] = user.id
+    return json.dumps(profile_data)
 
 
 @tool
-def update_student_goals(student_id: str, goals_payload: str) -> str:
+async def update_student_goals(student_id: str, goals_payload: str) -> str:
     """Update the goals array on a student's profile and write to memory."""
 
     goals = json.loads(goals_payload)
     if not isinstance(goals, list):
         raise ValueError("Goals payload must be a JSON array of strings")
 
-    upsert_document(
-        "studentProfiles",
-        {
-            "goals": goals,
-        },
-        document_id=student_id,
-        merge=True,
-        server_timestamp_fields=["updatedAt"],
-    )
+    user = await User.find_one(User.id == student_id)
+    if not user:
+        raise ValueError(f"User {student_id} not found")
+
+    if not user.profile:
+        from models import Profile
+        user.profile = Profile()
+
+    user.profile.goals = goals
+    user.updatedAt = datetime.utcnow()
+    await user.save()
 
     memory_bank.add_memory(student_id, f"Goals updated: {', '.join(goals)}")
     return json.dumps({"status": "ok", "goalCount": len(goals)})
 
 
 @tool
-def save_student_profile_data(student_id: str, data_to_save: str) -> str:
+async def save_student_profile_data(student_id: str, data_to_save: str) -> str:
     """Merge onboarding responses into the student's profile document."""
 
     try:
@@ -129,39 +138,47 @@ def save_student_profile_data(student_id: str, data_to_save: str) -> str:
     if not isinstance(payload, dict):
         raise ValueError("data_to_save must be a JSON object")
 
-    upsert_document(
-        "studentProfiles",
-        payload,
-        document_id=student_id,
-        merge=True,
-        server_timestamp_fields=["updatedAt"],
-    )
+    user = await User.find_one(User.id == student_id)
+    if not user:
+        raise ValueError(f"User {student_id} not found")
+
+    if not user.profile:
+        from models import Profile
+        user.profile = Profile()
+
+    # Update profile fields dynamically
+    for key, value in payload.items():
+        if hasattr(user.profile, key):
+            setattr(user.profile, key, value)
+
+    user.updatedAt = datetime.utcnow()
+    await user.save()
 
     return json.dumps({"status": "ok", "updatedFields": sorted(payload.keys())})
 
 
 @tool
-def record_daily_checkin(student_id: str, mood: str, win: str, blocker: str = "") -> str:
+async def record_daily_checkin(student_id: str, mood: str, win: str, blocker: str = "") -> str:
     """Persist the new check-in model and log a memory summary."""
 
-    doc = add_document(
-        "checkins",
-        {
-            "studentId": student_id,
-            "mood": mood,
-            "win": win,
-            "blocker": blocker,
-        },
-        server_timestamp_fields=["createdAt"],
+    checkin = CheckIn(
+        studentId=student_id,
+        mood=mood,
+        stressLevel=5,  # Default stress level since it's not provided
+        sleepHours=8,    # Default sleep hours since it's not provided
+        notes=f"Win: {win}" + (f" | Blocker: {blocker}" if blocker else ""),
     )
-    stored_data = doc.data or {
+
+    await checkin.insert()
+
+    stored_data = {
         "studentId": student_id,
         "mood": mood,
         "win": win,
         "blocker": blocker,
     }
     memory_bank.add_memory(student_id, summarize_checkin(stored_data))
-    return json.dumps({"checkinId": doc.id})
+    return json.dumps({"checkinId": checkin.id})
 
 
 @tool
@@ -176,181 +193,182 @@ def generate_teacher_report(student_id: str) -> str:
 
 
 @tool
-def get_upcoming_assignments(student_id: str) -> str:
+async def get_upcoming_assignments(student_id: str) -> str:
     """Fetch all upcoming assignments (homework/tests) that are not yet submitted."""
-    
-    # 1. Get all assignments (In a real app, filter by student's class/grade)
-    # For this prototype, we fetch all active assignments
-    all_assignments = query_collection("assignments", filters=[("status", "==", "active")])
-    
-    # 2. Get student's existing submissions to exclude them
-    submissions = query_collection(
-        "studentSubmissions",
-        filters=[("studentId", "==", student_id)],
-    )
-    submitted_assignment_ids = {sub.data.get("assignmentId") for sub in submissions if sub.data}
-    
+
+    # Get student's existing submissions to exclude them
+    submissions = await StudentSubmission.find(StudentSubmission.studentId == student_id).to_list()
+    submitted_assignment_ids = {sub.assignmentId for sub in submissions}
+
+    # Get all active assignments that are not submitted by this student
+    assignments = await Assignment.find(
+        Assignment.status == "active",
+        Assignment.id.not_in(submitted_assignment_ids)
+    ).to_list()
+
     upcoming = []
-    for doc in all_assignments:
-        data = doc.data or {}
-        if doc.id in submitted_assignment_ids:
-            continue
-            
-        # Filter by due date if needed (optional, but good for "upcoming")
-        # For now, return all non-submitted ones
+    for assignment in assignments:
         upcoming.append({
-            "id": doc.id,
-            "title": data.get("title"),
-            "subject": data.get("subject"),
-            "type": data.get("type", "homework"),
-            "dueDate": data.get("dueDate"),
-            "priority": data.get("priority", "medium"),
-            "estimatedTime": data.get("estimatedTime")
+            "id": assignment.id,
+            "title": assignment.title,
+            "subject": assignment.subject,
+            "type": assignment.type,
+            "dueDate": assignment.dueDate,
+            "priority": assignment.priority,
+            "estimatedTime": assignment.estimatedTime
         })
-        
+
     return json.dumps(upcoming)
 
 
 @tool
-def get_community_posts(subject: str = "", query: str = "", limit: int = 5) -> str:
+async def get_community_posts(subject: str = "", query: str = "", limit: int = 5) -> str:
     """Return recent community posts filtered by subject or keyword."""
 
-    filters = []
-    if subject:
-        filters.append(("subject", "==", subject))
-    docs = query_collection("communityPosts", filters=filters)
-    normalized_query = (query or "").lower()
-    posts = []
-    for doc in docs:
-        data = doc.data or {}
-        if data.get("parentId"):
-            continue
-        record = {
-            "id": doc.id,
-            "authorName": data.get("authorName"),
-            "subject": data.get("subject"),
-            "content": data.get("content"),
-            "tags": data.get("tags", []),
-            "upvoteCount": data.get("upvoteCount", 0),
-            "replyCount": data.get("replyCount", 0),
-            "createdAt": data.get("createdAt"),
-        }
-        if normalized_query:
-            haystack = " ".join(
-                [
-                    record.get("content") or "",
-                    record.get("subject") or "",
-                    " ".join(record.get("tags") or []),
-                ]
-            ).lower()
-            if normalized_query not in haystack:
-                continue
-        posts.append(record)
+    # Build query
+    posts_query = CommunityPost.find(CommunityPost.parentId == None)  # Only top-level posts
 
-    posts = sorted(posts, key=lambda item: item.get("createdAt") or "", reverse=True)
-    max_items = max(1, min(limit, 10))
-    return json.dumps(posts[:max_items])
+    if subject:
+        posts_query = posts_query.find(CommunityPost.subject == subject)
+
+    # Get posts
+    posts = await posts_query.sort([("createdAt", -1)]).to_list(limit=max(1, min(limit, 10)))
+
+    # Filter by search query if provided
+    normalized_query = (query or "").lower()
+    if normalized_query:
+        filtered_posts = []
+        for post in posts:
+            haystack = " ".join([
+                post.content or "",
+                post.subject or "",
+                " ".join(post.tags or []),
+            ]).lower()
+            if normalized_query in haystack:
+                filtered_posts.append(post)
+        posts = filtered_posts
+
+    # Convert to response format
+    result = []
+    for post in posts:
+        record = {
+            "id": post.id,
+            "authorName": post.authorName,
+            "subject": post.subject,
+            "content": post.content,
+            "tags": post.tags,
+            "upvoteCount": post.upvoteCount,
+            "replyCount": post.replyCount,
+            "createdAt": post.createdAt.isoformat(),
+        }
+        result.append(record)
+
+    return json.dumps(result)
 
 
 @tool
-def get_resources(subject: str = "", topic: str = "", query: str = "", limit: int = 5) -> str:
+async def get_resources(subject: str = "", topic: str = "", query: str = "", limit: int = 5) -> str:
     """Return shared study resources with optional subject/topic filters."""
 
-    filters = []
+    # Build query
+    resources_query = Resource.find()
+
     if subject:
-        filters.append(("subject", "==", subject))
+        resources_query = resources_query.find(Resource.subject == subject)
     if topic:
-        filters.append(("topic", "==", topic))
+        resources_query = resources_query.find(Resource.topic == topic)
 
-    docs = query_collection("resources", filters=filters)
+    # Get resources
+    resources = await resources_query.sort([("createdAt", -1)]).to_list(limit=max(1, min(limit, 15)))
+
+    # Filter by search query if provided
     normalized_query = (query or "").lower()
-    resources = []
-    for doc in docs:
-        data = doc.data or {}
-        record = {
-            "id": doc.id,
-            "title": data.get("title"),
-            "subject": data.get("subject"),
-            "topic": data.get("topic"),
-            "url": data.get("url"),
-            "description": data.get("description"),
-            "tags": data.get("tags", []),
-            "createdByName": data.get("createdByName"),
-        }
-        if normalized_query:
-            haystack = " ".join(
-                [
-                    record.get("title") or "",
-                    record.get("subject") or "",
-                    record.get("topic") or "",
-                    record.get("description") or "",
-                ]
-            ).lower()
-            if normalized_query not in haystack:
-                continue
-        resources.append(record)
+    if normalized_query:
+        filtered_resources = []
+        for resource in resources:
+            haystack = " ".join([
+                resource.title or "",
+                resource.subject or "",
+                resource.topic or "",
+                resource.description or "",
+            ]).lower()
+            if normalized_query in haystack:
+                filtered_resources.append(resource)
+        resources = filtered_resources
 
-    resources = sorted(resources, key=lambda item: item.get("title") or "")
-    max_items = max(1, min(limit, 15))
-    return json.dumps(resources[:max_items])
+    # Convert to response format
+    result = []
+    for resource in resources:
+        record = {
+            "id": resource.id,
+            "title": resource.title,
+            "subject": resource.subject,
+            "topic": resource.topic,
+            "url": resource.url,
+            "description": resource.description,
+            "tags": resource.tags,
+            "createdByName": resource.createdByName,
+        }
+        result.append(record)
+
+    return json.dumps(result)
 
 
 @tool
-def get_student_habits(student_id: str) -> str:
+async def get_student_habits(student_id: str) -> str:
     """Return the student's active habits with today's completion state."""
 
-    today = _utc_now().split("T")[0]
-    habits = query_collection(
-        "habits",
-        filters=[("studentId", "==", student_id), ("archived", "==", False)],
-    )
-    checkins = query_collection(
-        "habitCheckins",
-        filters=[("studentId", "==", student_id), ("date", "==", today)],
-    )
-    completed_ids = {doc.data.get("habitId") for doc in checkins if doc.data}
+    today = datetime.utcnow().date().isoformat()
+
+    habits = await Habit.find(
+        Habit.user_email == student_id,
+        Habit.archived == False
+    ).to_list()
+
+    # Check today's completions
+    completed_habits = await Habit.find(
+        Habit.user_email == student_id,
+        Habit.completed_dates == today
+    ).to_list()
+
+    completed_ids = {habit.id for habit in completed_habits}
 
     payload = []
     for habit in habits:
-        data = habit.data or {}
-        payload.append(
-            {
-                "id": habit.id,
-                "name": data.get("name"),
-                "timeOfDay": data.get("timeOfDay", "morning"),
-                "completedToday": habit.id in completed_ids,
-                "lastCompletedAt": data.get("lastCompletedAt"),
-            }
-        )
+        payload.append({
+            "id": habit.id,
+            "name": habit.title,
+            "timeOfDay": habit.timeOfDay,
+            "completedToday": habit.id in completed_ids,
+            "lastCompletedAt": habit.lastCompletedAt,
+        })
+
     return json.dumps(payload)
 
 
 @tool
-def record_habit_checkin(student_id: str, habit_id: str, completed: bool = True) -> str:
+async def record_habit_checkin(student_id: str, habit_id: str, completed: bool = True) -> str:
     """Mark or clear a habit check-in for today."""
 
-    today = _utc_now().split("T")[0]
-    checkin_id = f"{student_id}_{habit_id}_{today}"
+    habit = await Habit.find_one(Habit.id == habit_id, Habit.user_email == student_id)
+    if not habit:
+        raise ValueError(f"Habit {habit_id} not found for student {student_id}")
+
+    today = datetime.utcnow().date().isoformat()
 
     if completed:
-        add_document(
-            "habitCheckins",
-            {
-                "id": checkin_id,
-                "habitId": habit_id,
-                "studentId": student_id,
-                "date": today,
-                "timestamp": _utc_now(),
-            },
-            document_id=checkin_id,
-        )
-        upsert_document(
-            "habits",
-            {"lastCompletedAt": today},
-            document_id=habit_id,
-            merge=True,
-        )
+        if today not in habit.completed_dates:
+            habit.completed_dates.append(today)
+            habit.lastCompletedAt = today
+            await habit.save()
     else:
-        delete_document("habitCheckins", checkin_id)
+        if today in habit.completed_dates:
+            habit.completed_dates.remove(today)
+            # Update lastCompletedAt to the most recent remaining date
+            if habit.completed_dates:
+                habit.lastCompletedAt = max(habit.completed_dates)
+            else:
+                habit.lastCompletedAt = None
+            await habit.save()
 
     return json.dumps({"status": "ok", "completed": completed})

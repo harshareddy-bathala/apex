@@ -139,7 +139,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           category: 'academic' as const,
           progress: Math.round(academicMetrics.homeworkCompletionRate * 0.7 + academicMetrics.attendanceRate * 0.3)
         }
-      ]
+      ],
       habits: habits.map((habit) => ({
         id: habit.id,
         name: habit.name,

@@ -4,7 +4,7 @@ import json
 import os
 import uuid
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -14,18 +14,28 @@ from pydantic import BaseModel, Field
 
 from agents import get_student_hub_agent, analytics_agent
 from auth import verify_firebase_token, FirebaseUser
-from db_direct import (
-    add_document,
-    delete_document,
-    get_document,
-    query_collection,
-    update_document,
-    upsert_document,
-    _utc_now
-)
+from database import init_database
 from memory import session_service
+from models import (
+    User, Habit, CommunityPost, Resource, Assignment,
+    CheckIn, Attendance, Timetable, PeerMessage, StudentSubmission
+)
 
 app = FastAPI(title="Student Mentor Backend", version="2.0.0")
+
+# Database startup event
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database connection and Beanie ODM"""
+    database = await init_database()
+    from beanie import init_beanie
+    await init_beanie(
+        database=database,
+        document_models=[
+            User, Habit, CommunityPost, Resource, Assignment,
+            CheckIn, Attendance, Timetable, PeerMessage, StudentSubmission
+        ]
+    )
 
 # Configure CORS
 app.add_middleware(
@@ -183,25 +193,18 @@ def _ensure_alert_entry(alerts_map: Dict[str, Dict[str, Any]], student_id: str) 
         }
     return alerts_map[student_id]
 
-def _ensure_default_habits(student_id: str):
-    existing = query_collection(
-        "habits",
-        filters=[("studentId", "==", student_id)],
-        limit=1,
-    )
+async def _ensure_default_habits(student_id: str):
+    existing = await Habit.find_one(Habit.user_email == student_id)
     if existing:
         return
-    for habit in DEFAULT_HABITS:
-        add_document(
-            "habits",
-            {
-                "studentId": student_id,
-                "name": habit["name"],
-                "timeOfDay": habit["timeOfDay"],
-                "archived": False,
-                "createdAt": _utc_now(),
-            },
+    for habit_data in DEFAULT_HABITS:
+        habit = Habit(
+            user_email=student_id,
+            title=habit_data["name"],
+            timeOfDay=habit_data["timeOfDay"],
+            archived=False,
         )
+        await habit.insert()
 
 # --- Endpoints ---
 
@@ -210,56 +213,65 @@ def health() -> Dict[str, str]:
     return {"status": "ok"}
 
 @app.post("/auth/create-user-doc")
-def create_user_doc(request: CreateUserDocRequest) -> Dict[str, Any]:
+async def create_user_doc(request: CreateUserDocRequest) -> Dict[str, Any]:
     # This endpoint might be called by a post-signup trigger or client
     # We'll default to 'student' role if not specified, but here we just create the base doc
     # In a real app, you'd want strict checks on who can call this
-    
-    # Check if user already exists
-    existing = get_document("users", request.uid)
-    if existing:
-        return existing.data
 
-    user_data = {
-        "uid": request.uid,
-        "email": request.email,
-        "role": "student",  # Default role
-        "createdAt": _utc_now(),
-        "updatedAt": _utc_now(),
-    }
-    upsert_document("users", user_data, document_id=request.uid)
-    return user_data
+    # Check if user already exists
+    existing = await User.find_one(User.id == request.uid)
+    if existing:
+        return existing.model_dump()
+
+    user = User(
+        id=request.uid,
+        email=request.email,
+        role="student",  # Default role
+    )
+    await user.insert()
+    return user.model_dump()
 
 @app.get("/profile")
-def get_profile(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
-    profile = get_document("studentProfiles", user.uid)
-    if not profile or not profile.exists:
+async def get_profile(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    user_doc = await User.find_one(User.id == user.uid)
+    if not user_doc or not user_doc.profile:
         # Return default/empty profile structure if not found
         return {"onboardingComplete": False}
-    return profile.data
+    return user_doc.profile.model_dump()
 
 @app.post("/profile/update")
-def update_profile(payload: ProfileUpdatePayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
-    data = payload.model_dump(exclude_unset=True)
-    data["updatedAt"] = _utc_now()
-    
-    # Also update the main user doc if needed (e.g. name)
-    # For now, we store profile data in studentProfiles
-    upsert_document("studentProfiles", data, document_id=user.uid, merge=True)
-    
-    updated = get_document("studentProfiles", user.uid)
-    return updated.data if updated else {}
+async def update_profile(payload: ProfileUpdatePayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    user_doc = await User.find_one(User.id == user.uid)
+    if not user_doc:
+        user_doc = User(id=user.uid, email=user.email)
+        await user_doc.insert()
+
+    # Update profile data
+    profile_data = payload.model_dump(exclude_unset=True)
+    if user_doc.profile:
+        # Merge with existing profile
+        current_profile = user_doc.profile.model_dump()
+        current_profile.update(profile_data)
+        user_doc.profile = Profile(**current_profile)
+    else:
+        user_doc.profile = Profile(**profile_data)
+
+    user_doc.updatedAt = datetime.utcnow()
+    await user_doc.save()
+
+    return user_doc.profile.model_dump()
 
 @app.post("/checkin")
-def daily_checkin(payload: CheckInPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
-    checkin_id = f"{user.uid}_{_utc_now().split('T')[0]}"
-    data = payload.model_dump()
-    data.update({
-        "studentId": user.uid,
-        "timestamp": _utc_now(),
-    })
-    upsert_document("checkins", data, document_id=checkin_id)
-    return data
+async def daily_checkin(payload: CheckInPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    checkin = CheckIn(
+        studentId=user.uid,
+        mood=payload.mood,
+        stressLevel=payload.stressLevel,
+        sleepHours=payload.sleepHours,
+        notes=payload.notes,
+    )
+    await checkin.insert()
+    return checkin.model_dump()
 
 @app.post("/onboarding/chat")
 async def chat_endpoint(request: ChatRequest, user: FirebaseUser = Depends(verify_firebase_token)):
@@ -284,53 +296,59 @@ async def chat_endpoint(request: ChatRequest, user: FirebaseUser = Depends(verif
     return StreamingResponse(response_generator(), media_type="text/event-stream")
 
 @app.get("/peers")
-def get_peers(search: Optional[str] = None, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
-    # Query users collection
-    # In a real app, we'd use a proper search index (e.g. Algolia or Firestore specific search)
-    # Here we'll do a basic query. Firestore doesn't support substring search natively easily.
-    # We'll fetch students and filter in memory for this prototype if search is provided.
-    
-    # Get all students (limit to 50 for safety)
-    # Note: In production, this needs a better query strategy
-    all_students = query_collection("users", filters=[("role", "==", "student")])
-    
+async def get_peers(search: Optional[str] = None, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    # Query users collection for students
+    query = User.find(User.role == "student", User.id != user.uid)
+
+    if search:
+        # Simple text search - in production, use MongoDB Atlas Search
+        query = query.find({"$or": [
+            {"email": {"$regex": search, "$options": "i"}},
+            {"profile.name": {"$regex": search, "$options": "i"}}
+        ]})
+
+    all_students = await query.to_list()
+
     peers = []
-    for doc in all_students:
-        data = doc.data or {}
-        if data.get("uid") == user.uid:
-            continue
-            
-        # Get profile for name
-        profile = get_document("studentProfiles", data.get("uid")) or {}
-        name = profile.get("name", data.get("email", "Unknown"))
-        
+    for student in all_students:
+        name = student.profile.name if student.profile and student.profile.name else student.email
+
         if search and search.lower() not in name.lower():
             continue
-            
+
         peers.append({
-            "id": data.get("uid"),
+            "id": student.id,
             "name": name,
             "role": "student",
             "isOnline": False, # Placeholder
-            "lastSeen": _utc_now() # Placeholder
+            "lastSeen": datetime.utcnow().isoformat() # Placeholder
         })
-        
+
     return {"peers": peers}
 
 @app.get("/peer/messages/{peer_id}")
-def get_peer_messages(peer_id: str, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+async def get_peer_messages(peer_id: str, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     # Construct conversation ID
     conversation_id = "-".join(sorted([user.uid, peer_id]))
-    
-    messages = query_collection("peerMessages", filters=[("conversationId", "==", conversation_id)])
+
+    messages = await PeerMessage.find(
+        PeerMessage.conversationId == conversation_id
+    ).sort([("timestamp", 1)]).to_list()
+
     formatted_messages = []
     for msg in messages:
-        data = msg.data or {}
         formatted_messages.append({
             "id": msg.id,
-            **data
+            "conversationId": msg.conversationId,
+            "senderId": msg.senderId,
+            "senderName": msg.senderName,
+            "receiverId": msg.receiverId,
+            "message": msg.message,
+            "timestamp": msg.timestamp.isoformat(),
+            "read": msg.read,
+            "type": msg.type
         })
-        
+
     return {"messages": formatted_messages}
 
 class SendMessagePayload(BaseModel):
@@ -338,139 +356,183 @@ class SendMessagePayload(BaseModel):
     content: str
 
 @app.post("/peer/message")
-def send_peer_message(payload: SendMessagePayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+async def send_peer_message(payload: SendMessagePayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     conversation_id = "-".join(sorted([user.uid, payload.recipientId]))
-    message_id = uuid.uuid4().hex
-    
+
     # Get sender name
-    profile = get_document("studentProfiles", user.uid) or {}
-    sender_name = profile.get("name", "Unknown")
-    
-    message_data = {
-        "id": message_id,
-        "conversationId": conversation_id,
-        "senderId": user.uid,
-        "senderName": sender_name,
-        "receiverId": payload.recipientId,
-        "message": payload.content,
-        "timestamp": _utc_now(),
-        "read": False,
-        "type": "text"
+    user_doc = await User.find_one(User.id == user.uid)
+    sender_name = user_doc.profile.name if user_doc and user_doc.profile and user_doc.profile.name else "Unknown"
+
+    message = PeerMessage(
+        conversationId=conversation_id,
+        senderId=user.uid,
+        senderName=sender_name,
+        receiverId=payload.recipientId,
+        message=payload.content,
+        type="text"
+    )
+
+    await message.insert()
+
+    return {
+        "message": {
+            "id": message.id,
+            "conversationId": message.conversationId,
+            "senderId": message.senderId,
+            "senderName": message.senderName,
+            "receiverId": message.receiverId,
+            "message": message.message,
+            "timestamp": message.timestamp.isoformat(),
+            "read": message.read,
+            "type": message.type
+        }
     }
-    
-    add_document("peerMessages", message_data, document_id=message_id)
-    return {"message": message_data}
 
 @app.get("/community/feed")
-def get_community_feed(
+async def get_community_feed(
     subject: Optional[str] = None,
     q: Optional[str] = None,
     limit: int = 20,
     user: FirebaseUser = Depends(verify_firebase_token),
 ) -> Dict[str, Any]:
-    filters = []
+    # Build query
+    query = CommunityPost.find(CommunityPost.parentId == None)  # Only top-level posts
+
     if subject:
-        filters.append(("subject", "==", subject))
-    docs = query_collection("communityPosts", filters=filters)
+        query = query.find(CommunityPost.subject == subject)
 
-    top_level: List[Dict[str, Any]] = []
-    replies: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-    query_lower = (q or "").lower()
+    # Get posts
+    posts = await query.sort([("createdAt", -1)]).to_list(limit=min(limit, 50))
 
-    for doc in docs:
-        data = doc.data or {}
-        post = _serialize_post(doc.id, data, user.uid)
+    # Filter by search query if provided
+    if q:
+        query_lower = q.lower()
+        filtered_posts = []
+        for post in posts:
+            haystack = " ".join([
+                post.content or "",
+                post.subject or "",
+                " ".join(post.tags or []),
+            ]).lower()
+            if query_lower in haystack:
+                filtered_posts.append(post)
+        posts = filtered_posts
 
-        if query_lower:
-            haystack = " ".join(
-                [
-                    post.get("content") or "",
-                    post.get("subject") or "",
-                    " ".join(post.get("tags") or []),
-                ]
-            ).lower()
-            if query_lower not in haystack:
-                continue
-
-        parent_id = data.get("parentId")
-        if parent_id:
-            replies[parent_id].append(post)
-        else:
-            top_level.append(post)
-
-    sorted_posts = sorted(
-        top_level,
-        key=lambda item: item.get("createdAt") or "",
-        reverse=True,
-    )
-    max_posts = max(1, min(limit, 50))
+    # Get replies for each post
     response_posts = []
-    for post in sorted_posts[:max_posts]:
-        child_replies = sorted(
-            replies.get(post["id"], []),
-            key=lambda item: item.get("createdAt") or "",
-            reverse=True,
-        )
-        post["replies"] = child_replies[:5]
-        response_posts.append(post)
+    for post in posts:
+        # Get replies for this post
+        replies = await CommunityPost.find(
+            CommunityPost.parentId == post.id
+        ).sort([("createdAt", -1)]).to_list(limit=5)
+
+        serialized_post = {
+            "id": post.id,
+            "authorId": post.author,
+            "authorName": post.authorName,
+            "authorRole": post.authorRole,
+            "subject": post.subject,
+            "content": post.content,
+            "tags": post.tags,
+            "upvoteCount": post.upvoteCount,
+            "replyCount": post.replyCount,
+            "createdAt": post.createdAt.isoformat(),
+            "hasUpvoted": user.uid in post.upvotes,
+            "replies": []
+        }
+
+        # Serialize replies
+        for reply in replies:
+            serialized_reply = {
+                "id": reply.id,
+                "authorId": reply.author,
+                "authorName": reply.authorName,
+                "authorRole": reply.authorRole,
+                "subject": reply.subject,
+                "content": reply.content,
+                "tags": reply.tags,
+                "upvoteCount": reply.upvoteCount,
+                "replyCount": reply.replyCount,
+                "createdAt": reply.createdAt.isoformat(),
+                "hasUpvoted": user.uid in reply.upvotes,
+                "parentId": reply.parentId
+            }
+            serialized_post["replies"].append(serialized_reply)
+
+        response_posts.append(serialized_post)
 
     return {"posts": response_posts}
 
 @app.post("/community/post")
-def create_community_post(payload: CommunityPostPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
-    post_id = uuid.uuid4().hex
-    author_name = _get_student_display_name(user.uid)
-    data = {
-        "authorId": user.uid,
-        "authorName": author_name,
-        "authorRole": user.role,
-        "subject": payload.subject,
-        "content": payload.content,
-        "tags": payload.tags,
-        "parentId": payload.parentId,
-        "upvoteCount": 0,
-        "replyCount": 0,
-        "createdAt": _utc_now(),
-        "upvoters": [],
-    }
-    add_document("communityPosts", data, document_id=post_id)
+async def create_community_post(payload: CommunityPostPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    # Get author name
+    user_doc = await User.find_one(User.id == user.uid)
+    author_name = user_doc.profile.name if user_doc and user_doc.profile and user_doc.profile.name else user.email
 
+    post = CommunityPost(
+        author=user.uid,
+        authorName=author_name,
+        authorRole=user.role,
+        subject=payload.subject,
+        content=payload.content,
+        tags=payload.tags,
+        parentId=payload.parentId,
+    )
+
+    await post.insert()
+
+    # Update reply count on parent post if this is a reply
     if payload.parentId:
-        parent_doc = get_document("communityPosts", payload.parentId)
-        if parent_doc:
-            current = int(parent_doc.data.get("replyCount") or 0) + 1
-            update_document("communityPosts", payload.parentId, {"replyCount": current})
+        parent_post = await CommunityPost.find_one(CommunityPost.id == payload.parentId)
+        if parent_post:
+            parent_post.replyCount += 1
+            await parent_post.save()
 
-    return _serialize_post(post_id, data, user.uid)
+    return {
+        "id": post.id,
+        "authorId": post.author,
+        "authorName": post.authorName,
+        "authorRole": post.authorRole,
+        "subject": post.subject,
+        "content": post.content,
+        "tags": post.tags,
+        "upvoteCount": post.upvoteCount,
+        "replyCount": post.replyCount,
+        "createdAt": post.createdAt.isoformat(),
+        "hasUpvoted": False,
+    }
 
 @app.post("/community/post/{post_id}/upvote")
-def toggle_upvote(post_id: str, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
-    document = get_document("communityPosts", post_id)
-    if not document:
+async def toggle_upvote(post_id: str, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    post = await CommunityPost.find_one(CommunityPost.id == post_id)
+    if not post:
         raise HTTPException(status_code=404, detail="Post not found")
 
-    data = dict(document.data or {})
-    upvoters = data.get("upvoters", [])
-    if user.uid in upvoters:
-        upvoters.remove(user.uid)
-        data["upvoteCount"] = max(0, int(data.get("upvoteCount") or 1) - 1)
+    if user.uid in post.upvotes:
+        post.upvotes.remove(user.uid)
+        post.upvoteCount = max(0, post.upvoteCount - 1)
     else:
-        upvoters.append(user.uid)
-        data["upvoteCount"] = int(data.get("upvoteCount") or 0) + 1
+        post.upvotes.append(user.uid)
+        post.upvoteCount += 1
 
-    data["upvoters"] = upvoters
-    update_document(
-        "communityPosts",
-        post_id,
-        {
-            "upvoters": upvoters,
-            "upvoteCount": data["upvoteCount"],
-        },
-    )
-    return _serialize_post(post_id, data, user.uid)
+    await post.save()
+
+    return {
+        "id": post.id,
+        "authorId": post.author,
+        "authorName": post.authorName,
+        "authorRole": post.authorRole,
+        "subject": post.subject,
+        "content": post.content,
+        "tags": post.tags,
+        "upvoteCount": post.upvoteCount,
+        "replyCount": post.replyCount,
+        "createdAt": post.createdAt.isoformat(),
+        "hasUpvoted": user.uid in post.upvotes,
+    }
 
 @app.get("/resources")
-def list_resources(
+async def list_resources(
     subject: Optional[str] = None,
     topic: Optional[str] = None,
     chapter: Optional[str] = None,
@@ -478,237 +540,278 @@ def list_resources(
     limit: int = 40,
     user: FirebaseUser = Depends(verify_firebase_token),
 ) -> Dict[str, Any]:
-    filters = []
-    if subject:
-        filters.append(("subject", "==", subject))
-    if chapter:
-        filters.append(("chapter", "==", chapter))
-    elif topic:
-        filters.append(("chapter", "==", topic))
+    # Build query
+    query = Resource.find()
 
-    docs = query_collection("resources", filters=filters)
-    query_lower = (q or "").lower()
+    if subject:
+        query = query.find(Resource.subject == subject)
+    if chapter:
+        query = query.find(Resource.chapter == chapter)
+    elif topic:
+        query = query.find(Resource.topic == topic)
+
+    # Get resources
+    resources = await query.sort([("createdAt", -1)]).to_list(limit=min(limit, 60))
+
+    # Filter by search query if provided
+    if q:
+        query_lower = q.lower()
+        filtered_resources = []
+        for resource in resources:
+            haystack = " ".join([
+                resource.title or "",
+                resource.subject or "",
+                resource.topic or "",
+                resource.description or "",
+            ]).lower()
+            if query_lower in haystack:
+                filtered_resources.append(resource)
+        resources = filtered_resources
+
+    # Convert to response format
     rows = []
-    for doc in docs:
-        data = doc.data or {}
+    for resource in resources:
         record = {
-            "id": doc.id,
-            "title": data.get("title"),
-            "subject": data.get("subject"),
-            "topic": data.get("topic"),
-            "chapter": data.get("chapter"),
-            "url": data.get("url"),
-            "description": data.get("description"),
-            "tags": data.get("tags", []),
-            "grade": data.get("grade"),
-            "createdBy": data.get("createdBy"),
-            "createdByName": data.get("createdByName"),
-            "createdAt": data.get("createdAt"),
+            "id": resource.id,
+            "title": resource.title,
+            "subject": resource.subject,
+            "topic": resource.topic,
+            "chapter": resource.chapter,
+            "url": resource.url,
+            "description": resource.description,
+            "tags": resource.tags,
+            "grade": resource.grade,
+            "createdBy": resource.uploaded_by,
+            "createdByName": resource.createdByName,
+            "createdAt": resource.createdAt.isoformat(),
         }
-        if query_lower:
-            haystack = " ".join(
-                [
-                    record.get("title") or "",
-                    record.get("subject") or "",
-                    record.get("topic") or "",
-                    record.get("description") or "",
-                ]
-            ).lower()
-            if query_lower not in haystack:
-                continue
         rows.append(record)
 
-    rows = sorted(rows, key=lambda item: item.get("createdAt") or "", reverse=True)
-    max_rows = max(1, min(limit, 60))
-    return {"resources": rows[:max_rows]}
+    return {"resources": rows}
 
 @app.post("/resources")
-def upload_resource(payload: ResourceUploadPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
-    resource_id = uuid.uuid4().hex
-    author_name = _get_student_display_name(user.uid)
+async def upload_resource(payload: ResourceUploadPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    # Get author name
+    user_doc = await User.find_one(User.id == user.uid)
+    author_name = user_doc.profile.name if user_doc and user_doc.profile and user_doc.profile.name else user.email
+
     chapter = payload.chapter or payload.topic or "General"
-    data = {
-        "title": payload.title,
-        "subject": payload.subject,
-        "topic": payload.topic or chapter,
-        "chapter": chapter,
-        "url": payload.url,
-        "description": payload.description,
-        "tags": payload.tags,
-        "grade": payload.grade,
-        "createdBy": user.uid,
-        "createdByName": author_name,
-        "createdAt": _utc_now(),
-    }
-    add_document("resources", data, document_id=resource_id)
-    
+
+    resource = Resource(
+        title=payload.title,
+        subject=payload.subject,
+        topic=payload.topic or chapter,
+        chapter=chapter,
+        url=payload.url,
+        description=payload.description,
+        tags=payload.tags,
+        grade=payload.grade,
+        uploaded_by=user.uid,
+        createdByName=author_name,
+    )
+
+    await resource.insert()
+
+    # Update user's notesShared count
     try:
-        profile_doc = get_document("studentProfiles", user.uid)
-        current_notes = 0
-        if profile_doc and profile_doc.data:
-            current_notes = int(profile_doc.data.get("notesShared") or 0)
-        update_document(
-            "studentProfiles",
-            user.uid,
-            {"notesShared": current_notes + 1},
-            server_timestamp_fields=["updatedAt"],
-        )
+        if user_doc and user_doc.profile:
+            user_doc.profile.notesShared = (user_doc.profile.notesShared or 0) + 1
+            user_doc.updatedAt = datetime.utcnow()
+            await user_doc.save()
     except Exception:
         # Do not block uploads if stats update fails
         pass
 
     return {
-        "id": resource_id,
-        **data,
+        "id": resource.id,
+        "title": resource.title,
+        "subject": resource.subject,
+        "topic": resource.topic,
+        "chapter": resource.chapter,
+        "url": resource.url,
+        "description": resource.description,
+        "tags": resource.tags,
+        "grade": resource.grade,
+        "createdBy": resource.uploaded_by,
+        "createdByName": resource.createdByName,
+        "createdAt": resource.createdAt.isoformat(),
     }
 
 @app.get("/habits")
-def list_habits(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
-    _ensure_default_habits(user.uid)
-    today = _utc_now().split("T")[0]
-    habit_docs = query_collection(
-        "habits",
-        filters=[("studentId", "==", user.uid), ("archived", "==", False)],
-    )
-    checkins = query_collection(
-        "habitCheckins",
-        filters=[("studentId", "==", user.uid), ("date", "==", today)],
-    )
-    completed_ids = {doc.data.get("habitId") for doc in checkins if doc.data}
+async def list_habits(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    await _ensure_default_habits(user.uid)
+    today = datetime.utcnow().date().isoformat()
 
-    habits: List[Dict[str, Any]] = []
-    for doc in habit_docs:
-        data = doc.data or {}
-        habits.append(
-            {
-                "id": doc.id,
-                "studentId": data.get("studentId"),
-                "name": data.get("name"),
-                "timeOfDay": data.get("timeOfDay", "morning"),
-                "createdAt": data.get("createdAt"),
-                "archived": data.get("archived", False),
-                "completedToday": doc.id in completed_ids,
-                "lastCompletedAt": data.get("lastCompletedAt"),
-            }
-        )
-    return {"habits": habits}
+    habits = await Habit.find(
+        Habit.user_email == user.uid,
+        Habit.archived == False
+    ).to_list()
+
+    # Check today's completions
+    from models import Habit  # Import here to avoid circular import
+    completed_habits = await Habit.find(
+        Habit.user_email == user.uid,
+        Habit.completed_dates == today
+    ).to_list()
+
+    completed_ids = {habit.id for habit in completed_habits}
+
+    habit_list: List[Dict[str, Any]] = []
+    for habit in habits:
+        habit_list.append({
+            "id": habit.id,
+            "studentId": habit.user_email,
+            "name": habit.title,
+            "timeOfDay": habit.timeOfDay,
+            "createdAt": habit.createdAt.isoformat(),
+            "archived": habit.archived,
+            "completedToday": habit.id in completed_ids,
+            "lastCompletedAt": habit.lastCompletedAt,
+        })
+
+    return {"habits": habit_list}
 
 @app.post("/habits")
-def create_habit(payload: HabitPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
-    habit_id = uuid.uuid4().hex
-    data = {
-        "studentId": user.uid,
-        "name": payload.name,
-        "timeOfDay": payload.timeOfDay,
-        "archived": False,
-        "createdAt": _utc_now(),
-    }
-    add_document("habits", data, document_id=habit_id)
+async def create_habit(payload: HabitPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    habit = Habit(
+        user_email=user.uid,
+        title=payload.name,
+        timeOfDay=payload.timeOfDay,
+        archived=False,
+    )
+    await habit.insert()
+
     return {
-        "id": habit_id,
-        **data,
+        "id": habit.id,
+        "studentId": habit.user_email,
+        "name": habit.title,
+        "timeOfDay": habit.timeOfDay,
+        "createdAt": habit.createdAt.isoformat(),
+        "archived": habit.archived,
         "completedToday": False,
+        "lastCompletedAt": habit.lastCompletedAt,
     }
 
 @app.post("/habits/checkin")
-def habit_checkin(payload: HabitCheckinPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
-    habit = get_document("habits", payload.habitId)
-    if not habit or habit.data.get("studentId") != user.uid:
+async def habit_checkin(payload: HabitCheckinPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    habit = await Habit.find_one(Habit.id == payload.habitId, Habit.user_email == user.uid)
+    if not habit:
         raise HTTPException(status_code=404, detail="Habit not found")
 
-    date = payload.date or _utc_now().split("T")[0]
-    checkin_id = f"{user.uid}_{payload.habitId}_{date}"
+    date = payload.date or datetime.utcnow().date().isoformat()
 
     if payload.completed:
-        add_document(
-            "habitCheckins",
-            {
-                "id": checkin_id,
-                "habitId": payload.habitId,
-                "studentId": user.uid,
-                "date": date,
-                "timestamp": _utc_now(),
-            },
-            document_id=checkin_id,
-        )
-        update_document("habits", payload.habitId, {"lastCompletedAt": date})
+        if date not in habit.completed_dates:
+            habit.completed_dates.append(date)
+            habit.lastCompletedAt = date
+            await habit.save()
     else:
-        delete_document("habitCheckins", checkin_id)
+        if date in habit.completed_dates:
+            habit.completed_dates.remove(date)
+            # Update lastCompletedAt to the most recent remaining date
+            if habit.completed_dates:
+                habit.lastCompletedAt = max(habit.completed_dates)
+            else:
+                habit.lastCompletedAt = None
+            await habit.save()
 
     return {"status": "ok", "completed": payload.completed}
 
 @app.post("/assignment")
-def create_assignment(payload: CreateAssignmentPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+async def create_assignment(payload: CreateAssignmentPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     _ensure_teacher(user)
-    
-    assignment_id = uuid.uuid4().hex
-    data = payload.model_dump()
-    data.update({
-        "id": assignment_id,
-        "teacherId": user.uid,
-        "createdAt": _utc_now(),
-        "status": "active"
-    })
-    
-    add_document("assignments", data, document_id=assignment_id)
-    return data
+
+    assignment = Assignment(
+        title=payload.title,
+        subject=payload.subject,
+        type=payload.type,
+        dueDate=payload.dueDate,
+        description=payload.description,
+        instructions=payload.instructions,
+        attachments=payload.attachments,
+        studentIds=payload.studentIds,
+        priority=payload.priority,
+        estimatedTime=payload.estimatedTime,
+        teacherId=user.uid,
+        classId=payload.classId,
+        status="active"
+    )
+
+    await assignment.insert()
+
+    # Create student submissions if studentIds provided
+    if payload.studentIds:
+        for student_id in payload.studentIds:
+            submission = StudentSubmission(
+                assignmentId=assignment.id,
+                studentId=student_id,
+                status="pending"
+            )
+            await submission.insert()
+
+    return assignment.model_dump()
 
 @app.delete("/assignment/{assignment_id}")
-def delete_assignment_endpoint(assignment_id: str, user: FirebaseUser = Depends(verify_firebase_token)):
+async def delete_assignment_endpoint(assignment_id: str, user: FirebaseUser = Depends(verify_firebase_token)):
     _ensure_teacher(user)
-    delete_document("assignments", assignment_id)
+    assignment = await Assignment.find_one(Assignment.id == assignment_id, Assignment.teacherId == user.uid)
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+
+    # Delete associated submissions
+    await StudentSubmission.find(StudentSubmission.assignmentId == assignment_id).delete()
+
+    # Delete the assignment
+    await assignment.delete()
+
     return {"status": "deleted", "id": assignment_id}
 
 @app.get("/tests")
-def get_tests(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+async def get_tests(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     # If teacher, return all tests they created
     # If student, return tests assigned to them (or all for now)
-    
-    filters = [("type", "==", "test")]
+
+    query = Assignment.find(Assignment.type == "test")
+
     if user.role == "teacher":
-        filters.append(("teacherId", "==", user.uid))
-        
-    docs = query_collection("assignments", filters=filters)
+        query = query.find(Assignment.teacherId == user.uid)
+
+    assignments = await query.to_list()
     tests = []
-    for doc in docs:
-        data = doc.data or {}
-        tests.append({
-            "id": doc.id,
-            **data
-        })
+    for assignment in assignments:
+        test_data = assignment.model_dump()
+        test_data["id"] = assignment.id
+        tests.append(test_data)
+
     return {"tests": tests}
 
 @app.get("/homework")
-def get_homework(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
-    filters = [("type", "==", "homework")]
-    # For students, we might want to filter by classId or studentIds if implemented
-    
-    docs = query_collection("assignments", filters=filters)
+async def get_homework(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    assignments = await Assignment.find(Assignment.type == "homework").to_list()
     homework = []
-    for doc in docs:
-        data = doc.data or {}
-        homework.append({
-            "id": doc.id,
-            **data
-        })
+    for assignment in assignments:
+        homework_data = assignment.model_dump()
+        homework_data["id"] = assignment.id
+        homework.append(homework_data)
+
     return {"homework": homework}
 
 @app.post("/attendance")
 async def record_attendance(payload: AttendancePayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     _ensure_teacher(user)
 
-    doc_id = uuid.uuid4().hex
-    records = [rec.model_dump(by_alias=True) for rec in payload.records]
-    record = {
-        "id": doc_id,
-        "teacherId": user.uid,
-        "classId": payload.class_id,
-        "date": payload.date,
-        "records": records,
-        "notes": payload.notes,
-        "createdAt": _utc_now(),
-    }
-    add_document("attendance", record, document_id=doc_id)
+    attendance = Attendance(
+        teacherId=user.uid,
+        classId=payload.class_id,
+        date=payload.date,
+        records=[rec.model_dump(by_alias=True) for rec in payload.records],
+        notes=payload.notes,
+    )
+
+    await attendance.insert()
+
+    record = attendance.model_dump()
+    record["id"] = attendance.id
     return record
 
 
@@ -716,18 +819,170 @@ async def record_attendance(payload: AttendancePayload, user: FirebaseUser = Dep
 async def upsert_timetable(payload: TimetablePayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
     _ensure_teacher(user)
 
-    doc_id = f"{payload.class_id}-{payload.week_of}"
-    record = {
-        "id": doc_id,
-        "teacherId": user.uid,
-        "classId": payload.class_id,
-        "weekOf": payload.week_of,
-        "entries": [entry.model_dump(by_alias=True) for entry in payload.entries],
-        "updatedAt": _utc_now(),
-    }
-    upsert_document("timetables", record, document_id=doc_id, merge=True)
+    # Try to find existing timetable
+    existing = await Timetable.find_one(
+        Timetable.classId == payload.class_id,
+        Timetable.weekOf == payload.week_of
+    )
+
+    if existing:
+        existing.entries = [entry.model_dump(by_alias=True) for entry in payload.entries]
+        existing.updatedAt = datetime.utcnow()
+        await existing.save()
+        timetable = existing
+    else:
+        timetable = Timetable(
+            teacherId=user.uid,
+            classId=payload.class_id,
+            weekOf=payload.week_of,
+            entries=[entry.model_dump(by_alias=True) for entry in payload.entries],
+        )
+        await timetable.insert()
+
+    record = timetable.model_dump()
+    record["id"] = timetable.id
     return record
 
+
+@app.get("/analytics")
+async def analytics_dashboard(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    _ensure_teacher(user)
+
+    # Aggregation pipeline for missing assignments per student
+    missing_assignments_pipeline = [
+        {
+            "$lookup": {
+                "from": "assignments",
+                "localField": "assignmentId",
+                "foreignField": "_id",
+                "as": "assignment"
+            }
+        },
+        {
+            "$unwind": "$assignment"
+        },
+        {
+            "$match": {
+                "assignment.dueDate": {"$lt": datetime.utcnow().isoformat()},
+                "status": {"$nin": ["submitted", "completed"]}
+            }
+        },
+        {
+            "$group": {
+                "_id": "$studentId",
+                "missingCount": {"$sum": 1},
+                "assignments": {
+                    "$push": {
+                        "id": "$assignment._id",
+                        "title": "$assignment.title",
+                        "dueDate": "$assignment.dueDate",
+                        "subject": "$assignment.subject"
+                    }
+                }
+            }
+        },
+        {
+            "$sort": {"missingCount": -1}
+        }
+    ]
+
+    # Aggregation pipeline for average class mood from check-ins
+    mood_analytics_pipeline = [
+        {
+            "$match": {
+                "timestamp": {
+                    "$gte": datetime.utcnow() - timedelta(days=30)  # Last 30 days
+                }
+            }
+        },
+        {
+            "$group": {
+                "_id": None,
+                "totalCheckins": {"$sum": 1},
+                "avgStressLevel": {"$avg": "$stressLevel"},
+                "moodCounts": {
+                    "$push": "$mood"
+                },
+                "recentCheckins": {
+                    "$push": {
+                        "studentId": "$studentId",
+                        "mood": "$mood",
+                        "stressLevel": "$stressLevel",
+                        "timestamp": "$timestamp"
+                    }
+                }
+            }
+        },
+        {
+            "$project": {
+                "totalCheckins": 1,
+                "avgStressLevel": {"$round": ["$avgStressLevel", 1]},
+                "moodDistribution": {
+                    "$arrayToObject": {
+                        "$map": {
+                            "input": {"$setUnion": ["$moodCounts"]},
+                            "as": "mood",
+                            "in": {
+                                "k": "$$mood",
+                                "v": {
+                                    "$size": {
+                                        "$filter": {
+                                            "input": "$moodCounts",
+                                            "cond": {"$eq": ["$$this", "$$mood"]}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "recentCheckins": {"$slice": ["$recentCheckins", 10]}
+            }
+        }
+    ]
+
+    from motor.motor_asyncio import AsyncIOMotorClient
+    from database import get_database
+
+    db = get_database()
+
+    # Execute aggregation pipelines
+    missing_assignments_result = await db.studentSubmissions.aggregate(missing_assignments_pipeline).to_list(length=None)
+    mood_analytics_result = await db.checkins.aggregate(mood_analytics_pipeline).to_list(length=1)
+
+    # Process missing assignments data
+    missing_assignments = []
+    for result in missing_assignments_result:
+        student_doc = await User.find_one(User.id == result["_id"])
+        student_name = "Unknown Student"
+        if student_doc and student_doc.profile and student_doc.profile.name:
+            student_name = student_doc.profile.name
+        elif student_doc:
+            student_name = student_doc.email
+
+        missing_assignments.append({
+            "studentId": result["_id"],
+            "studentName": student_name,
+            "missingCount": result["missingCount"],
+            "assignments": result["assignments"][:5]  # Limit to 5 assignments
+        })
+
+    # Process mood analytics data
+    mood_analytics = {}
+    if mood_analytics_result:
+        result = mood_analytics_result[0]
+        mood_analytics = {
+            "totalCheckins": result.get("totalCheckins", 0),
+            "avgStressLevel": result.get("avgStressLevel", 0),
+            "moodDistribution": result.get("moodDistribution", {}),
+            "recentCheckins": result.get("recentCheckins", [])
+        }
+
+    return {
+        "missingAssignments": missing_assignments,
+        "moodAnalytics": mood_analytics,
+        "generatedAt": datetime.utcnow().isoformat()
+    }
 
 @app.get("/analytics/alerts")
 async def analytics_alerts(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
@@ -737,32 +992,32 @@ async def analytics_alerts(user: FirebaseUser = Depends(verify_firebase_token)) 
     history_map: Dict[str, Dict[str, Any]] = defaultdict(dict)
     LOW_MOOD_STATES = {"sad", "anxious", "stressed", "tired", "overwhelmed"}
 
-    checkins_by_student: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    # Get all checkins
+    checkins = await CheckIn.find().to_list()
+    checkins_by_student: Dict[str, List[CheckIn]] = defaultdict(list)
 
-    for doc in query_collection("checkins"):
-        checkin = dict(doc.data or {})
-        student_id = checkin.get("studentId")
-        if not student_id:
-            continue
-        checkin["id"] = doc.id
+    for checkin in checkins:
+        student_id = checkin.studentId
         checkins_by_student[student_id].append(checkin)
-        mood = (checkin.get("mood") or "").lower()
-        stress_level = int(checkin.get("stressLevel") or 0)
+
+        mood = (checkin.mood or "").lower()
+        stress_level = checkin.stressLevel
         if mood in LOW_MOOD_STATES or stress_level >= 7:
             entry = _ensure_alert_entry(alerts_map, student_id)
             entry["signals"].append({
                 "category": "wellbeing",
                 "description": f"Low mood '{mood or 'unknown'}' with stress level {stress_level}",
-                "source": checkin,
+                "source": checkin.model_dump(),
             })
             entry["riskScore"] += 20
 
+    # Check for mood streaks
     for student_id, records in checkins_by_student.items():
-        sorted_records = sorted(records, key=lambda item: item.get("timestamp") or "", reverse=True)
-        history_map[student_id]["recentCheckins"] = sorted_records[:7]
+        sorted_records = sorted(records, key=lambda item: item.timestamp, reverse=True)
+        history_map[student_id]["recentCheckins"] = [r.model_dump() for r in sorted_records[:7]]
         streak = 0
         for record in sorted_records:
-            if (record.get("mood") or "").lower() in LOW_MOOD_STATES:
+            if (record.mood or "").lower() in LOW_MOOD_STATES:
                 streak += 1
             else:
                 break
@@ -771,41 +1026,41 @@ async def analytics_alerts(user: FirebaseUser = Depends(verify_firebase_token)) 
             entry["signals"].append({
                 "category": "pattern",
                 "description": f"Low mood reported for {streak} consecutive check-ins.",
-                "source": {"recentCheckins": sorted_records[:streak]},
+                "source": {"recentCheckins": [r.model_dump() for r in sorted_records[:streak]]},
             })
             entry["riskScore"] += 25
 
-    assignments_index = {
-        doc.id: doc.data or {}
-        for doc in query_collection("assignments")
-    }
-    submissions_by_student: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-    for submission_doc in query_collection("studentSubmissions"):
-        data = dict(submission_doc.data or {})
-        student_id = data.get("studentId")
-        if not student_id:
-            continue
-        data["id"] = submission_doc.id
-        submissions_by_student[student_id].append(data)
+    # Get assignments and submissions
+    assignments = await Assignment.find().to_list()
+    assignments_index = {assignment.id: assignment for assignment in assignments}
 
-    now = datetime.now(timezone.utc)
-    for student_id, submissions in submissions_by_student.items():
+    submissions = await StudentSubmission.find().to_list()
+    submissions_by_student: Dict[str, List[StudentSubmission]] = defaultdict(list)
+
+    for submission in submissions:
+        submissions_by_student[submission.studentId].append(submission)
+
+    # Check for missed assignments
+    now = datetime.utcnow()
+    for student_id, student_submissions in submissions_by_student.items():
         missed: List[Dict[str, Any]] = []
-        for submission in submissions:
-            assignment_id = submission.get("assignmentId")
-            assignment = assignments_index.get(assignment_id or "")
-            if not assignment:
+        for submission in student_submissions:
+            assignment = assignments_index.get(submission.assignmentId)
+            if not assignment or not assignment.dueDate:
                 continue
-            due = _parse_iso(assignment.get("dueDate"))
-            if due and due < now:
-                status = (submission.get("status") or "pending").lower()
-                if status not in {"submitted", "completed"}:
+
+            try:
+                due = datetime.fromisoformat(assignment.dueDate.replace("Z", "+00:00"))
+                if due < now and submission.status not in {"submitted", "completed"}:
                     missed.append({
-                        "assignmentId": assignment_id,
-                        "title": assignment.get("title"),
-                        "dueDate": assignment.get("dueDate"),
-                        "status": status,
+                        "assignmentId": submission.assignmentId,
+                        "title": assignment.title,
+                        "dueDate": assignment.dueDate,
+                        "status": submission.status,
                     })
+            except ValueError:
+                continue  # Skip invalid dates
+
         if len(missed) >= 3:
             entry = _ensure_alert_entry(alerts_map, student_id)
             entry["signals"].append({
@@ -816,19 +1071,19 @@ async def analytics_alerts(user: FirebaseUser = Depends(verify_firebase_token)) 
             entry["riskScore"] += 20
             history_map[student_id]["missedAssignments"] = missed[:5]
 
+    # If no alerts, create positive alerts for active students
     if not alerts_map:
-        recent_checkins = query_collection("checkins", limit=5)
+        recent_checkins = await CheckIn.find().sort([("timestamp", -1)]).limit(5).to_list()
         seen_students = set()
-        for doc in recent_checkins:
-            data = doc.data or {}
-            sid = data.get("studentId")
-            if sid and sid not in seen_students:
+        for checkin in recent_checkins:
+            sid = checkin.studentId
+            if sid not in seen_students:
                 seen_students.add(sid)
                 entry = _ensure_alert_entry(alerts_map, sid)
                 entry["signals"].append({
                     "category": "positive",
                     "description": "Consistent check-ins and stable mood reported.",
-                    "source": data,
+                    "source": checkin.model_dump(),
                 })
 
     alerts = sorted(alerts_map.values(), key=lambda alert: alert.get("riskScore", 0), reverse=True)
