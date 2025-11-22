@@ -18,7 +18,7 @@ from database import init_database
 from memory import session_service
 from models import (
     User, Habit, CommunityPost, Resource, Assignment,
-    CheckIn, Attendance, Timetable, PeerMessage, StudentSubmission
+    CheckIn, Attendance, Timetable, PeerMessage, StudentSubmission, Profile
 )
 
 app = FastAPI(title="Student Mentor Backend", version="2.0.0")
