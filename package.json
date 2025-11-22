@@ -14,8 +14,7 @@
     "lint:fix": "eslint src tests --ext ts,tsx --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
-    "type-check": "tsc --noEmit",
-    "prepare": "husky install || echo Husky skipped"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "firebase": "^12.6.0",
