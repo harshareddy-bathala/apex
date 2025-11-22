@@ -105,7 +105,8 @@ const TeacherLoginPage: React.FC = () => {
   }
 
   if (user) {
-    return <Navigate to="/" replace />;
+    // Let the AppRouter's ProtectedRoutes handle authenticated users
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (

@@ -167,7 +167,8 @@ const StudentLoginPage: React.FC = () => {
   }
 
   if (user) {
-    return <Navigate to="/" replace state={shouldForceOnboarding ? { forceOnboarding: true } : null} />;
+    // Let the AppRouter's ProtectedRoutes handle authenticated users
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (
