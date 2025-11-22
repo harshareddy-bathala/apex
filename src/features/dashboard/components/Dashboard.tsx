@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { StudentProfile, DailyCheckIn, ActivityLog, Homework, Test, CommunityPost } from '@/types';
+import { StudentProfile, DailyCheckIn, ActivityLog, Homework, Test, CommunityPost, Habit } from '@/types';
 import { calculateAcademicMetrics } from '@/common/utils/aiHelpers';
 import DashboardContent from './DashboardContent';
 
@@ -11,6 +11,9 @@ interface DashboardProps {
   tests?: Test[];
   communityPosts?: CommunityPost[];
   onHomeworkStatusChange?: (homeworkId: string, status: Homework['status']) => Promise<void> | void;
+  habits?: Habit[];
+  onHabitToggle?: (habitId: string, completed: boolean) => Promise<void> | void;
+  onHabitCreate?: (name: string, timeOfDay: Habit['timeOfDay']) => Promise<void> | void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -20,7 +23,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   homework = [],
   tests = [],
   communityPosts = [],
+  habits = [],
   onHomeworkStatusChange,
+  onHabitToggle,
+  onHabitCreate,
 }) => {
   const academicMetrics = useMemo(() => calculateAcademicMetrics(checkIns), [checkIns]);
 
@@ -134,13 +140,21 @@ const Dashboard: React.FC<DashboardProps> = ({
           progress: Math.round(academicMetrics.homeworkCompletionRate * 0.7 + academicMetrics.attendanceRate * 0.3)
         }
       ]
+      habits: habits.map((habit) => ({
+        id: habit.id,
+        name: habit.name,
+        timeOfDay: habit.timeOfDay,
+        completedToday: habit.completedToday,
+      })),
     };
-  }, [profile, checkIns, academicMetrics, homework, tests, activities, communityPosts]);
+  }, [profile, checkIns, academicMetrics, homework, tests, activities, communityPosts, habits]);
 
   return (
     <DashboardContent
       studentData={dashboardData}
       onTaskStatusChange={onHomeworkStatusChange}
+      onHabitToggle={onHabitToggle}
+      onHabitCreate={onHabitCreate}
     />
   );
 };

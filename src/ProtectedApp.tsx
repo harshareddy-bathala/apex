@@ -18,12 +18,13 @@ import { useAuth } from '@/common/hooks/useAuth';
 import { useProfile } from '@/common/context/ProfileContext';
 import { subscribeToAssignmentBroadcast } from '@/common/utils/liveUpdates';
 import { auth } from '@/firebase';
-import { getCommunityFeed, getHomework, getTests, updateHomework } from '@/api/client';
+import { checkinHabit, createHabit, getCommunityFeed, getHabits, getHomework, getTests, updateHomework } from '@/api/client';
 import type { StudentProfileRecord } from '@/api/client';
 import type {
   ActivityLog,
   CommunityPost,
   DailyCheckIn as DailyCheckInType,
+  Habit,
   Homework,
   StudentProfile,
   TeacherAlert,
@@ -45,6 +46,7 @@ const ProtectedApp: React.FC = () => {
   const [tests, setTests] = useState<Test[]>([]);
   const [teacherAlerts, setTeacherAlerts] = useState<TeacherAlert[]>([]);
   const [communityDigest, setCommunityDigest] = useState<CommunityPost[]>([]);
+  const [habits, setHabits] = useState<Habit[]>([]);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showGoalsEditor, setShowGoalsEditor] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -91,6 +93,22 @@ const ProtectedApp: React.FC = () => {
   useEffect(() => {
     void loadHomework();
   }, [loadHomework]);
+
+  const loadHabits = useCallback(async () => {
+    if (!idToken) {
+      return;
+    }
+    try {
+      const { habits: rows } = await getHabits(idToken);
+      setHabits(rows);
+    } catch {
+      setHabits([]);
+    }
+  }, [idToken]);
+
+  useEffect(() => {
+    void loadHabits();
+  }, [loadHabits]);
 
   useEffect(() => {
     const unsubscribe = subscribeToAssignmentBroadcast((event) => {
@@ -156,6 +174,34 @@ const ProtectedApp: React.FC = () => {
       }
     },
     [idToken, loadHomework],
+  );
+
+  const handleHabitToggle = useCallback(
+    async (habitId: string, completed: boolean) => {
+      if (!idToken) {
+        return;
+      }
+      setHabits((prev) =>
+        prev.map((habit) => (habit.id === habitId ? { ...habit, completedToday: completed } : habit)),
+      );
+      try {
+        await checkinHabit(idToken, { habitId, completed });
+      } catch {
+        await loadHabits();
+      }
+    },
+    [idToken, loadHabits],
+  );
+
+  const handleHabitCreate = useCallback(
+    async (name: string, timeOfDay: Habit['timeOfDay']) => {
+      if (!idToken || !name.trim()) {
+        return;
+      }
+      await createHabit(idToken, { name: name.trim(), timeOfDay });
+      await loadHabits();
+    },
+    [idToken, loadHabits],
   );
 
   const addActivity = (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => {
@@ -314,6 +360,9 @@ const ProtectedApp: React.FC = () => {
                     tests={tests}
                     communityPosts={communityDigest}
                     onHomeworkStatusChange={handleHomeworkStatusChange}
+                    habits={habits}
+                    onHabitToggle={handleHabitToggle}
+                    onHabitCreate={handleHabitCreate}
                   />
                 </>
               }

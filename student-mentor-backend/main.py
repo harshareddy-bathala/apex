@@ -5,7 +5,7 @@ import os
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -116,7 +116,21 @@ class ResourceUploadPayload(BaseModel):
     tags: List[str] = Field(default_factory=list)
     grade: Optional[str] = None
 
+class HabitPayload(BaseModel):
+    name: str
+    timeOfDay: Literal["morning", "afternoon", "evening"] = "morning"
+
+class HabitCheckinPayload(BaseModel):
+    habitId: str
+    completed: bool = True
+    date: Optional[str] = None
+
 # --- Helper Functions ---
+DEFAULT_HABITS = [
+    {"name": "Drink Water", "timeOfDay": "morning"},
+    {"name": "Read 10 pages", "timeOfDay": "evening"},
+    {"name": "Meditate", "timeOfDay": "evening"},
+]
 
 def _ensure_teacher(user: FirebaseUser):
     if user.role != "teacher":
@@ -168,6 +182,26 @@ def _ensure_alert_entry(alerts_map: Dict[str, Dict[str, Any]], student_id: str) 
             "signals": [],
         }
     return alerts_map[student_id]
+
+def _ensure_default_habits(student_id: str):
+    existing = query_collection(
+        "habits",
+        filters=[("studentId", "==", student_id)],
+        limit=1,
+    )
+    if existing:
+        return
+    for habit in DEFAULT_HABITS:
+        add_document(
+            "habits",
+            {
+                "studentId": student_id,
+                "name": habit["name"],
+                "timeOfDay": habit["timeOfDay"],
+                "archived": False,
+                "createdAt": _utc_now(),
+            },
+        )
 
 # --- Endpoints ---
 
@@ -527,6 +561,81 @@ def upload_resource(payload: ResourceUploadPayload, user: FirebaseUser = Depends
         "id": resource_id,
         **data,
     }
+
+@app.get("/habits")
+def list_habits(user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    _ensure_default_habits(user.uid)
+    today = _utc_now().split("T")[0]
+    habit_docs = query_collection(
+        "habits",
+        filters=[("studentId", "==", user.uid), ("archived", "==", False)],
+    )
+    checkins = query_collection(
+        "habitCheckins",
+        filters=[("studentId", "==", user.uid), ("date", "==", today)],
+    )
+    completed_ids = {doc.data.get("habitId") for doc in checkins if doc.data}
+
+    habits: List[Dict[str, Any]] = []
+    for doc in habit_docs:
+        data = doc.data or {}
+        habits.append(
+            {
+                "id": doc.id,
+                "studentId": data.get("studentId"),
+                "name": data.get("name"),
+                "timeOfDay": data.get("timeOfDay", "morning"),
+                "createdAt": data.get("createdAt"),
+                "archived": data.get("archived", False),
+                "completedToday": doc.id in completed_ids,
+                "lastCompletedAt": data.get("lastCompletedAt"),
+            }
+        )
+    return {"habits": habits}
+
+@app.post("/habits")
+def create_habit(payload: HabitPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    habit_id = uuid.uuid4().hex
+    data = {
+        "studentId": user.uid,
+        "name": payload.name,
+        "timeOfDay": payload.timeOfDay,
+        "archived": False,
+        "createdAt": _utc_now(),
+    }
+    add_document("habits", data, document_id=habit_id)
+    return {
+        "id": habit_id,
+        **data,
+        "completedToday": False,
+    }
+
+@app.post("/habits/checkin")
+def habit_checkin(payload: HabitCheckinPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
+    habit = get_document("habits", payload.habitId)
+    if not habit or habit.data.get("studentId") != user.uid:
+        raise HTTPException(status_code=404, detail="Habit not found")
+
+    date = payload.date or _utc_now().split("T")[0]
+    checkin_id = f"{user.uid}_{payload.habitId}_{date}"
+
+    if payload.completed:
+        add_document(
+            "habitCheckins",
+            {
+                "id": checkin_id,
+                "habitId": payload.habitId,
+                "studentId": user.uid,
+                "date": date,
+                "timestamp": _utc_now(),
+            },
+            document_id=checkin_id,
+        )
+        update_document("habits", payload.habitId, {"lastCompletedAt": date})
+    else:
+        delete_document("habitCheckins", checkin_id)
+
+    return {"status": "ok", "completed": payload.completed}
 
 @app.post("/assignment")
 def create_assignment(payload: CreateAssignmentPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:

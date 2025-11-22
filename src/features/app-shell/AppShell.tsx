@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   FolderKanban,
   LayoutDashboard,
+  LogOut,
   LucideIcon,
   Menu,
   MessageSquare,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
+  Settings,
   SunMedium,
   UserRound,
   UsersRound,
@@ -41,6 +43,9 @@ const NAV_LINKS: Array<{ id: AppShellView; label: string; icon: LucideIcon }> = 
   { id: 'chat', label: 'AI Mentor', icon: MessageSquare },
   { id: 'profile', label: 'Profile', icon: UserRound },
 ];
+const EXPANDED_SIDEBAR_WIDTH = 260;
+const COLLAPSED_SIDEBAR_WIDTH = 72;
+const SIDEBAR_PROFILE_ACTIONS = new Set(['Edit Goals']);
 
 const AppShell: React.FC<AppShellProps> = ({
   activeView,
@@ -74,12 +79,32 @@ const AppShell: React.FC<AppShellProps> = ({
     }
   }, [isDesktop]);
 
-  const sidebarWidth = isDesktop ? (isCollapsed ? 88 : 280) : 0;
+  const sidebarWidth = isDesktop ? (isCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH) : 0;
 
   const mainStyle = useMemo<React.CSSProperties>(
-    () => (isDesktop ? { marginLeft: sidebarWidth } : {}),
+    () =>
+      isDesktop
+        ? {
+            marginLeft: sidebarWidth,
+            transition: 'margin 0.3s ease',
+          }
+        : {},
     [isDesktop, sidebarWidth],
   );
+
+  const headerStyle = useMemo<React.CSSProperties>(
+    () =>
+      isDesktop
+        ? {
+            left: sidebarWidth,
+            width: `calc(100% - ${sidebarWidth}px)`,
+          }
+        : {},
+    [isDesktop, sidebarWidth],
+  );
+
+  const headerQuickActions = quickActions.filter((action) => !SIDEBAR_PROFILE_ACTIONS.has(action.label));
+  const sidebarQuickActions = quickActions.filter((action) => SIDEBAR_PROFILE_ACTIONS.has(action.label));
 
   const handleNavigate = (view: AppShellView) => {
     onNavigate(view);
@@ -91,6 +116,24 @@ const AppShell: React.FC<AppShellProps> = ({
   const themeIcon = theme === 'light' ? <Moon size={18} /> : <SunMedium size={18} />;
   const CollapseIcon = isCollapsed ? PanelLeftOpen : PanelLeftClose;
 
+  const profileMenuItems = [
+    ...sidebarQuickActions.map((action) => ({
+      label: action.label,
+      icon: action.icon,
+      onClick: action.onClick,
+    })),
+    {
+      label: 'Settings',
+      icon: Settings,
+      onClick: () => handleNavigate('profile'),
+    },
+    {
+      label: 'Logout',
+      icon: LogOut,
+      onClick: onLogout,
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] transition-colors duration-300">
       {/* Sidebar */}
@@ -99,7 +142,7 @@ const AppShell: React.FC<AppShellProps> = ({
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
         style={{
-          width: isDesktop ? sidebarWidth : 280,
+          width: isDesktop ? sidebarWidth : EXPANDED_SIDEBAR_WIDTH,
         }}
       >
         <div className="flex items-center justify-between px-5 py-5">
@@ -161,13 +204,29 @@ const AppShell: React.FC<AppShellProps> = ({
             <p className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Signed in as</p>
             <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{userName}</p>
             <p className="text-xs text-[var(--text-secondary)] capitalize">{userRole}</p>
-            <button
-              type="button"
-              onClick={onLogout}
-              className="mt-3 w-full rounded-xl border border-[var(--border-strong)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition hover:bg-[var(--border-strong)]/10"
-            >
-              Sign out
-            </button>
+          </div>
+          <div className="space-y-1">
+            {profileMenuItems.map((item) => {
+              const ItemIcon = item.icon;
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => {
+                    item.onClick?.();
+                    if (!isDesktop) {
+                      setMobileOpen(false);
+                    }
+                  }}
+                  className="flex items-center gap-3 rounded-2xl border border-transparent px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:border-[var(--border-color)] hover:bg-[var(--bg-card)]/70 hover:text-[var(--text-primary)]"
+                >
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)]">
+                    <ItemIcon size={16} />
+                  </span>
+                  {(!isCollapsed || !isDesktop) && <span>{item.label}</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
       </aside>
@@ -184,7 +243,10 @@ const AppShell: React.FC<AppShellProps> = ({
 
       {/* Main content */}
       <div className="min-h-screen pt-20 lg:pt-0" style={mainStyle}>
-        <header className="fixed top-0 left-0 right-0 z-30 border-b border-[var(--border-subtle)] bg-[var(--bg-app)]/80 backdrop-blur-xl lg:left-auto">
+        <header
+          className="fixed top-0 left-0 right-0 z-30 border-b border-[var(--border-subtle)] bg-[var(--bg-app)]/85 backdrop-blur-xl transition-all"
+          style={headerStyle}
+        >
           <div className="flex items-center justify-between px-4 py-3 lg:px-8">
             <div className="flex items-center gap-3">
               <button
@@ -201,7 +263,7 @@ const AppShell: React.FC<AppShellProps> = ({
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {quickActions.map((action) => {
+              {headerQuickActions.map((action) => {
                 const Icon = action.icon;
                 return (
                   <button

@@ -44,8 +44,11 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
   loadingExternal,
   errorMessage,
 }) => {
-  const isHomeworkArray = Array.isArray(homework);
-  const safeHomework = useMemo(() => (isHomeworkArray ? homework : []), [homework, isHomeworkArray]);
+  if (!homework || !Array.isArray(homework)) {
+    return <EmptyState title="No assignments found" />;
+  }
+
+  const safeHomework = useMemo(() => homework ?? [], [homework]);
 
   const [filter, setFilter] = useState<FilterValue>('all');
   const [sortBy, setSortBy] = useState<SortValue>('dueDate');
@@ -169,18 +172,6 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
       setSortBy(event.target.value);
     }
   };
-
-  if (!isHomeworkArray) {
-    return (
-      <EmptyState
-        title="Assignments unavailable"
-        description="We couldn’t parse your homework data. Refresh to sync with the server."
-        actionLabel="Reload homework"
-        onAction={handleRefresh}
-        icon={<AlertCircle size={24} />}
-      />
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -427,26 +418,30 @@ export default HomeworkList;
 
 interface EmptyStateProps {
   title: string;
-  description: string;
-  actionLabel: string;
-  onAction: () => void;
-  icon: React.ReactNode;
+  description?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  icon?: React.ReactNode;
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({ title, description, actionLabel, onAction, icon }) => (
   <div className="glass-panel flex flex-col items-center gap-3 text-center">
-    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/60 p-4 text-[var(--text-primary)]">
-      {icon}
-    </div>
+    {icon && (
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/60 p-4 text-[var(--text-primary)]">
+        {icon}
+      </div>
+    )}
     <h3 className="text-xl font-semibold text-[var(--text-primary)]">{title}</h3>
-    <p className="max-w-md text-sm text-[var(--text-secondary)]">{description}</p>
-    <button
-      type="button"
-      onClick={onAction}
-      className="inline-flex items-center gap-2 rounded-2xl border border-[var(--accent-primary)] bg-[var(--accent-primary)] px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg"
-    >
-      <RefreshCw size={16} />
-      {actionLabel}
-    </button>
+    {description && <p className="max-w-md text-sm text-[var(--text-secondary)]">{description}</p>}
+    {actionLabel && onAction && (
+      <button
+        type="button"
+        onClick={onAction}
+        className="inline-flex items-center gap-2 rounded-2xl border border-[var(--accent-primary)] bg-[var(--accent-primary)] px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg"
+      >
+        <RefreshCw size={16} />
+        {actionLabel}
+      </button>
+    )}
   </div>
 );

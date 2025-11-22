@@ -303,6 +303,17 @@ export interface ResourceItem {
   createdAt: string;
 }
 
+export interface Habit {
+  id: string;
+  studentId: string;
+  name: string;
+  timeOfDay: 'morning' | 'afternoon' | 'evening';
+  createdAt: string;
+  archived?: boolean;
+  completedToday: boolean;
+  lastCompletedAt?: string;
+}
+
 // Teacher Alert (AI-triggered)
 export interface TeacherAlert {
   id: string;

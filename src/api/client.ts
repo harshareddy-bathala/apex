@@ -1,4 +1,14 @@
-import type { ChatContact, CommunityPost, DailyCheckIn, Homework, PeerMessage, ResourceItem, StudentProfile, Test } from '@/types';
+import type {
+  ChatContact,
+  CommunityPost,
+  DailyCheckIn,
+  Habit,
+  Homework,
+  PeerMessage,
+  ResourceItem,
+  StudentProfile,
+  Test,
+} from '@/types';
 
 const DEFAULT_BACKEND_URL =
   import.meta.env.VITE_MENTOR_BACKEND_URL?.replace(/\/$/, '') || 'http://localhost:8000';
@@ -150,6 +160,21 @@ export interface UploadResourcePayload {
 
 interface ResourcesResponse {
   resources: ResourceItem[];
+}
+
+interface HabitsResponse {
+  habits: Habit[];
+}
+
+export interface CreateHabitPayload {
+  name: string;
+  timeOfDay: 'morning' | 'afternoon' | 'evening';
+}
+
+export interface HabitCheckinPayload {
+  habitId: string;
+  completed: boolean;
+  date?: string;
 }
 
 const ensureResponseBody = (response: Response): ReadableStream<Uint8Array> => {
@@ -667,6 +692,55 @@ export async function uploadResource(token: string, payload: UploadResourcePaylo
   }
 
   return (await response.json()) as ResourceItem;
+}
+
+export async function getHabits(token: string): Promise<HabitsResponse> {
+  const response = await fetch(apiUrl('/habits'), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to load habits (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as HabitsResponse;
+}
+
+export async function createHabit(token: string, payload: CreateHabitPayload): Promise<Habit> {
+  const response = await fetch(apiUrl('/habits'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create habit (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as Habit;
+}
+
+export async function checkinHabit(token: string, payload: HabitCheckinPayload): Promise<void> {
+  const response = await fetch(apiUrl('/habits/checkin'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update habit (${response.status}): ${errorText}`);
+  }
 }
 
 export async function deleteAssignment(token: string, assignmentId: string): Promise<void> {

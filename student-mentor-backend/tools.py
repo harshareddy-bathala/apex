@@ -9,7 +9,7 @@ except ImportError:  # pragma: no cover - ADK 0.3 fallback decorator.
     def tool(func):
         return func
 
-from db_direct import add_document, get_document, query_collection, upsert_document
+from db_direct import add_document, delete_document, get_document, query_collection, upsert_document, _utc_now
 from memory import memory_bank, summarize_checkin
 
 analytics_runner: Optional[Callable[[str, str], str]] = None
@@ -293,3 +293,64 @@ def get_resources(subject: str = "", topic: str = "", query: str = "", limit: in
     resources = sorted(resources, key=lambda item: item.get("title") or "")
     max_items = max(1, min(limit, 15))
     return json.dumps(resources[:max_items])
+
+
+@tool
+def get_student_habits(student_id: str) -> str:
+    """Return the student's active habits with today's completion state."""
+
+    today = _utc_now().split("T")[0]
+    habits = query_collection(
+        "habits",
+        filters=[("studentId", "==", student_id), ("archived", "==", False)],
+    )
+    checkins = query_collection(
+        "habitCheckins",
+        filters=[("studentId", "==", student_id), ("date", "==", today)],
+    )
+    completed_ids = {doc.data.get("habitId") for doc in checkins if doc.data}
+
+    payload = []
+    for habit in habits:
+        data = habit.data or {}
+        payload.append(
+            {
+                "id": habit.id,
+                "name": data.get("name"),
+                "timeOfDay": data.get("timeOfDay", "morning"),
+                "completedToday": habit.id in completed_ids,
+                "lastCompletedAt": data.get("lastCompletedAt"),
+            }
+        )
+    return json.dumps(payload)
+
+
+@tool
+def record_habit_checkin(student_id: str, habit_id: str, completed: bool = True) -> str:
+    """Mark or clear a habit check-in for today."""
+
+    today = _utc_now().split("T")[0]
+    checkin_id = f"{student_id}_{habit_id}_{today}"
+
+    if completed:
+        add_document(
+            "habitCheckins",
+            {
+                "id": checkin_id,
+                "habitId": habit_id,
+                "studentId": student_id,
+                "date": today,
+                "timestamp": _utc_now(),
+            },
+            document_id=checkin_id,
+        )
+        upsert_document(
+            "habits",
+            {"lastCompletedAt": today},
+            document_id=habit_id,
+            merge=True,
+        )
+    else:
+        delete_document("habitCheckins", checkin_id)
+
+    return json.dumps({"status": "ok", "completed": completed})
