@@ -1,11 +1,29 @@
 from __future__ import annotations
 
 import os
-from typing import Callable, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence
 
-# Standard imports for google-adk 0.3.0
-# User confirmed google.adk.types does not exist.
-from google.adk.agents import Agent, ParallelAgent, SequentialAgent
+# Try to import google-adk agents, fallback to mock implementations
+try:
+    from google.adk.agents import Agent, ParallelAgent, SequentialAgent
+except ImportError:
+    # Fallback mock implementations for development/testing
+    class Agent:
+        def __init__(self, name: str, instruction: str, model: str, tools: Optional[list] = None):
+            self.name = name
+            self.instruction = instruction
+            self.model = model
+            self.tools = tools or []
+
+        def run(self, message: str, session: Optional[Any] = None) -> str:
+            # Mock implementation - return a simple response
+            return f"Mock response from {self.name}: {message[:50]}..."
+
+    class ParallelAgent(Agent):
+        pass
+
+    class SequentialAgent(Agent):
+        pass
 
 from memory import memory_bank, session_service
 from tools import (
