@@ -28,14 +28,19 @@ app = FastAPI(title="Student Mentor Backend", version="2.0.0")
 async def startup_event():
     """Initialize database connection and Beanie ODM"""
     database = await init_database()
-    from beanie import init_beanie
-    await init_beanie(
-        database=database,
-        document_models=[
-            User, Habit, CommunityPost, Resource, Assignment,
-            CheckIn, Attendance, Timetable, PeerMessage, StudentSubmission
-        ]
-    )
+
+    if database is not None:
+        from beanie import init_beanie
+        await init_beanie(
+            database=database,
+            document_models=[
+                User, Habit, CommunityPost, Resource, Assignment,
+                CheckIn, Attendance, Timetable, PeerMessage, StudentSubmission
+            ]
+        )
+        print("✅ Beanie ODM initialized successfully")
+    else:
+        print("⚠️  Beanie ODM not initialized - MongoDB not available")
 
 # Configure CORS
 app.add_middleware(
@@ -209,8 +214,13 @@ async def _ensure_default_habits(student_id: str):
 # --- Endpoints ---
 
 @app.get("/health")
-def health() -> Dict[str, str]:
-    return {"status": "ok"}
+def health() -> Dict[str, Any]:
+    from database import is_database_connected
+    return {
+        "status": "ok",
+        "database": "connected" if is_database_connected() else "disconnected",
+        "version": "2.0.0"
+    }
 
 @app.post("/auth/create-user-doc")
 async def create_user_doc(request: CreateUserDocRequest) -> Dict[str, Any]:
