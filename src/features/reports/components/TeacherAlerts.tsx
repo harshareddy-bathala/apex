@@ -19,21 +19,21 @@ export default function TeacherAlerts({ alerts, onDismiss }: TeacherAlertsProps)
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'urgent': return 'bg-red-50 border-red-300 text-red-900';
-      case 'high': return 'bg-orange-50 border-orange-300 text-orange-900';
-      case 'medium': return 'bg-yellow-50 border-yellow-300 text-yellow-900';
-      case 'low': return 'bg-blue-50 border-blue-300 text-blue-900';
+      case 'urgent': return 'bg-red-50 dark:bg-red-950/20 border-red-300 dark:border-red-800/50 text-red-900 dark:text-red-300';
+      case 'high': return 'bg-orange-50 dark:bg-orange-950/20 border-orange-300 dark:border-orange-800/50 text-orange-900 dark:text-orange-300';
+      case 'medium': return 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-300 dark:border-yellow-800/50 text-yellow-900 dark:text-yellow-300';
+      case 'low': return 'bg-blue-50 dark:bg-blue-950/20 border-blue-300 dark:border-blue-800/50 text-blue-900 dark:text-blue-300';
       default: return 'bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-primary)]';
     }
   };
 
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
-      case 'urgent': return 'bg-red-600 text-white';
-      case 'high': return 'bg-orange-600 text-white';
-      case 'medium': return 'bg-yellow-600 text-white';
-      case 'low': return 'bg-blue-600 text-white';
-      default: return 'bg-gray-600 text-white';
+      case 'urgent': return 'bg-red-600 dark:bg-red-700 text-white';
+      case 'high': return 'bg-orange-600 dark:bg-orange-700 text-white';
+      case 'medium': return 'bg-yellow-600 dark:bg-yellow-700 text-white';
+      case 'low': return 'bg-blue-600 dark:bg-blue-700 text-white';
+      default: return 'bg-[var(--accent-primary)] text-white';
     }
   };
 
@@ -43,7 +43,7 @@ export default function TeacherAlerts({ alerts, onDismiss }: TeacherAlertsProps)
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <h3 className="text-lg font-semibold text-[var(--text-primary)]">🔔 AI-Generated Teacher Alerts</h3>
-        <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+        <span className="bg-red-600 dark:bg-red-700 text-white text-xs px-2 py-1 rounded-full font-medium">
           {alerts.length}
         </span>
       </div>
@@ -92,7 +92,7 @@ export default function TeacherAlerts({ alerts, onDismiss }: TeacherAlertsProps)
                     <ul className="space-y-1">
                       {alert.suggestedActions.map((action, idx) => (
                         <li key={idx} className="text-sm flex items-start gap-2">
-                          <span className="text-green-600 font-bold">→</span>
+                          <span className="text-[var(--accent-primary)] font-bold">→</span>
                           <span>{action}</span>
                         </li>
                       ))}
