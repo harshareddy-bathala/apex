@@ -111,7 +111,7 @@ const ProtectedApp: React.FC = () => {
 
   useEffect(() => {
     void loadHabits();
-  }, [loadHabits]);
+  }, [idToken]); // Only depend on idToken to prevent unnecessary re-fetches
 
   useEffect(() => {
     const unsubscribe = subscribeToAssignmentBroadcast((event) => {
@@ -197,12 +197,18 @@ const ProtectedApp: React.FC = () => {
   );
 
   const handleHabitCreate = useCallback(
-    async (name: string, timeOfDay: Habit['timeOfDay']) => {
+    async (name: string, timeOfDay: Habit['timeOfDay'], targetTimeMinutes: number) => {
       if (!idToken || !name.trim()) {
         return;
       }
-      await createHabit(idToken, { name: name.trim(), timeOfDay });
-      await loadHabits();
+      try {
+        await createHabit(idToken, { name: name.trim(), timeOfDay, targetTimeMinutes });
+        await loadHabits();
+      } catch (error) {
+        console.error('Failed to create habit:', error);
+        // You could add a toast notification here
+        alert(`Failed to create habit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     },
     [idToken, loadHabits],
   );
@@ -314,15 +320,17 @@ const ProtectedApp: React.FC = () => {
     [location.pathname, navigate],
   );
 
+  const handleCheckInClick = useCallback(() => setShowCheckIn(true), []);
+
   const quickActions = useMemo(
     () => [
       {
         label: 'Daily Check-in',
         icon: CalendarCheck2,
-        onClick: () => setShowCheckIn(true),
+        onClick: handleCheckInClick,
       },
     ],
-    [setShowCheckIn],
+    [handleCheckInClick],
   );
 
   return (

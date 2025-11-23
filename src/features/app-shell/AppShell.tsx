@@ -171,7 +171,7 @@ const AppShell: React.FC<AppShellProps> = ({
 
         <div className="flex flex-1 flex-col overflow-y-auto">
           <nav className="flex flex-col gap-1 px-3 pb-4">
-            {NAV_LINKS.map((item) => {
+          {NAV_LINKS.map((item) => {
             const Icon = item.icon;
             const active = activeView === item.id;
             return (
@@ -198,42 +198,42 @@ const AppShell: React.FC<AppShellProps> = ({
               </button>
             );
           })}
-          </nav>
+        </nav>
         </div>
 
         {(!isCollapsed || !isDesktop) && (
-          <div className="space-y-4 px-4 pb-6">
-            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 p-4">
-              <p className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Signed in as</p>
-              <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{userName}</p>
-              <p className="text-xs text-[var(--text-secondary)] capitalize">{userRole}</p>
-            </div>
-            <div className="space-y-1">
-              {profileMenuItems.map((item) => {
-                const ItemIcon = item.icon;
-                return (
-                  <button
-                    key={item.label}
-                    type="button"
-                    onClick={() => {
-                      item.onClick?.();
-                      if (!isDesktop) {
-                        setMobileOpen(false);
-                      }
-                    }}
+        <div className="space-y-4 px-4 pb-6">
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 p-4">
+            <p className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Signed in as</p>
+            <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{userName}</p>
+            <p className="text-xs text-[var(--text-secondary)] capitalize">{userRole}</p>
+          </div>
+          <div className="space-y-1">
+            {profileMenuItems.map((item) => {
+              const ItemIcon = item.icon;
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => {
+                    item.onClick?.();
+                    if (!isDesktop) {
+                      setMobileOpen(false);
+                    }
+                  }}
                     className={`flex items-center rounded-2xl border border-transparent px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:border-[var(--border-color)] hover:bg-[var(--bg-card)]/70 hover:text-[var(--text-primary)] ${
                       isCollapsed && isDesktop ? 'justify-center' : 'gap-3'
                     }`}
-                  >
+                >
                     <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
-                      <ItemIcon size={16} />
-                    </span>
-                    {(!isCollapsed || !isDesktop) && <span>{item.label}</span>}
-                  </button>
-                );
-              })}
-            </div>
+                    <ItemIcon size={16} />
+                  </span>
+                  {(!isCollapsed || !isDesktop) && <span>{item.label}</span>}
+                </button>
+              );
+            })}
           </div>
+        </div>
         )}
 
       </aside>

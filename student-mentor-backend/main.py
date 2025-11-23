@@ -142,6 +142,7 @@ class ResourceUploadPayload(BaseModel):
 class HabitPayload(BaseModel):
     name: str
     timeOfDay: Literal["morning", "afternoon", "evening"] = "morning"
+    targetTimeMinutes: int = 5
 
 class HabitCheckinPayload(BaseModel):
     habitId: str
@@ -706,6 +707,7 @@ async def create_habit(payload: HabitPayload, user: FirebaseUser = Depends(verif
         user_email=user.uid,
         title=payload.name,
         timeOfDay=payload.timeOfDay,
+        targetTimeMinutes=payload.targetTimeMinutes,
         archived=False,
     )
     await habit.insert()
@@ -715,6 +717,7 @@ async def create_habit(payload: HabitPayload, user: FirebaseUser = Depends(verif
         "studentId": habit.user_email,
         "name": habit.title,
         "timeOfDay": habit.timeOfDay,
+        "targetTimeMinutes": habit.targetTimeMinutes,
         "createdAt": habit.createdAt.isoformat(),
         "archived": habit.archived,
         "completedToday": False,

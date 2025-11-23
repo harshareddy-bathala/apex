@@ -43,18 +43,24 @@ const AuthGuard: React.FC = () => {
       return;
     }
 
+    // Prevent duplicate requests
+    if (isProfileLoading) {
+      return;
+    }
+
     setIsProfileLoading(true);
     setError(null);
     try {
       const record = await getStudentProfile(idToken);
       setProfile(record);
     } catch (err) {
+      console.error('Profile fetch error:', err);
       setProfile(null);
       setError('Unable to load your profile. Please try again.');
     } finally {
       setIsProfileLoading(false);
     }
-  }, [idToken]);
+  }, [idToken, isProfileLoading]);
 
   useEffect(() => {
     if (!idToken) {
@@ -62,7 +68,7 @@ const AuthGuard: React.FC = () => {
       return;
     }
     void fetchProfile();
-  }, [fetchProfile, idToken]);
+  }, [idToken]); // Remove fetchProfile from dependencies to prevent unnecessary re-fetches
 
   // Get role from profile (which now includes role from backend), fallback to student
   const profileRole = profile?.role ?? 'student';

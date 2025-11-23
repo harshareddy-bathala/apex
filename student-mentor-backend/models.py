@@ -42,6 +42,7 @@ class Habit(Document):
     title: str
     completed_dates: List[str] = Field(default_factory=list)  # ISO date strings
     timeOfDay: Literal["morning", "afternoon", "evening"] = "morning"
+    targetTimeMinutes: int = 5  # Target time in minutes for this habit
     archived: bool = False
     createdAt: datetime = Field(default_factory=datetime.utcnow)
     lastCompletedAt: Optional[str] = None

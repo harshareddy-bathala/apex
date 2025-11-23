@@ -312,6 +312,7 @@ export interface Habit {
   studentId: string;
   name: string;
   timeOfDay: 'morning' | 'afternoon' | 'evening';
+  targetTimeMinutes: number;
   createdAt: string;
   archived?: boolean;
   completedToday: boolean;

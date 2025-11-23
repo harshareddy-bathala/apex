@@ -5,7 +5,7 @@ import { getHabits, createHabit, checkinHabit, type Habit } from '@/api/client';
 interface HabitDashboardProps {
   habits: Habit[];
   onHabitToggle: (habitId: string, completed: boolean) => void;
-  onHabitCreate: (name: string, timeOfDay: Habit['timeOfDay']) => void;
+  onHabitCreate: (name: string, timeOfDay: Habit['timeOfDay'], targetTimeMinutes: number) => void;
 }
 
 const timeBadges: Record<Habit['timeOfDay'], string> = {
@@ -18,6 +18,7 @@ const HabitDashboard: React.FC<HabitDashboardProps> = ({ habits, onHabitToggle, 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
   const [newHabitTimeOfDay, setNewHabitTimeOfDay] = useState<Habit['timeOfDay']>('morning');
+  const [newHabitTargetTime, setNewHabitTargetTime] = useState(5);
 
   const completedToday = habits.filter(h => h.completedToday).length;
   const completionRate = habits.length > 0 ? Math.round((completedToday / habits.length) * 100) : 0;
@@ -32,12 +33,13 @@ const HabitDashboard: React.FC<HabitDashboardProps> = ({ habits, onHabitToggle, 
 
   const handleCreateHabit = useCallback(() => {
     if (newHabitName.trim()) {
-      onHabitCreate(newHabitName.trim(), newHabitTimeOfDay);
+      onHabitCreate(newHabitName.trim(), newHabitTimeOfDay, newHabitTargetTime);
       setNewHabitName('');
       setNewHabitTimeOfDay('morning');
+      setNewHabitTargetTime(5);
       setShowCreateForm(false);
     }
-  }, [newHabitName, newHabitTimeOfDay, onHabitCreate]);
+  }, [newHabitName, newHabitTimeOfDay, newHabitTargetTime, onHabitCreate]);
 
   const groupedHabits = habits.reduce((acc, habit) => {
     if (!acc[habit.timeOfDay]) {
@@ -230,6 +232,24 @@ const HabitDashboard: React.FC<HabitDashboardProps> = ({ habits, onHabitToggle, 
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                  Target Time (minutes)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={newHabitTargetTime}
+                  onChange={(e) => setNewHabitTargetTime(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-[var(--bg-app)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  placeholder="e.g., 5"
+                />
+                <p className="text-xs text-[var(--text-muted)] mt-1">
+                  How many minutes do you want to spend on this habit daily?
+                </p>
+              </div>
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -237,6 +257,7 @@ const HabitDashboard: React.FC<HabitDashboardProps> = ({ habits, onHabitToggle, 
                     setShowCreateForm(false);
                     setNewHabitName('');
                     setNewHabitTimeOfDay('morning');
+                    setNewHabitTargetTime(5);
                   }}
                   className="flex-1 py-2 px-4 border border-[var(--border-color)] rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-app)] transition-colors"
                 >

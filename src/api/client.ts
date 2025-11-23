@@ -169,6 +169,7 @@ interface HabitsResponse {
 export interface CreateHabitPayload {
   name: string;
   timeOfDay: 'morning' | 'afternoon' | 'evening';
+  targetTimeMinutes: number;
 }
 
 export interface HabitCheckinPayload {
