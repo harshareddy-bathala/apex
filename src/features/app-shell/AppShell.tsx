@@ -138,24 +138,8 @@ const AppShell: React.FC<AppShellProps> = ({
           width: isDesktop ? sidebarWidth : EXPANDED_SIDEBAR_WIDTH,
         }}
       >
-        <div className={`flex items-center px-5 py-5 ${isCollapsed && isDesktop ? 'justify-center' : 'justify-between'}`}>
-          {(!isCollapsed || !isDesktop) && (
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]">
-                <img
-                  src="/logo.ico"
-                  alt="APEX Logo"
-                  className="h-8 w-8 object-contain"
-                />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--text-muted)]">APEX</p>
-                <p className="text-base font-semibold text-[var(--text-primary)] font-display">Workspace</p>
-              </div>
-            </div>
-          )}
-
-          {isCollapsed && isDesktop && (
+        <div className={`flex items-center px-5 py-5 ${isCollapsed && isDesktop ? 'justify-between' : 'justify-between'}`}>
+          <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]">
               <img
                 src="/logo.ico"
@@ -163,7 +147,13 @@ const AppShell: React.FC<AppShellProps> = ({
                 className="h-8 w-8 object-contain"
               />
             </div>
-          )}
+            {(!isCollapsed || !isDesktop) && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--text-muted)]">APEX</p>
+                <p className="text-base font-semibold text-[var(--text-primary)] font-display">Workspace</p>
+              </div>
+            )}
+          </div>
 
           {isDesktop && (
             <button
@@ -190,7 +180,7 @@ const AppShell: React.FC<AppShellProps> = ({
                   active
                     ? 'border border-[var(--accent-primary)]/30 bg-[var(--bg-card)] text-[var(--text-primary)]'
                     : 'border border-transparent text-[var(--text-secondary)] hover:border-[var(--border-color)] hover:bg-[var(--bg-card)]/70 hover:text-[var(--text-primary)]'
-                } ${isCollapsed && isDesktop ? 'justify-center px-3' : 'gap-3'}`}
+                } ${isCollapsed && isDesktop ? 'justify-center' : 'gap-3'}`}
               >
                 <span
                   className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-colors ${
@@ -242,19 +232,6 @@ const AppShell: React.FC<AppShellProps> = ({
           </div>
         )}
 
-        {/* Collapsed state bottom section - just expand button */}
-        {isCollapsed && isDesktop && (
-          <div className="px-3 pb-6">
-            <button
-              type="button"
-              onClick={() => setIsCollapsed(false)}
-              className="flex items-center justify-center rounded-2xl border border-transparent p-2 text-[var(--text-secondary)] transition hover:border-[var(--border-color)] hover:bg-[var(--bg-card)]/70 hover:text-[var(--text-primary)]"
-              aria-label="Expand sidebar"
-            >
-              <PanelLeftOpen size={18} />
-            </button>
-          </div>
-        )}
       </aside>
 
       {/* Mobile overlay */}
@@ -308,7 +285,11 @@ const AppShell: React.FC<AppShellProps> = ({
           {subHeader && <div className="border-t border-[var(--border-subtle)] px-4 py-3 lg:px-8">{subHeader}</div>}
         </header>
 
-        <main className="px-4 py-6 lg:px-8 lg:py-10" style={{ paddingTop: isDesktop ? '100px' : '120px' }}>{children}</main>
+        <main className="px-4 py-6 lg:px-8 lg:py-10 overflow-auto" style={{
+          paddingTop: isDesktop ? '120px' : '140px',
+          minHeight: 'calc(100vh - 120px)',
+          maxHeight: 'calc(100vh - 120px)'
+        }}>{children}</main>
       </div>
     </div>
   );

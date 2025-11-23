@@ -402,7 +402,7 @@ const ProtectedApp: React.FC = () => {
             />
             <Route
               path="/profile"
-              element={<ProfilePage profile={profileState} onEditProfile={() => setShowEditProfile(true)} onEditGoals={() => setShowGoalsEditor(true)} onLogout={handleLogout} />}
+              element={<ProfilePage profile={profileState} onEditProfile={() => setShowEditProfile(true)} onEditGoals={() => setShowGoalsEditor(true)} />}
             />
             <Route
               path="/settings"

@@ -2,7 +2,6 @@ import React from 'react';
 import {
   BookOpen,
   CalendarDays,
-  LogOut,
   Mail,
   Moon,
   NotebookPen,
@@ -24,14 +23,17 @@ interface ProfilePageProps {
   profile: StudentProfile;
   onEditProfile: () => void;
   onEditGoals: () => void;
-  onLogout: () => void;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onEditProfile, onEditGoals, onLogout }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onEditProfile, onEditGoals }) => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const firstName = profile.name.split(' ')[0] ?? profile.name;
+
+  const handleSettingsClick = () => {
+    window.location.href = '/settings';
+  };
   const bio = profile.bio?.trim() || 'Add a short bio so mentors know what fuels your curiosity.';
   const hobbyList = profile.hobbies?.filter(Boolean) ?? [];
   const interestList = profile.interests?.filter(Boolean) ?? [];
@@ -45,10 +47,19 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onEditProfile, onEdi
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-1">
-        <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-muted)]">Profile</p>
-        <h1 className="text-3xl font-display text-[var(--text-primary)]">Your personal brief</h1>
-        <p className="font-hand text-lg text-[var(--text-secondary)]">Keep showing up, {firstName}.</p>
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-1">
+          <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-muted)]">Profile</p>
+          <h1 className="text-3xl font-display text-[var(--text-primary)]">Your personal brief</h1>
+          <p className="font-hand text-lg text-[var(--text-secondary)]">Keep showing up, {firstName}.</p>
+        </div>
+        <button
+          onClick={handleSettingsClick}
+          className="p-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/60 hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-colors"
+          aria-label="Go to settings"
+        >
+          <SettingsIcon size={20} className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors" />
+        </button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -60,14 +71,24 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onEditProfile, onEdi
                 <h2 className="mt-1 text-2xl font-display text-[var(--text-primary)]">Hi, {firstName}</h2>
                 <p className="font-hand text-base text-[var(--text-secondary)]">You&apos;re writing your own playbook.</p>
               </div>
-              <button
-                type="button"
-                onClick={onEditProfile}
-                className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border-color)] px-3 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
-              >
-                <PenSquare size={16} />
-                Edit
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onEditGoals}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border-color)] px-3 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
+                >
+                  <Target size={16} />
+                  Goals
+                </button>
+                <button
+                  type="button"
+                  onClick={onEditProfile}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border-color)] px-3 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
+                >
+                  <PenSquare size={16} />
+                  Edit
+                </button>
+              </div>
             </div>
             <div className="mt-6 grid gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40 p-4">
               {stats.map(({ label, value, icon: Icon }) => (
@@ -82,51 +103,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onEditProfile, onEdi
             </div>
           </section>
 
-          <section className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Quick Actions</p>
-                <p className="text-base font-semibold text-[var(--text-primary)]">Manage your account</p>
-              </div>
-            </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <button
-                type="button"
-                onClick={onEditGoals}
-                className="flex items-center gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]/60 p-4 text-left transition hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 hover:text-[var(--accent-primary)]"
-              >
-                <Target size={20} />
-                <div>
-                  <p className="font-semibold">Edit Goals</p>
-                  <p className="text-sm opacity-70">Set academic and personal goals</p>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => window.location.href = '/settings'}
-                className="flex items-center gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]/60 p-4 text-left transition hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 hover:text-[var(--accent-primary)]"
-              >
-                <SettingsIcon size={20} />
-                <div>
-                  <p className="font-semibold">Settings</p>
-                  <p className="text-sm opacity-70">Customize your experience</p>
-                </div>
-              </button>
-            </div>
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={onLogout}
-                className="flex w-full items-center gap-3 rounded-2xl border border-red-400/40 bg-red-400/5 p-4 text-left transition hover:border-red-400 hover:bg-red-400/10"
-              >
-                <LogOut size={20} className="text-red-400" />
-                <div>
-                  <p className="font-semibold text-red-400">Sign Out</p>
-                  <p className="text-sm text-red-400/70">Log out of your account</p>
-                </div>
-              </button>
-            </div>
-          </section>
 
           <section className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6">
             <div className="flex items-center justify-between">
