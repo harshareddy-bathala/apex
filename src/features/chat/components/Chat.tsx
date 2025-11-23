@@ -289,40 +289,39 @@ const Chat: React.FC<ChatProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-full min-h-0 rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 backdrop-blur-md shadow-[0_20px_60px_rgba(15,23,42,0.25)]">
-      <header className="flex-shrink-0 p-4 sm:p-6 border-b border-[var(--border-color)] bg-[var(--bg-surface)] flex items-center justify-between">
+    <div className="h-screen w-full bg-[var(--bg-app)] flex flex-col">
+      {/* Top bar with logo */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-app)]">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-12 h-12 bg-[var(--accent-primary)] rounded-lg flex items-center justify-center text-white font-semibold shadow-md">
-              AI
-            </div>
-            <div className="absolute bottom-1 right-1 w-3 h-3 bg-[var(--success)] rounded-full border-2 border-[var(--bg-surface)]"></div>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wider text-[var(--text-tertiary)]">Mentor</p>
-            <h1 className="text-xl font-semibold text-[var(--text-primary)]">Your AI Guide</h1>
-            <p className="text-xs text-[var(--text-secondary)]">Always here to help you grow</p>
-          </div>
+          <img
+            src="/logo.ico"
+            alt="APEX Logo"
+            className="h-8 w-8 object-contain"
+          />
+          <span className="text-lg font-semibold text-[var(--text-primary)]">APEX</span>
         </div>
-        <div className="text-right">
-          <p className="text-sm font-medium text-[var(--text-primary)]">{profile.name}</p>
-          <p className="text-xs text-[var(--text-secondary)]">Grade {profile.grade}</p>
-        </div>
-      </header>
+      </div>
 
-      <div className="flex-1 overflow-hidden min-h-0">
+      {/* Main chat area */}
+      <div className="flex-1 overflow-hidden">
         {isInitializing ? (
-          <div className="flex items-center justify-center h-full p-8">
-            <div className="max-w-md text-center p-6 card">
-              <p className="text-lg font-semibold text-[var(--success)] mb-2">Connecting to mentor brain</p>
-              <p className="text-sm text-[var(--text-secondary)]">Warming up the FastAPI + ADK backend.</p>
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--accent-primary)] mx-auto mb-4"></div>
+              <p className="text-lg font-semibold text-[var(--text-primary)] mb-2">Connecting to AI Mentor</p>
+              <p className="text-sm text-[var(--text-secondary)]">Setting up your personalized assistant...</p>
             </div>
           </div>
         ) : !chatClient ? (
-          <div className="flex items-center justify-center h-full p-8">
-            <div className="max-w-md text-center p-6 card">
-              <p className="text-lg font-semibold text-[var(--warning)] mb-2">Backend unavailable</p>
-              <p className="text-sm text-[var(--text-secondary)]">Start the FastAPI service on http://localhost:8000 to chat with the mentor.</p>
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center max-w-md mx-auto px-6">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <p className="text-lg font-semibold text-[var(--text-primary)] mb-2">Connection Failed</p>
+              <p className="text-sm text-[var(--text-secondary)]">Unable to connect to the AI mentor service. Please try refreshing or check your connection.</p>
             </div>
           </div>
         ) : (
@@ -335,14 +334,6 @@ const Chat: React.FC<ChatProps> = ({
           />
         )}
       </div>
-
-      {chatClient && (
-        <footer className="flex-shrink-0 p-3 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]">
-          <p className="text-xs text-[var(--text-tertiary)] text-center">
-            AI mentor powered by Google ADK agents · Your conversation stays private 💬
-          </p>
-        </footer>
-      )}
     </div>
   );
 };

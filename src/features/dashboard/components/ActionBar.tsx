@@ -33,7 +33,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
       {/* Primary: Ask Mentor */}
       <button
         onClick={onAskMentor}
-        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-white font-medium shadow-[0_20px_45px_rgba(8,145,178,0.35)] bg-gradient-to-r from-[#22d3ee] via-[#2dd4bf] to-[#14b8a6] hover:translate-y-[-2px] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22d3ee]/70"
+        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-white font-medium shadow-[0_20px_45px_rgba(0,0,0,0.15)] bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] hover:translate-y-[-2px] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]/70"
         aria-label="Ask your AI Mentor"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -48,8 +48,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({
         onClick={() => onAddGoal?.()}
         disabled={addGoalDisabled}
         title={addGoalDisabled ? 'Coming soon' : undefined}
-        className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-medium border border-white/10 text-white/80 bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-          addGoalDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/10 hover:text-white'
+        className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-medium border border-[var(--border-subtle)] text-[var(--text-secondary)] bg-[var(--bg-secondary)]/60 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-color)] ${
+          addGoalDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[var(--bg-card)] hover:text-[var(--text-primary)]'
         }`}
         aria-label="Add a new goal"
         aria-disabled={addGoalDisabled}
@@ -66,8 +66,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({
         onClick={() => onViewTasks?.()}
         disabled={viewTasksDisabled}
         title={viewTasksDisabled ? 'Coming soon' : undefined}
-        className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-medium text-white/60 border border-dashed border-white/20 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
-          viewTasksDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-white hover:border-white/40'
+        className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-medium text-[var(--text-muted)] border border-dashed border-[var(--border-subtle)] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-color)] ${
+          viewTasksDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-[var(--text-primary)] hover:border-[var(--border-color)]'
         }`}
         aria-label="View today's tasks"
         aria-disabled={viewTasksDisabled}

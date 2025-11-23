@@ -18,7 +18,7 @@ import {
 
 import { useTheme } from '@/common/context/ThemeContext';
 
-export type AppShellView = 'dashboard' | 'community' | 'resources' | 'chat' | 'profile' | 'habits';
+export type AppShellView = 'dashboard' | 'community' | 'resources' | 'chat' | 'profile' | 'settings' | 'habits';
 
 interface QuickAction {
   label: string;
@@ -44,6 +44,7 @@ const NAV_LINKS: Array<{ id: AppShellView; label: string; icon: LucideIcon }> = 
   { id: 'resources', label: 'Resources', icon: FolderKanban },
   { id: 'chat', label: 'AI Mentor', icon: MessageSquare },
   { id: 'profile', label: 'Profile', icon: UserRound },
+  { id: 'settings', label: 'Settings', icon: Settings },
 ];
 const EXPANDED_SIDEBAR_WIDTH = 260;
 const COLLAPSED_SIDEBAR_WIDTH = 72;
@@ -124,31 +125,37 @@ const AppShell: React.FC<AppShellProps> = ({
       icon: action.icon,
       onClick: action.onClick,
     })),
-    {
-      label: 'Settings',
-      icon: Settings,
-      onClick: () => handleNavigate('profile'),
-    },
-    {
-      label: 'Logout',
-      icon: LogOut,
-      onClick: onLogout,
-    },
   ];
 
   return (
     <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] transition-colors duration-300">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-full flex-col border-r border-[var(--border-color)] bg-[var(--bg-elevated)]/95 backdrop-blur transition-transform duration-300 ease-in-out overflow-y-auto ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-full flex-col border-r border-[var(--border-color)] bg-[var(--bg-elevated)]/95 backdrop-blur transition-transform duration-300 ease-in-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
         style={{
           width: isDesktop ? sidebarWidth : EXPANDED_SIDEBAR_WIDTH,
         }}
       >
-        <div className="flex items-center justify-between px-5 py-5">
-          <div className="flex items-center gap-3">
+        <div className={`flex items-center px-5 py-5 ${isCollapsed && isDesktop ? 'justify-center' : 'justify-between'}`}>
+          {(!isCollapsed || !isDesktop) && (
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]">
+                <img
+                  src="/logo.ico"
+                  alt="APEX Logo"
+                  className="h-8 w-8 object-contain"
+                />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--text-muted)]">APEX</p>
+                <p className="text-base font-semibold text-[var(--text-primary)] font-display">Workspace</p>
+              </div>
+            </div>
+          )}
+
+          {isCollapsed && isDesktop && (
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]">
               <img
                 src="/logo.ico"
@@ -156,18 +163,13 @@ const AppShell: React.FC<AppShellProps> = ({
                 className="h-8 w-8 object-contain"
               />
             </div>
-            {(!isCollapsed || !isDesktop) && (
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--text-muted)]">APEX</p>
-                <p className="text-base font-semibold text-[var(--text-primary)] font-display">Workspace</p>
-              </div>
-            )}
-          </div>
+          )}
+
           {isDesktop && (
             <button
               type="button"
               onClick={() => setIsCollapsed((prev) => !prev)}
-              className="hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 p-2 text-[var(--text-secondary)] transition hover:border-[var(--border-color)] hover:text-[var(--text-primary)] lg:block"
+              className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 p-2 text-[var(--text-secondary)] transition hover:border-[var(--border-color)] hover:text-[var(--text-primary)]"
               aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               <CollapseIcon size={18} />
@@ -188,7 +190,7 @@ const AppShell: React.FC<AppShellProps> = ({
                   active
                     ? 'border border-[var(--accent-primary)]/30 bg-[var(--bg-card)] text-[var(--text-primary)]'
                     : 'border border-transparent text-[var(--text-secondary)] hover:border-[var(--border-color)] hover:bg-[var(--bg-card)]/70 hover:text-[var(--text-primary)]'
-                } ${isCollapsed && isDesktop ? 'justify-center' : 'gap-3'}`}
+                } ${isCollapsed && isDesktop ? 'justify-center px-3' : 'gap-3'}`}
               >
                 <span
                   className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-colors ${
@@ -205,38 +207,54 @@ const AppShell: React.FC<AppShellProps> = ({
           })}
         </nav>
 
-        <div className="space-y-4 px-4 pb-6">
-          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 p-4">
-            <p className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Signed in as</p>
-            <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{userName}</p>
-            <p className="text-xs text-[var(--text-secondary)] capitalize">{userRole}</p>
+        {(!isCollapsed || !isDesktop) && (
+          <div className="space-y-4 px-4 pb-6">
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 p-4">
+              <p className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Signed in as</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{userName}</p>
+              <p className="text-xs text-[var(--text-secondary)] capitalize">{userRole}</p>
+            </div>
+            <div className="space-y-1">
+              {profileMenuItems.map((item) => {
+                const ItemIcon = item.icon;
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => {
+                      item.onClick?.();
+                      if (!isDesktop) {
+                        setMobileOpen(false);
+                      }
+                    }}
+                    className={`flex items-center rounded-2xl border border-transparent px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:border-[var(--border-color)] hover:bg-[var(--bg-card)]/70 hover:text-[var(--text-primary)] ${
+                      isCollapsed && isDesktop ? 'justify-center' : 'gap-3'
+                    }`}
+                  >
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
+                      <ItemIcon size={16} />
+                    </span>
+                    {(!isCollapsed || !isDesktop) && <span>{item.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="space-y-1">
-            {profileMenuItems.map((item) => {
-              const ItemIcon = item.icon;
-              return (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => {
-                    item.onClick?.();
-                    if (!isDesktop) {
-                      setMobileOpen(false);
-                    }
-                  }}
-                  className={`flex items-center rounded-2xl border border-transparent px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:border-[var(--border-color)] hover:bg-[var(--bg-card)]/70 hover:text-[var(--text-primary)] ${
-                    isCollapsed && isDesktop ? 'justify-center' : 'gap-3'
-                  }`}
-                >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
-                    <ItemIcon size={16} />
-                  </span>
-                  {(!isCollapsed || !isDesktop) && <span>{item.label}</span>}
-                </button>
-              );
-            })}
+        )}
+
+        {/* Collapsed state bottom section - just expand button */}
+        {isCollapsed && isDesktop && (
+          <div className="px-3 pb-6">
+            <button
+              type="button"
+              onClick={() => setIsCollapsed(false)}
+              className="flex items-center justify-center rounded-2xl border border-transparent p-2 text-[var(--text-secondary)] transition hover:border-[var(--border-color)] hover:bg-[var(--bg-card)]/70 hover:text-[var(--text-primary)]"
+              aria-label="Expand sidebar"
+            >
+              <PanelLeftOpen size={18} />
+            </button>
           </div>
-        </div>
+        )}
       </aside>
 
       {/* Mobile overlay */}
@@ -285,14 +303,6 @@ const AppShell: React.FC<AppShellProps> = ({
                   </button>
                 );
               })}
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/70 p-2.5 text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
-                aria-label="Toggle color mode"
-              >
-                {themeIcon}
-              </button>
             </div>
           </div>
           {subHeader && <div className="border-t border-[var(--border-subtle)] px-4 py-3 lg:px-8">{subHeader}</div>}

@@ -20,22 +20,22 @@ interface MentorCTAProps {
 
 export const MentorCTA: React.FC<MentorCTAProps> = ({ onOpenChat, studentName }) => {
   return (
-    <div className="rounded-3xl p-6 glass-card border border-white/10 shadow-[0_25px_60px_rgba(5,8,20,0.55)] relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none opacity-60 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.35),transparent_55%)]"></div>
+    <div className="rounded-3xl p-6 border border-[var(--border-color)] bg-[var(--bg-card)] shadow-[0_25px_60px_rgba(0,0,0,0.1)] relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none opacity-60 bg-[radial-gradient(circle_at_top_left,var(--accent-primary),transparent_55%)]"></div>
       <div className="relative z-10">
         {/* Avatar */}
         <div className="flex justify-center mb-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#22d3ee] via-[#7c3aed] to-[#f472b6] flex items-center justify-center shadow-[0_15px_45px_rgba(124,58,237,0.45)]">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--accent-primary)] flex items-center justify-center shadow-[0_15px_45px_rgba(0,0,0,0.15)]">
             <span className="text-3xl">🤖</span>
           </div>
         </div>
 
         {/* Content */}
         <div className="text-center mb-5">
-          <h3 className="text-lg font-semibold text-white mb-2 font-display">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2 font-display">
             Need help planning today?
           </h3>
-          <p className="text-sm text-white/70">
+          <p className="text-sm text-[var(--text-secondary)]">
             Your AI mentor is ready whenever you are, {studentName}. Ask for strategies, plans, or a quick motivation boost.
           </p>
         </div>
@@ -43,7 +43,7 @@ export const MentorCTA: React.FC<MentorCTAProps> = ({ onOpenChat, studentName })
         {/* CTA button */}
         <button
           onClick={onOpenChat}
-          className="w-full py-3 rounded-2xl text-sm font-semibold text-white bg-gradient-to-r from-[#7c3aed] to-[#22d3ee] shadow-[0_20px_55px_rgba(124,58,237,0.45)] hover:translate-y-[-2px] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-2xl text-sm font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] shadow-[0_20px_55px_rgba(0,0,0,0.15)] hover:translate-y-[-2px] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] flex items-center justify-center gap-2"
           aria-label={`Chat with your AI Mentor as ${studentName}`}
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -53,9 +53,9 @@ export const MentorCTA: React.FC<MentorCTAProps> = ({ onOpenChat, studentName })
         </button>
 
         {/* Quick tips */}
-        <div className="mt-4 pt-4 border-t border-white/10">
-          <p className="text-xs text-white/60 text-center">
-            💡 Try: “Draft a 3-day exam sprint” or “How do I stay consistent this week?”
+        <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
+          <p className="text-xs text-[var(--text-muted)] text-center">
+            💡 Try: "Draft a 3-day exam sprint" or "How do I stay consistent this week?"
           </p>
         </div>
       </div>

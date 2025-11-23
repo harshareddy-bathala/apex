@@ -116,106 +116,122 @@ const ResourceGrid: React.FC = () => {
   }
 
   return (
-    <section className="space-y-6">
+    <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-[var(--text-primary)]">Resource Library</h2>
-          <p className="text-sm text-[var(--text-secondary)]">
-            Study materials shared by your peers
-          </p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-1">Resources</h1>
+          <p className="text-[var(--text-secondary)]">Study materials shared by the community</p>
         </div>
         <button
-          type="button"
           onClick={() => setShowUploadModal(true)}
-          className="inline-flex items-center gap-2 rounded-2xl bg-[var(--accent-primary)] px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg"
+          className="bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white px-4 py-2 rounded-full font-semibold text-sm transition-colors flex items-center gap-2"
         >
-          <Upload className="h-4 w-4" />
+          <Upload className="w-4 h-4" />
           Share Resource
         </button>
       </div>
 
       {/* Search Bar */}
-      <div className="flex items-center gap-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40 px-4 py-2">
-        <Search className="h-4 w-4 text-[var(--text-muted)]" />
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by title, subject, topic, or tags..."
-          className="w-full bg-transparent text-sm text-[var(--text-primary)] focus:outline-none"
-        />
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-muted)] w-4 h-4" />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search resources..."
+            className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-full py-3 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
+          />
+        </div>
       </div>
 
-      {error && <p className="rounded-2xl border border-red-200/60 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
 
       {/* Resource Grid */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-[var(--text-muted)]">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading resources...
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent-primary)]"></div>
         </div>
       ) : filteredResources.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 p-12 text-center">
-          <FileText className="mx-auto h-12 w-12 text-[var(--text-muted)] mb-4" />
-          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">No resources found</h3>
-          <p className="text-sm text-[var(--text-secondary)] mb-4">
-            {query ? 'Try adjusting your search terms.' : 'Be the first to share a study resource!'}
+        <div className="text-center py-16">
+          <div className="w-16 h-16 bg-[var(--accent-primary)]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-[var(--accent-primary)]" />
+          </div>
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+            {query ? 'No resources found' : 'No resources yet'}
+          </h3>
+          <p className="text-[var(--text-secondary)] mb-4">
+            {query ? 'Try a different search term' : 'Be the first to share a study resource!'}
           </p>
           {!query && (
             <button
-              type="button"
               onClick={() => setShowUploadModal(true)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-[var(--accent-primary)] px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg"
+              className="bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white px-6 py-2 rounded-full font-semibold text-sm transition-colors flex items-center gap-2"
             >
-              <Upload className="h-4 w-4" />
+              <Upload className="w-4 h-4" />
               Share Resource
             </button>
           )}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredResources.map((resource) => (
             <article
               key={resource.id}
-              className="group rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 transition hover:border-[var(--accent-primary)] hover:shadow-lg"
+              className="group bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-2xl p-6 hover:border-[var(--accent-primary)] hover:shadow-lg transition-all duration-200"
             >
               <div className="flex flex-col h-full">
-                {/* PDF Icon and Tag */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="rounded-xl bg-red-100 p-2">
-                    <FileText className="h-5 w-5 text-red-600" />
+                {/* Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                    <FileText className="w-6 h-6 text-red-600" />
                   </div>
-                  <span className="rounded-full bg-[var(--accent-primary)]/10 px-2 py-1 text-xs font-medium text-[var(--accent-primary)]">
-                    {getPrimaryTag(resource)}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="px-3 py-1 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] text-xs font-medium rounded-full">
+                      {getPrimaryTag(resource)}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Title */}
-                <h3 className="font-semibold text-[var(--text-primary)] mb-2 line-clamp-2">
-                  {resource.title}
-                </h3>
+                {/* Content */}
+                <div className="flex-1 mb-4">
+                  <h3 className="font-semibold text-[var(--text-primary)] mb-2 line-clamp-2 text-lg">
+                    {resource.title}
+                  </h3>
 
-                {/* Subject/Topic */}
-                <p className="text-xs text-[var(--text-secondary)] mb-3">
-                  {resource.subject}
-                  {resource.topic && ` • ${resource.topic}`}
-                </p>
+                  <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)] mb-3">
+                    <span className="font-medium">{resource.subject}</span>
+                    {resource.topic && (
+                      <>
+                        <span>•</span>
+                        <span>{resource.topic}</span>
+                      </>
+                    )}
+                  </div>
 
-                {/* Description */}
-                {resource.description && (
-                  <p className="text-xs text-[var(--text-secondary)] mb-3 line-clamp-2 flex-grow">
-                    {resource.description}
-                  </p>
-                )}
+                  {resource.description && (
+                    <p className="text-sm text-[var(--text-secondary)] line-clamp-3">
+                      {resource.description}
+                    </p>
+                  )}
+                </div>
 
-                {/* Action Button */}
+                {/* Action */}
                 <a
                   href={resource.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-auto w-full inline-flex items-center justify-center rounded-xl border border-[var(--accent-primary)] bg-[var(--accent-primary)] px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[var(--accent-primary)]/90 hover:shadow-md"
+                  className="w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white py-3 px-4 rounded-xl font-semibold text-sm text-center transition-colors flex items-center justify-center gap-2 group"
                 >
                   Open Resource
+                  <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
                 </a>
               </div>
             </article>
@@ -225,108 +241,125 @@ const ResourceGrid: React.FC = () => {
 
       {/* Upload Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Share Resource</h3>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-[var(--bg-card)] rounded-2xl w-full max-w-lg border border-[var(--border-subtle)] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-[var(--border-subtle)]">
+              <h3 className="text-xl font-semibold text-[var(--text-primary)]">Share Resource</h3>
               <button
-                type="button"
                 onClick={() => setShowUploadModal(false)}
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 rounded-full hover:bg-[var(--bg-secondary)] transition-colors"
               >
-                ✕
+                <X size={20} />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                Title
-                <input
-                  type="text"
-                  value={draft.title}
-                  onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))}
-                  placeholder="e.g. Calculus Revision Guide"
-                  className="mt-1 w-full rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
-                />
-              </label>
-
-              <div className="grid gap-4 grid-cols-2">
-                <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                  Subject
+            <div className="p-6 space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                    Resource Title
+                  </label>
                   <input
                     type="text"
-                    value={draft.subject}
-                    onChange={(event) => setDraft((prev) => ({ ...prev, subject: event.target.value }))}
-                    placeholder="Mathematics"
-                    className="mt-1 w-full rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
+                    value={draft.title}
+                    onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))}
+                    placeholder="e.g. Advanced Calculus Study Guide"
+                    className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
                   />
-                </label>
+                </div>
 
-                <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                  Topic
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                      Subject
+                    </label>
+                    <input
+                      type="text"
+                      value={draft.subject}
+                      onChange={(event) => setDraft((prev) => ({ ...prev, subject: event.target.value }))}
+                      placeholder="Mathematics"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                      Topic (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={draft.topic}
+                      onChange={(event) => setDraft((prev) => ({ ...prev, topic: event.target.value }))}
+                      placeholder="Calculus, Algebra..."
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                    Resource URL
+                  </label>
+                  <input
+                    type="url"
+                    value={draft.url}
+                    onChange={(event) => setDraft((prev) => ({ ...prev, url: event.target.value }))}
+                    placeholder="https://drive.google.com/file/d/... or https://..."
+                    className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                    Description (Optional)
+                  </label>
+                  <textarea
+                    value={draft.description}
+                    onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))}
+                    rows={3}
+                    placeholder="Brief description of what this resource covers..."
+                    className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                    Tags (Optional)
+                  </label>
                   <input
                     type="text"
-                    value={draft.topic}
-                    onChange={(event) => setDraft((prev) => ({ ...prev, topic: event.target.value }))}
-                    placeholder="Derivatives"
-                    className="mt-1 w-full rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
+                    value={draft.tagsInput}
+                    onChange={(event) => setDraft((prev) => ({ ...prev, tagsInput: event.target.value }))}
+                    placeholder="exam prep, grade 12, calculus, pdf"
+                    className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
                   />
-                </label>
+                  <p className="text-xs text-[var(--text-muted)] mt-1">Separate tags with commas</p>
+                </div>
               </div>
 
-              <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                URL
-                <input
-                  type="url"
-                  value={draft.url}
-                  onChange={(event) => setDraft((prev) => ({ ...prev, url: event.target.value }))}
-                  placeholder="https://drive.google.com/..."
-                  className="mt-1 w-full rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
-                />
-              </label>
-
-              <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                Description (optional)
-                <textarea
-                  value={draft.description}
-                  onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))}
-                  rows={2}
-                  placeholder="Brief description of the resource..."
-                  className="mt-1 w-full rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
-                />
-              </label>
-
-              <label className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                Tags (comma separated)
-                <input
-                  type="text"
-                  value={draft.tagsInput}
-                  onChange={(event) => setDraft((prev) => ({ ...prev, tagsInput: event.target.value }))}
-                  placeholder="exam prep, grade 12, calculus"
-                  className="mt-1 w-full rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
-                />
-              </label>
-
-              <div className="flex gap-3 pt-4">
+              <div className="flex items-center justify-between pt-4 border-t border-[var(--border-subtle)]">
                 <button
-                  type="button"
                   onClick={() => setShowUploadModal(false)}
-                  className="flex-1 rounded-2xl border border-[var(--border-subtle)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:border-[var(--border-strong)]"
+                  className="px-6 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  type="button"
                   onClick={handleUpload}
                   disabled={isSaving || !draft.title.trim() || !draft.subject.trim() || !draft.url.trim()}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--accent-primary)] px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                  className="px-6 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white text-sm font-semibold rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                 >
                   {isSaving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sharing...
+                    </>
                   ) : (
-                    <Upload className="h-4 w-4" />
+                    <>
+                      <Upload className="w-4 h-4" />
+                      Share Resource
+                    </>
                   )}
-                  Share
                 </button>
               </div>
             </div>

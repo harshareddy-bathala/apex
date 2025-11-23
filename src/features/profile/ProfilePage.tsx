@@ -2,13 +2,16 @@ import React from 'react';
 import {
   BookOpen,
   CalendarDays,
+  LogOut,
   Mail,
   Moon,
   NotebookPen,
   Palette,
   PenSquare,
+  Settings as SettingsIcon,
   Sparkles,
   SunMedium,
+  Target,
   UserRound,
   Users,
 } from 'lucide-react';
@@ -20,9 +23,11 @@ import type { StudentProfile } from '@/types';
 interface ProfilePageProps {
   profile: StudentProfile;
   onEditProfile: () => void;
+  onEditGoals: () => void;
+  onLogout: () => void;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onEditProfile }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onEditProfile, onEditGoals, onLogout }) => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
@@ -74,6 +79,52 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onEditProfile }) => 
                   <p className="text-lg font-semibold text-[var(--text-primary)]">{formatNumber(value)}</p>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Quick Actions</p>
+                <p className="text-base font-semibold text-[var(--text-primary)]">Manage your account</p>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={onEditGoals}
+                className="flex items-center gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]/60 p-4 text-left transition hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 hover:text-[var(--accent-primary)]"
+              >
+                <Target size={20} />
+                <div>
+                  <p className="font-semibold">Edit Goals</p>
+                  <p className="text-sm opacity-70">Set academic and personal goals</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => window.location.href = '/settings'}
+                className="flex items-center gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]/60 p-4 text-left transition hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 hover:text-[var(--accent-primary)]"
+              >
+                <SettingsIcon size={20} />
+                <div>
+                  <p className="font-semibold">Settings</p>
+                  <p className="text-sm opacity-70">Customize your experience</p>
+                </div>
+              </button>
+            </div>
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={onLogout}
+                className="flex w-full items-center gap-3 rounded-2xl border border-red-400/40 bg-red-400/5 p-4 text-left transition hover:border-red-400 hover:bg-red-400/10"
+              >
+                <LogOut size={20} className="text-red-400" />
+                <div>
+                  <p className="font-semibold text-red-400">Sign Out</p>
+                  <p className="text-sm text-red-400/70">Log out of your account</p>
+                </div>
+              </button>
             </div>
           </section>
 

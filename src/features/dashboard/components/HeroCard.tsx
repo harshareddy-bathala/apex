@@ -37,30 +37,30 @@ export const HeroCard: React.FC<HeroCardProps> = ({
 
   return (
     <motion.div
-      className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#0f172a] via-[#11183a] to-[#070c1f] p-6 md:p-8 border border-white/10 shadow-[0_25px_80px_rgba(2,6,23,0.65)]"
+      className="relative overflow-hidden rounded-[28px] bg-[var(--bg-card)] p-6 md:p-8 border border-[var(--border-color)] shadow-[0_25px_80px_rgba(0,0,0,0.1)]"
       initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
       {/* Decorative gradient overlays for depth */}
-      <div className="absolute top-[-40%] right-[-10%] w-72 h-72 bg-[#22d3ee]/30 rounded-full blur-[140px]"></div>
-      <div className="absolute bottom-[-20%] left-[-5%] w-64 h-64 bg-[#7c3aed]/25 rounded-full blur-[120px]"></div>
+      <div className="absolute top-[-40%] right-[-10%] w-72 h-72 bg-[var(--accent-primary)]/20 rounded-full blur-[140px]"></div>
+      <div className="absolute bottom-[-20%] left-[-5%] w-64 h-64 bg-[var(--accent-secondary)]/15 rounded-full blur-[120px]"></div>
 
       <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         {/* Left side: Greeting and info */}
         <div className="flex-1">
           <h1
-            className="text-[1.75rem] leading-tight md:text-[2.2rem] text-white mb-3 font-semibold"
+            className="text-[1.75rem] leading-tight md:text-[2.2rem] text-[var(--text-primary)] mb-3 font-semibold"
             style={{ fontFamily: 'Space Grotesk, Inter, sans-serif' }}
           >
             Welcome back, {studentName}! 👋
           </h1>
-          <p className="text-white/70 text-sm md:text-base mb-5">
+          <p className="text-[var(--text-secondary)] text-sm md:text-base mb-5">
             Your personalized growth cockpit · stay consistent and celebrate small wins.
           </p>
 
           <div className="flex flex-wrap gap-2">
-            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/15 text-white text-xs tracking-wide">
+            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-[var(--bg-secondary)]/60 text-[var(--text-primary)] text-xs tracking-wide">
               {grade}
             </span>
             {subjects.slice(0, 3).map((subject) => (
@@ -80,18 +80,18 @@ export const HeroCard: React.FC<HeroCardProps> = ({
         </div>
 
         {/* Right side: Progress ring */}
-        <div className="flex flex-col items-center gap-3 px-4 py-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
+        <div className="flex flex-col items-center gap-3 px-4 py-3 rounded-2xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-subtle)]">
           <ProgressRing
             percent={safeProgress}
             size={100}
             strokeWidth={8}
-            color="#22d3ee"
+            color="var(--accent-primary)"
             label={`Overall weekly progress: ${safeProgress}%`}
             onClick={onProgressClick}
             interactive={progressInteractive}
             disabledTooltip="Coming soon"
           />
-          <span className="text-xs uppercase tracking-[0.35em] text-white/70">
+          <span className="text-xs uppercase tracking-[0.35em] text-[var(--text-secondary)]">
             Weekly Progress
           </span>
         </div>

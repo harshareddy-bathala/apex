@@ -9,6 +9,7 @@ import DailyCheckIn from '@/features/check-in/components/DailyCheckIn';
 import GoalsEditor from '@/features/goals/components/GoalsEditor';
 import EditProfilePage from '@/features/profile/EditProfilePage';
 import ProfilePage from '@/features/profile/ProfilePage';
+import SettingsPage from '@/features/profile/SettingsPage';
 import TeacherAlerts from '@/features/reports/components/TeacherAlerts';
 import AppShell, { type AppShellView } from '@/features/app-shell/AppShell';
 import CommunityFeed from '@/features/community/components/CommunityFeed';
@@ -286,6 +287,9 @@ const ProtectedApp: React.FC = () => {
     if (path.startsWith('/profile')) {
       return 'profile';
     }
+    if (path.startsWith('/settings')) {
+      return 'settings';
+    }
     if (path.startsWith('/habits')) {
       return 'habits';
     }
@@ -398,7 +402,11 @@ const ProtectedApp: React.FC = () => {
             />
             <Route
               path="/profile"
-              element={<ProfilePage profile={profileState} onEditProfile={() => setShowEditProfile(true)} />}
+              element={<ProfilePage profile={profileState} onEditProfile={() => setShowEditProfile(true)} onEditGoals={() => setShowGoalsEditor(true)} onLogout={handleLogout} />}
+            />
+            <Route
+              path="/settings"
+              element={<SettingsPage profile={profileState} onEditProfile={() => setShowEditProfile(true)} onEditGoals={() => setShowGoalsEditor(true)} onLogout={handleLogout} />}
             />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

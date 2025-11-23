@@ -1,45 +1,23 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowBigUp, Filter, Loader2, MessageCircle, Send, ShieldCheck, Tag, TrendingUp } from 'lucide-react';
+import { Heart, MessageCircle, MoreHorizontal, Plus, Repeat2, Search, X } from 'lucide-react';
 
 import { useAuth } from '@/common/hooks/useAuth';
 import { createCommunityPost, getCommunityFeed, toggleCommunityUpvote } from '@/api/client';
 import type { CommunityPost } from '@/types';
 
-const MAX_POST_LENGTH = 480;
+const MAX_POST_LENGTH = 280;
 
 const CommunityFeed: React.FC = () => {
   const { idToken } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [filterSubject, setFilterSubject] = useState('');
+  const [showComposeModal, setShowComposeModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ subject: '', content: '', tags: '' });
-  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
-  const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({});
-
-  const subjectOptions = useMemo(() => {
-    const subjects = new Set<string>();
-    posts.forEach((post) => {
-      if (post.subject) subjects.add(post.subject);
-    });
-    return Array.from(subjects).sort();
-  }, [posts]);
-
-  const trendingTags = useMemo(() => {
-    const tagCounts: Record<string, number> = {};
-    posts.forEach((post) => {
-      post.tags?.forEach((tag) => {
-        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-      });
-    });
-
-    return Object.entries(tagCounts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 10)
-      .map(([tag, count]) => ({ tag, count }));
-  }, [posts]);
+  const [draft, setDraft] = useState({ content: '', subject: '', tags: '' });
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
 
   const loadFeed = useCallback(async () => {
     if (!idToken) return;
@@ -47,9 +25,8 @@ const CommunityFeed: React.FC = () => {
     setError(null);
     try {
       const { posts: feed } = await getCommunityFeed(idToken, {
-        subject: filterSubject || undefined,
         query: searchTerm || undefined,
-        limit: 40,
+        limit: 50,
       });
       setPosts(feed);
     } catch (err) {
@@ -58,7 +35,7 @@ const CommunityFeed: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [filterSubject, searchTerm, idToken]);
+  }, [searchTerm, idToken]);
 
   useEffect(() => {
     void loadFeed();
@@ -83,21 +60,24 @@ const CommunityFeed: React.FC = () => {
         tags,
       });
       setPosts((prev) => [newPost, ...prev]);
-      setDraft({ subject: '', content: '', tags: '' });
+      setDraft({ content: '', subject: '', tags: '' });
+      setShowComposeModal(false);
     } catch (err) {
       console.error(err);
-      setError('Unable to publish your question right now. Please retry in a moment.');
+      setError('Unable to publish your post right now. Please retry in a moment.');
     } finally {
       setIsPublishing(false);
     }
   };
 
-  const handleReplySubmit = async (postId: string) => {
-    if (!idToken) return;
-    const content = replyDrafts[postId]?.trim();
-    if (!content) return;
+  const handleReply = async (postId: string) => {
+    if (!idToken || !replyContent.trim()) return;
+
     try {
-      const reply = await createCommunityPost(idToken, { content, parentId: postId });
+      const reply = await createCommunityPost(idToken, {
+        content: replyContent.trim(),
+        parentId: postId
+      });
       setPosts((prev) =>
         prev.map((post) =>
           post.id === postId
@@ -109,13 +89,14 @@ const CommunityFeed: React.FC = () => {
             : post,
         ),
       );
-      setReplyDrafts((prev) => ({ ...prev, [postId]: '' }));
-      setExpandedReplies((prev) => ({ ...prev, [postId]: true }));
+      setReplyContent('');
+      setReplyingTo(null);
     } catch (err) {
       console.error(err);
       setError('Unable to reply right now. Please retry.');
     }
   };
+
 
   const handleUpvote = async (postId: string) => {
     if (!idToken) return;
@@ -137,7 +118,7 @@ const CommunityFeed: React.FC = () => {
       );
     } catch (err) {
       console.error(err);
-      setError('Unable to update the upvote count. Please retry.');
+      setError('Unable to update the like count. Please retry.');
     }
   };
 
@@ -158,108 +139,161 @@ const CommunityFeed: React.FC = () => {
     return (
       <article
         key={post.id}
-        className={`rounded-2xl border p-4 transition hover:border-[var(--border-strong)] ${
-          isReply
-            ? isTeacher
-              ? 'border-[var(--accent-primary)]/60 bg-[var(--accent-primary)]/5'
-              : 'border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40'
-            : 'border-[var(--border-subtle)] bg-[var(--bg-card)]/70'
+        className={`border-b border-[var(--border-subtle)] p-4 hover:bg-[var(--bg-secondary)]/20 transition-colors ${
+          isReply ? 'border-l-2 border-l-[var(--accent-primary)]/30 ml-8' : ''
         }`}
       >
-        <div className="flex flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)]">
-            <span className="font-semibold text-[var(--text-primary)]">{post.authorName}</span>
-            {post.authorRole === 'teacher' && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-primary)]/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-primary)]">
-                <ShieldCheck size={12} />
-                Teacher
+        <div className="flex gap-3">
+          {/* Avatar */}
+          <div className="flex-shrink-0">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${
+              isTeacher
+                ? 'bg-[var(--accent-primary)] text-white'
+                : 'bg-[var(--text-primary)] text-white'
+            }`}>
+              {post.authorName.charAt(0).toUpperCase()}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-semibold text-[var(--text-primary)] text-sm">
+                {post.authorName}
               </span>
-            )}
-            <span>•</span>
-            <span>{formatRelativeTime(post.createdAt)}</span>
-            {post.subject && !isReply && (
-              <>
-                <span>•</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 text-[var(--text-secondary)]">
-                  <Tag className="h-3 w-3" />
-                  {post.subject}
+              {isTeacher && (
+                <span className="inline-flex items-center gap-1 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] px-2 py-0.5 rounded-full text-xs font-medium">
+                  Teacher
                 </span>
-              </>
+              )}
+              <span className="text-[var(--text-muted)] text-sm">·</span>
+              <span className="text-[var(--text-muted)] text-sm">
+                {formatRelativeTime(post.createdAt)}
+              </span>
+              {!isReply && post.subject && (
+                <>
+                  <span className="text-[var(--text-muted)] text-sm">·</span>
+                  <span className="text-[var(--accent-primary)] text-sm font-medium">
+                    {post.subject}
+                  </span>
+                </>
+              )}
+            </div>
+
+            {/* Post Content */}
+            <p className="text-[var(--text-primary)] text-sm leading-5 mb-3 whitespace-pre-wrap">
+              {post.content}
+            </p>
+
+            {/* Tags */}
+            {post.tags && post.tags.length > 0 && !isReply && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {post.tags.slice(0, 3).map((tag) => (
+                  <span key={tag} className="text-[var(--accent-primary)] text-sm hover:underline cursor-pointer">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Actions */}
+            {!isReply && (
+              <div className="flex items-center justify-between max-w-md mt-3">
+                <button
+                  onClick={() => setReplyingTo(post.id)}
+                  className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors group"
+                >
+                  <div className="p-2 rounded-full group-hover:bg-[var(--accent-primary)]/10 transition-colors">
+                    <MessageCircle size={16} />
+                  </div>
+                  <span className="text-sm">{post.replyCount}</span>
+                </button>
+
+                <button
+                  onClick={() => handleUpvote(post.id)}
+                  className={`flex items-center gap-2 transition-colors group ${
+                    post.hasUpvoted
+                      ? 'text-red-500'
+                      : 'text-[var(--text-muted)] hover:text-red-500'
+                  }`}
+                >
+                  <div className={`p-2 rounded-full group-hover:bg-red-500/10 transition-colors ${
+                    post.hasUpvoted ? 'bg-red-500/10' : ''
+                  }`}>
+                    <Heart size={16} className={post.hasUpvoted ? 'fill-current' : ''} />
+                  </div>
+                  <span className="text-sm">{post.upvoteCount}</span>
+                </button>
+
+                <button className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors group">
+                  <div className="p-2 rounded-full group-hover:bg-[var(--accent-primary)]/10 transition-colors">
+                    <Repeat2 size={16} />
+                  </div>
+                  <span className="text-sm">0</span>
+                </button>
+
+                <button className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors group">
+                  <div className="p-2 rounded-full group-hover:bg-[var(--accent-primary)]/10 transition-colors">
+                    <MoreHorizontal size={16} />
+                  </div>
+                </button>
+              </div>
             )}
           </div>
-          <p className="whitespace-pre-wrap text-[var(--text-primary)]">{post.content}</p>
         </div>
 
-        {post.tags && post.tags.length > 0 && !isReply && (
-          <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--text-secondary)]">
-            {post.tags.map((tag) => (
-              <span key={tag} className="rounded-full bg-white/5 px-3 py-1">#{tag}</span>
-            ))}
-          </div>
-        )}
-
-        {!isReply && (
-          <div className="mt-4 flex flex-wrap gap-3 text-sm">
-            <button
-              type="button"
-              onClick={() => handleUpvote(post.id)}
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 transition ${
-                post.hasUpvoted
-                  ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
-                  : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]'
-              }`}
-            >
-              <ArrowBigUp className="h-4 w-4" />
-              {post.upvoteCount}
-            </button>
-            <button
-              type="button"
-              onClick={() => setExpandedReplies((prev) => ({ ...prev, [post.id]: !prev[post.id] }))}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] px-3 py-1.5 text-[var(--text-secondary)] transition hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
-            >
-              <MessageCircle className="h-4 w-4" />
-              {post.replyCount} replies
-            </button>
-          </div>
-        )}
-
-        {!isReply && expandedReplies[post.id] && (
-          <div className="mt-3">
-            <textarea
-              value={replyDrafts[post.id] ?? ''}
-              onChange={(event) =>
-                setReplyDrafts((prev) => ({
-                  ...prev,
-                  [post.id]: event.target.value.slice(0, 320),
-                }))
-              }
-              rows={2}
-              placeholder="Share a quick reply..."
-              className="w-full rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
-            />
-            <div className="mt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={() => handleReplySubmit(post.id)}
-                disabled={!replyDrafts[post.id]?.trim()}
-                className="inline-flex items-center gap-2 rounded-2xl bg-[var(--accent-primary)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Reply
-              </button>
+        {/* Reply Input */}
+        {replyingTo === post.id && (
+          <div className="mt-3 ml-13">
+            <div className="flex gap-3">
+              <div className="w-8 h-8 bg-[var(--text-primary)] rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                U
+              </div>
+              <div className="flex-1">
+                <textarea
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder="Post your reply..."
+                  className="w-full bg-transparent border-0 resize-none text-[var(--text-primary)] text-sm placeholder-[var(--text-muted)] focus:outline-none"
+                  rows={3}
+                  maxLength={280}
+                />
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-xs text-[var(--text-muted)]">
+                    {replyContent.length}/280
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setReplyingTo(null);
+                        setReplyContent('');
+                      }}
+                      className="px-4 py-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleReply(post.id)}
+                      disabled={!replyContent.trim()}
+                      className="px-4 py-1.5 bg-[var(--accent-primary)] text-white text-sm font-semibold rounded-full hover:bg-[var(--accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Reply
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
+        {/* Replies */}
         {!isReply && post.replies && post.replies.length > 0 && (
-          <div className="mt-4 space-y-3 border-t border-[var(--border-subtle)] pt-4">
-            {post.replies.slice(0, expandedReplies[post.id] ? undefined : 2).map((reply) => renderPost(reply, true))}
-            {post.replies.length > 2 && (
-              <button
-                type="button"
-                className="text-xs font-semibold text-[var(--accent-primary)] hover:text-[var(--accent-hover)]"
-                onClick={() => setExpandedReplies((prev) => ({ ...prev, [post.id]: !prev[post.id] }))}
-              >
-                {expandedReplies[post.id] ? 'Hide replies' : `Show all ${post.replyCount} replies`}
+          <div className="mt-3 space-y-3">
+            {post.replies.slice(0, 3).map((reply) => renderPost(reply, true))}
+            {post.replies.length > 3 && (
+              <button className="text-[var(--accent-primary)] text-sm hover:underline ml-13">
+                Show {post.replyCount - 3} more replies
               </button>
             )}
           </div>
@@ -270,171 +304,151 @@ const CommunityFeed: React.FC = () => {
 
   if (!idToken) {
     return (
-      <section className="glass-panel">
-        <p className="text-sm text-[var(--text-secondary)]">
-          Sign in to view the community discussion board.
-        </p>
-      </section>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-lg font-semibold text-[var(--text-primary)] mb-2">Sign in to join the community</p>
+          <p className="text-[var(--text-secondary)]">Connect with peers and mentors to share knowledge and support.</p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      {/* Main Feed Column */}
-      <div className="space-y-6 lg:col-span-2">
-        {/* Create Post Panel */}
-        <div className="glass-panel space-y-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">Community Feed</p>
-            <h2 className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">Ask peers & mentors anything</h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Post a question, share a study tip, or trade resources. Replies stay threaded for clarity.
-            </p>
-          </div>
+    <div className="max-w-2xl mx-auto">
+      {/* Header with Post Button */}
+      <div className="sticky top-0 bg-[var(--bg-app)]/80 backdrop-blur-md border-b border-[var(--border-subtle)] z-10">
+        <div className="flex items-center justify-between p-4">
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">Community</h1>
+          <button
+            onClick={() => setShowComposeModal(true)}
+            className="bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white px-4 py-2 rounded-full font-semibold text-sm transition-colors flex items-center gap-2"
+          >
+            <Plus size={16} />
+            Post
+          </button>
+        </div>
 
-          <div className="rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40 p-4 space-y-3">
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                Subject / Topic
+        {/* Search Bar */}
+        <div className="px-4 pb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-muted)] w-4 h-4" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search posts..."
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-full py-2 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      {/* Posts Feed */}
+      <div className="divide-y divide-[var(--border-subtle)]">
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent-primary)]"></div>
+          </div>
+        ) : filteredPosts.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 bg-[var(--accent-primary)]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageCircle className="w-8 h-8 text-[var(--accent-primary)]" />
+            </div>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+              {searchTerm ? 'No posts found' : 'No posts yet'}
+            </h3>
+            <p className="text-[var(--text-secondary)] mb-4">
+              {searchTerm ? 'Try a different search term' : 'Be the first to start a conversation!'}
+            </p>
+            {!searchTerm && (
+              <button
+                onClick={() => setShowComposeModal(true)}
+                className="bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white px-6 py-2 rounded-full font-semibold text-sm transition-colors"
+              >
+                Create first post
+              </button>
+            )}
+          </div>
+        ) : (
+          filteredPosts.map((post) => renderPost(post))
+        )}
+      </div>
+
+      {/* Compose Modal */}
+      {showComposeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-[var(--bg-card)] rounded-2xl w-full max-w-lg border border-[var(--border-subtle)]">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--border-subtle)]">
+              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Create Post</h3>
+              <button
+                onClick={() => setShowComposeModal(false)}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-4">
+              <textarea
+                value={draft.content}
+                onChange={(e) => setDraft(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="What's on your mind?"
+                className="w-full bg-transparent border-0 resize-none text-[var(--text-primary)] text-lg placeholder-[var(--text-muted)] focus:outline-none min-h-[120px]"
+                rows={4}
+                maxLength={MAX_POST_LENGTH}
+              />
+
+              <div className="flex items-center gap-4 mt-4 pt-4 border-t border-[var(--border-subtle)]">
                 <input
                   type="text"
                   value={draft.subject}
-                  onChange={(event) => setDraft((prev) => ({ ...prev, subject: event.target.value.slice(0, 48) }))}
-                  className="mt-1 w-full rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
-                  placeholder="eg. Calculus, Mental Health"
+                  onChange={(e) => setDraft(prev => ({ ...prev, subject: e.target.value }))}
+                  placeholder="Subject (optional)"
+                  className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
                 />
-              </label>
-              <label className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                Tags (comma separated)
                 <input
                   type="text"
                   value={draft.tags}
-                  onChange={(event) => setDraft((prev) => ({ ...prev, tags: event.target.value }))}
-                  className="mt-1 w-full rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
-                  placeholder="exam prep, grade 10, physics"
+                  onChange={(e) => setDraft(prev => ({ ...prev, tags: e.target.value }))}
+                  placeholder="Tags (optional)"
+                  className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
                 />
-              </label>
-            </div>
-            <textarea
-              value={draft.content}
-              onChange={(event) =>
-                setDraft((prev) => ({
-                  ...prev,
-                  content: event.target.value.slice(0, MAX_POST_LENGTH),
-                }))
-              }
-              rows={3}
-              className="w-full rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-3 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
-              placeholder="Ask a question or share a learning win..."
-            />
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <span className="text-xs text-[var(--text-muted)]">{draft.content.length}/{MAX_POST_LENGTH} characters</span>
-              <button
-                type="button"
-                onClick={handlePublish}
-                disabled={isPublishing || !draft.content.trim()}
-                className="inline-flex items-center justify-center rounded-2xl bg-[var(--accent-primary)] px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isPublishing ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="mr-2 h-4 w-4" />
-                )}
-                Share update
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Feed Filters and Posts */}
-        <div className="glass-panel space-y-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-[var(--text-muted)]" />
-                <select
-                  value={filterSubject}
-                  onChange={(event) => setFilterSubject(event.target.value)}
-                  className="rounded-2xl border border-[var(--border-subtle)] bg-transparent px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
-                >
-                  <option value="">All subjects</option>
-                  {subjectOptions.map((subject) => (
-                    <option key={subject} value={subject}>
-                      {subject}
-                    </option>
-                  ))}
-                </select>
               </div>
-              <input
-                type="search"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search posts or hashtags"
-                className="rounded-2xl border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => void loadFeed()}
-              className="inline-flex items-center justify-center rounded-2xl border border-[var(--border-color)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
-            >
-              Refresh
-            </button>
-          </div>
 
-          {error && <p className="rounded-2xl border border-red-200/60 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
-
-          {loading ? (
-            <div className="flex items-center justify-center py-16 text-[var(--text-muted)]">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading posts...
+              <div className="flex items-center justify-between mt-4">
+                <span className="text-sm text-[var(--text-muted)]">
+                  {draft.content.length}/{MAX_POST_LENGTH}
+                </span>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowComposeModal(false);
+                      setDraft({ content: '', subject: '', tags: '' });
+                    }}
+                    className="px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePublish}
+                    disabled={isPublishing || !draft.content.trim()}
+                    className="px-6 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white text-sm font-semibold rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isPublishing ? 'Posting...' : 'Post'}
+                  </button>
+                </div>
+              </div>
             </div>
-          ) : filteredPosts.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 p-8 text-center text-sm text-[var(--text-secondary)]">
-              No discussions yet. Be the first to ask a question!
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredPosts.map((post) => renderPost(post))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Trending Tags Sidebar */}
-      <div className="space-y-6">
-        <div className="glass-panel">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="h-5 w-5 text-[var(--accent-primary)]" />
-            <h3 className="text-lg font-semibold text-[var(--text-primary)]">Trending Tags</h3>
-          </div>
-
-          {trendingTags.length === 0 ? (
-            <p className="text-sm text-[var(--text-secondary)]">No trending tags yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {trendingTags.map(({ tag, count }) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => setSearchTerm(`#${tag}`)}
-                  className="flex w-full items-center justify-between rounded-xl border border-[var(--border-subtle)] p-3 text-left transition hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5"
-                >
-                  <span className="text-sm font-medium text-[var(--text-primary)]">#{tag}</span>
-                  <span className="rounded-full bg-[var(--accent-primary)]/10 px-2 py-1 text-xs font-semibold text-[var(--accent-primary)]">
-                    {count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="mt-6 border-t border-[var(--border-subtle)] pt-4">
-            <p className="text-xs text-[var(--text-secondary)]">
-              Click on any tag to filter posts by that topic.
-            </p>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
