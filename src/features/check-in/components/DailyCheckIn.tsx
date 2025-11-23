@@ -10,6 +10,7 @@ interface DailyCheckInProps {
 }
 
 const DailyCheckIn: React.FC<DailyCheckInProps> = ({ profile, idToken, onComplete, onClose }) => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [mood, setMood] = useState(5);
   const [sleepHours, setSleepHours] = useState(7);
   const [studyHours, setStudyHours] = useState(0);
@@ -24,6 +25,8 @@ const DailyCheckIn: React.FC<DailyCheckInProps> = ({ profile, idToken, onComplet
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<CheckInResponse['analysis'] | null>(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
+
+  const totalSteps = 3;
 
   const handleSubmit = async () => {
     const payload: Omit<DailyCheckInType, 'id'> = {
@@ -109,12 +112,37 @@ const DailyCheckIn: React.FC<DailyCheckInProps> = ({ profile, idToken, onComplet
     return '😔';
   };
 
+  const nextStep = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const getStepTitle = (step: number): string => {
+    switch (step) {
+      case 1: return 'How are you feeling today?';
+      case 2: return 'What happened today?';
+      case 3: return 'What did you learn & plan for tomorrow?';
+      default: return 'Daily Check-In';
+    }
+  };
+
+  const getStepProgress = (step: number): number => {
+    return (step / totalSteps) * 100;
+  };
+
         return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm dark:bg-black/70 flex items-center justify-center p-4 z-50">
-      <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-xl rounded-2xl border border-[var(--border-subtle)] shadow-xl w-full max-w-md">
+      <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-xl rounded-2xl border border-[var(--border-subtle)] shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
         {showAnalysis && analysis ? (
           /* Analysis Screen */
-          <div className="p-6">
+          <div className="p-6 flex-1 overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-[var(--text-primary)] font-display">AI Analysis</h2>
               <button
@@ -180,7 +208,7 @@ const DailyCheckIn: React.FC<DailyCheckInProps> = ({ profile, idToken, onComplet
           /* Form Screen */
           <>
             <div className="p-6 border-b border-[var(--border-subtle)]">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-[var(--text-primary)] font-display">Daily Check-In</h2>
                 <button
                   onClick={onClose}
@@ -192,185 +220,238 @@ const DailyCheckIn: React.FC<DailyCheckInProps> = ({ profile, idToken, onComplet
                   </svg>
                 </button>
               </div>
-              <p className="text-sm text-[var(--text-secondary)] mt-1">How are you feeling today?</p>
-            </div>
 
-            <div className="p-6 space-y-6">
-          {/* Mood Slider */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-3">
-              Mood: {getMoodEmoji(mood)} {mood}/10
-            </label>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={mood}
-              onChange={(e) => setMood(Number(e.target.value))}
-              className="w-full h-2 bg-[var(--border-subtle)] rounded-lg appearance-none cursor-pointer slider-mood"
-            />
-            <div className="flex justify-between text-xs text-[var(--text-muted)] mt-2">
-              <span>Struggling</span>
-              <span>Excellent</span>
-            </div>
-          </div>
-
-          {/* Hours Slept */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-              Hours Slept Last Night
-            </label>
-            <input
-              type="number"
-              min="0"
-              max="24"
-              step="0.5"
-              value={sleepHours}
-              onChange={(e) => setSleepHours(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] transition-colors"
-              placeholder="e.g., 7.5"
-            />
-          </div>
-
-          {/* Hours Studied */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-              Hours Studied Today
-            </label>
-            <input
-              type="number"
-              min="0"
-              max="24"
-              step="0.5"
-              value={studyHours}
-              onChange={(e) => setStudyHours(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] transition-colors"
-              placeholder="e.g., 2.5"
-            />
-          </div>
-
-          {/* Classes Attended */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-              Classes Attended Today
-            </label>
-            <input
-              type="number"
-              min="0"
-              max="20"
-              value={classesAttended}
-              onChange={(e) => setClassesAttended(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] transition-colors"
-              placeholder="e.g., 5"
-            />
-          </div>
-
-          {/* Top Win */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-              Today's Top Win
-            </label>
-            <textarea
-              value={win}
-              onChange={(e) => setWin(e.target.value)}
-              placeholder="What went well today?"
-              rows={2}
-              className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg placeholder-[var(--text-muted)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] resize-none transition-colors"
-            />
-          </div>
-
-          {/* Main Achievement */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-              Main Achievement Today
-            </label>
-            <textarea
-              value={mainAchievement}
-              onChange={(e) => setMainAchievement(e.target.value)}
-              placeholder="What was your biggest accomplishment today?"
-              rows={2}
-              className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg placeholder-[var(--text-muted)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] resize-none transition-colors"
-            />
-          </div>
-
-          {/* Blockers */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-              Any Blockers?
-            </label>
-            <textarea
-              value={blocker}
-              onChange={(e) => setBlocker(e.target.value)}
-              placeholder="What's slowing you down?"
-              rows={2}
-              className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg placeholder-[var(--text-muted)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] resize-none transition-colors"
-            />
-          </div>
-
-          {/* Main Mistake */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-              Main Mistake Today
-            </label>
-            <textarea
-              value={mainMistake}
-              onChange={(e) => setMainMistake(e.target.value)}
-              placeholder="What was your biggest mistake or area for improvement today?"
-              rows={2}
-              className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg placeholder-[var(--text-muted)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] resize-none transition-colors"
-            />
-          </div>
-
-          {/* Critical Observation */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-              Critical Observation
-            </label>
-            <textarea
-              value={criticalObservation}
-              onChange={(e) => setCriticalObservation(e.target.value)}
-              placeholder="What important insight or pattern did you notice today?"
-              rows={2}
-              className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg placeholder-[var(--text-muted)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] resize-none transition-colors"
-            />
-          </div>
-
-          {/* Plan for Tomorrow */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-              Plan for Tomorrow
-            </label>
-            <textarea
-              value={planForTomorrow}
-              onChange={(e) => setPlanForTomorrow(e.target.value)}
-              placeholder="What do you plan to focus on and improve tomorrow?"
-              rows={2}
-              className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg placeholder-[var(--text-muted)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] resize-none transition-colors"
-            />
-          </div>
-
-          {submitError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg dark:bg-red-950/50 dark:border-red-800/50">
-              <p className="text-sm text-red-700 dark:text-red-300">{submitError}</p>
+              {/* Step Progress */}
+              <div className="mb-4">
+                <div className="flex justify-between text-xs text-[var(--text-muted)] mb-2">
+                  <span>Step {currentStep} of {totalSteps}</span>
+                  <span>{Math.round(getStepProgress(currentStep))}%</span>
                 </div>
-              )}
+                <div className="w-full bg-[var(--bg-secondary)] rounded-full h-2">
+                  <div
+                    className="bg-[var(--accent-primary)] h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${getStepProgress(currentStep)}%` }}
+                  ></div>
+                </div>
+              </div>
 
-          <div className="flex gap-3">
-          <button
-            onClick={onClose}
-              className="flex-1 py-2 px-4 border border-[var(--border-color)] rounded-lg text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
-          >
-              Cancel
-          </button>
-              <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="flex-1 py-2 px-4 rounded-lg text-sm font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-dark)] disabled:opacity-50 transition-colors"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Check-In'}
-            </button>
-          </div>
-        </div>
+              <h3 className="text-lg font-medium text-[var(--text-primary)]">{getStepTitle(currentStep)}</h3>
+            </div>
+
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-6 space-y-6">
+                  {/* Step 1: Basic Health & Activity Tracking */}
+                  {currentStep === 1 && (
+                    <>
+                      {/* Mood Slider */}
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-3">
+                          Mood: {getMoodEmoji(mood)} {mood}/10
+                        </label>
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={mood}
+                          onChange={(e) => setMood(Number(e.target.value))}
+                          className="w-full h-2 bg-[var(--border-subtle)] rounded-lg appearance-none cursor-pointer slider-mood"
+                        />
+                        <div className="flex justify-between text-xs text-[var(--text-muted)] mt-2">
+                          <span>Struggling</span>
+                          <span>Excellent</span>
+                        </div>
+                      </div>
+
+                      {/* Hours Slept */}
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                          Hours Slept Last Night
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="24"
+                          step="0.5"
+                          value={sleepHours}
+                          onChange={(e) => setSleepHours(Number(e.target.value))}
+                          className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] transition-colors"
+                          placeholder="e.g., 7.5"
+                        />
+                      </div>
+
+                      {/* Hours Studied */}
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                          Hours Studied Today
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="24"
+                          step="0.5"
+                          value={studyHours}
+                          onChange={(e) => setStudyHours(Number(e.target.value))}
+                          className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] transition-colors"
+                          placeholder="e.g., 2.5"
+                        />
+                      </div>
+
+                      {/* Classes Attended */}
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                          Classes Attended Today
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="20"
+                          value={classesAttended}
+                          onChange={(e) => setClassesAttended(Number(e.target.value))}
+                          className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] transition-colors"
+                          placeholder="e.g., 5"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Step 2: Today's Reflections */}
+                  {currentStep === 2 && (
+                    <>
+                      {/* Top Win */}
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                          Today's Top Win
+                        </label>
+                        <textarea
+                          value={win}
+                          onChange={(e) => setWin(e.target.value)}
+                          placeholder="What went well today?"
+                          rows={3}
+                          className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg placeholder-[var(--text-muted)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] resize-none transition-colors"
+                        />
+                      </div>
+
+                      {/* Main Achievement */}
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                          Main Achievement Today
+                        </label>
+                        <textarea
+                          value={mainAchievement}
+                          onChange={(e) => setMainAchievement(e.target.value)}
+                          placeholder="What was your biggest accomplishment today?"
+                          rows={3}
+                          className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg placeholder-[var(--text-muted)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] resize-none transition-colors"
+                        />
+                      </div>
+
+                      {/* Blockers */}
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                          Any Blockers?
+                        </label>
+                        <textarea
+                          value={blocker}
+                          onChange={(e) => setBlocker(e.target.value)}
+                          placeholder="What's slowing you down?"
+                          rows={3}
+                          className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg placeholder-[var(--text-muted)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] resize-none transition-colors"
+                        />
+                      </div>
+
+                      {/* Main Mistake */}
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                          Main Mistake Today
+                        </label>
+                        <textarea
+                          value={mainMistake}
+                          onChange={(e) => setMainMistake(e.target.value)}
+                          placeholder="What was your biggest mistake or area for improvement today?"
+                          rows={3}
+                          className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg placeholder-[var(--text-muted)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] resize-none transition-colors"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Step 3: Insights & Planning */}
+                  {currentStep === 3 && (
+                    <>
+                      {/* Critical Observation */}
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                          Critical Observation
+                        </label>
+                        <textarea
+                          value={criticalObservation}
+                          onChange={(e) => setCriticalObservation(e.target.value)}
+                          placeholder="What important insight or pattern did you notice today?"
+                          rows={3}
+                          className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg placeholder-[var(--text-muted)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] resize-none transition-colors"
+                        />
+                      </div>
+
+                      {/* Plan for Tomorrow */}
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                          Plan for Tomorrow
+                        </label>
+                        <textarea
+                          value={planForTomorrow}
+                          onChange={(e) => setPlanForTomorrow(e.target.value)}
+                          placeholder="What do you plan to focus on and improve tomorrow?"
+                          rows={3}
+                          className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg placeholder-[var(--text-muted)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:border-[var(--accent-primary)] resize-none transition-colors"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {submitError && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg dark:bg-red-950/50 dark:border-red-800/50">
+                      <p className="text-sm text-red-700 dark:text-red-300">{submitError}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Step Navigation */}
+              <div className="p-6 border-t border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
+                <div className="flex gap-3">
+                  {currentStep > 1 ? (
+                    <button
+                      onClick={prevStep}
+                      className="flex-1 py-2 px-4 border border-[var(--border-color)] rounded-lg text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                    >
+                      Previous
+                    </button>
+                  ) : (
+                    <button
+                      onClick={onClose}
+                      className="flex-1 py-2 px-4 border border-[var(--border-color)] rounded-lg text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  )}
+
+                  {currentStep < totalSteps ? (
+                    <button
+                      onClick={nextStep}
+                      className="flex-1 py-2 px-4 rounded-lg text-sm font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-dark)] transition-colors"
+                    >
+                      Next
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                      className="flex-1 py-2 px-4 rounded-lg text-sm font-semibold text-white bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-dark)] disabled:opacity-50 transition-colors"
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Submit Check-In'}
+                    </button>
+                  )}
+                </div>
           </>
         )}
       </div>
