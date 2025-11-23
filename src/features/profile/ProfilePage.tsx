@@ -1,18 +1,18 @@
 import React from 'react';
 import {
   BookOpen,
-  CalendarDays,
+  Calendar,
+  Edit3,
   Mail,
+  MapPin,
   Moon,
-  NotebookPen,
-  Palette,
-  PenSquare,
+  MoreHorizontal,
   Settings as SettingsIcon,
-  Sparkles,
-  SunMedium,
+  Sun,
   Target,
-  UserRound,
   Users,
+  Zap,
+  GraduationCap
 } from 'lucide-react';
 
 import { useAuth } from '@/common/hooks/useAuth';
@@ -30,180 +30,202 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, onEditProfile, onEdi
   const { theme, toggleTheme } = useTheme();
 
   const firstName = profile.name.split(' ')[0] ?? profile.name;
-
-  const handleSettingsClick = () => {
-    window.location.href = '/settings';
-  };
-  const bio = profile.bio?.trim() || 'Add a short bio so mentors know what fuels your curiosity.';
+  
+  // Fallbacks
+  const bio = profile.bio?.trim() || null;
   const hobbyList = profile.hobbies?.filter(Boolean) ?? [];
   const interestList = profile.interests?.filter(Boolean) ?? [];
+
   const stats = [
     { label: 'Followers', value: profile.followers ?? 0, icon: Users },
-    { label: 'Notes Shared', value: profile.notesShared ?? 0, icon: BookOpen },
-    { label: 'Subjects', value: profile.subjects.length, icon: Palette },
+    { label: 'Notes', value: profile.notesShared ?? 0, icon: BookOpen },
+    { label: 'Subjects', value: profile.subjects.length, icon: Zap },
   ];
 
-  const formatNumber = (value: number): string => new Intl.NumberFormat().format(value);
+  const formatNumber = (value: number) => new Intl.NumberFormat('en-US', { notation: "compact" }).format(value);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-1">
-          <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-muted)]">Profile</p>
-          <h1 className="text-3xl font-display text-[var(--text-primary)]">Your personal brief</h1>
-          <p className="font-hand text-lg text-[var(--text-secondary)]">Keep showing up, {firstName}.</p>
+    <div className="animate-in fade-in duration-500 w-full max-w-6xl mx-auto pb-10">
+      
+      
+      <div className="relative mb-20">
+      
+        <div className="h-48 w-full rounded-2xl  bg-[var(--text-primary)]  relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+          
+      
+          <div className="absolute top-4 right-4 flex gap-2 px-4">
+             <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full bg-[var(--bg-card)] text-[var(--text-primary)] backdrop-blur-md border border-white/20  transition"
+              title="Toggle Theme"
+            >
+              {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+            </button>
+            {/* <button
+              onClick={() => window.location.href = '/settings'}
+              className="p-2 rounded-full dark:bg-black dark:text-white bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition"
+              title="Settings"
+            >
+              <SettingsIcon size={18} />
+            </button> */}
+            <ActionButton onClick={onEditGoals} icon={<Target size={16} />} label="Goals" />
+            <ActionButton onClick={onEditProfile} icon={<Edit3 size={16} />} label="Edit Profile"  />
+          </div>
         </div>
-        <button
-          onClick={handleSettingsClick}
-          className="p-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/60 hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-colors"
-          aria-label="Go to settings"
-        >
-          <SettingsIcon size={20} className="text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors" />
-        </button>
+
+        
+        <div className="absolute top-10 left-0 right-0 px-8 flex flex-col md:flex-row items-end justify-between gap-6">
+          <div className="flex items-center gap-6">
+            
+            <div className="h-32 w-32 rounded-full border-4 border-[var(--bg-card)] bg-[var(--bg-secondary)] flex items-center justify-center shadow-lg overflow-hidden relative z-10">
+               
+               <span className="text-4xl font-display font-bold text-[var(--text-secondary)]">
+                 {firstName.charAt(0)}
+               </span>
+            </div>
+            
+            
+            <div className=" relative z-10 flex flex-col gap-1">
+              <h1 className="text-3xl font-display font-bold text-[var(--bg-card)]">{profile.name}</h1>
+              
+              <p className="text-[var(--bg-tertiary)]  font-medium inline-flex gap-2 items-center">  <Mail size={16}/> {user?.email }</p>
+              
+              <p className="text-[var(--bg-tertiary)]  font-medium inline-flex gap-2 items-center "> <GraduationCap size={16}/> Grade {profile.grade}</p>
+            </div>
+          </div>
+
+
+          <div className="grid grid-cols-3 gap-4 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm">
+            {stats.map((stat) => (
+              <div key={stat.label} className="text-center py-2">
+                <div className="text-xl font-bold text-[var(--text-primary)]">{formatNumber(stat.value)}</div>
+                <div className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)] font-medium mt-1">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6">
-          <section className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-muted)]">Identity</p>
-                <h2 className="mt-1 text-2xl font-display text-[var(--text-primary)]">Hi, {firstName}</h2>
-                <p className="font-hand text-base text-[var(--text-secondary)]">You&apos;re writing your own playbook.</p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={onEditGoals}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border-color)] px-3 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
-                >
-                  <Target size={16} />
-                  Goals
-                </button>
-                <button
-                  type="button"
-                  onClick={onEditProfile}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border-color)] px-3 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
-                >
-                  <PenSquare size={16} />
-                  Edit
-                </button>
-              </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 px-4 md:px-0">
+        
+{/*         
+        <div className="lg:col-span-4 space-y-6">
+          
+        
+        
+          <div className="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm">
+             <h3 className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 font-semibold">About</h3>
+             
+             <div className="space-y-5">
+               <InfoItem icon={<Mail size={16}/>} label="Email" value={user?.email || 'No email linked'} />
+               <InfoItem icon={<GraduationCap size={16}/>} label="Class" value={`Grade ${profile.grade}`} />
+               <InfoItem icon={<Calendar size={16}/>} label="Joined" value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'Unknown'} />
+             </div>
+          </div>
+
+        </div> */}
+
+        
+        <div className="lg:col-span-8 space-y-8">
+          
+        
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-display font-semibold text-[var(--text-primary)]">Biography</h2>
             </div>
-            <div className="mt-6 grid gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40 p-4">
-              {stats.map(({ label, value, icon: Icon }) => (
-                <div key={label} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                    <Icon size={16} />
-                    {label}
-                  </div>
-                  <p className="text-lg font-semibold text-[var(--text-primary)]">{formatNumber(value)}</p>
+            
+            <div className={`p-6 rounded-2xl border ${bio ? 'bg-[var(--bg-card)] border-[var(--border-subtle)]' : 'border-dashed border-[var(--border-color)] bg-[var(--bg-secondary)]/30'}`}>
+               {bio ? (
+                 <p className="leading-relaxed text-[var(--text-secondary)] whitespace-pre-wrap">{bio}</p>
+               ) : (
+                 <div className="text-center py-6">
+                   <p className="text-[var(--text-muted)] text-sm mb-3">Your bio is empty. Tell mentors what drives you.</p>
+                   <button onClick={onEditProfile} className="text-sm text-[var(--accent-primary)] font-semibold hover:underline">
+                     Write a bio
+                   </button>
+                 </div>
+               )}
+            </div>
+          </section>
+
+        
+          <section>
+            <h2 className="text-xl font-display font-semibold text-[var(--text-primary)] mb-4">Interests & Skills</h2>
+            <div className="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+              
+        
+              <div className="mb-6">
+                <h3 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Hobbies</h3>
+                <div className="flex flex-wrap gap-2">
+                  {hobbyList.length > 0 ? (
+                    hobbyList.map(hobby => <Badge key={hobby}>{hobby}</Badge>)
+                  ) : (
+                    <span className="text-sm text-[var(--text-muted)] italic">No hobbies added.</span>
+                  )}
                 </div>
-              ))}
-            </div>
-          </section>
-
-
-          <section className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Appearance</p>
-                <p className="text-base font-semibold text-[var(--text-primary)]">Theme preference</p>
-                <p className="text-sm text-[var(--text-secondary)]">
-                  {theme === 'light' ? 'Soft daylight palette' : 'Midnight focus mode'}
-                </p>
               </div>
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className={`relative h-9 w-16 rounded-full border border-[var(--border-color)] px-1 transition ${
-                  theme === 'dark' ? 'bg-[var(--accent-primary)]/20' : 'bg-[var(--bg-secondary)]'
-                }`}
-                aria-label="Toggle theme"
-              >
-                <span
-                  className={`absolute top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm transition ${
-                    theme === 'dark' ? 'translate-x-7' : 'translate-x-0'
-                  }`}
-                >
-                  {theme === 'dark' ? <Moon size={16} /> : <SunMedium size={16} />}
-                </span>
-              </button>
-            </div>
-          </section>
-        </div>
 
-        <div className="space-y-6 lg:col-span-2">
-          <section className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6">
-            <div className="flex items-center gap-2 text-[var(--text-secondary)]">
-              <UserRound size={18} />
-              <p className="text-xs uppercase tracking-[0.2em]">Personal Details</p>
-            </div>
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <ProfileDetail label="Full Name" value={profile.name} />
-              <ProfileDetail label="Email" value={user?.email ?? 'Not linked'} icon={<Mail size={14} />} />
-              <ProfileDetail label="Grade / Class" value={profile.grade} icon={<BookOpen size={14} />} />
-              <ProfileDetail
-                label="Date of Birth"
-                value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'Not set'}
-                icon={<CalendarDays size={14} />}
-              />
+        
+              <div>
+                <h3 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Academic Interests</h3>
+                <div className="flex flex-wrap gap-2">
+                  {interestList.length > 0 ? (
+                    interestList.map(item => <Badge key={item} variant="accent">{item}</Badge>)
+                  ) : (
+                    <span className="text-sm text-[var(--text-muted)] italic">No interests added.</span>
+                  )}
+                </div>
+              </div>
+
             </div>
           </section>
 
-          <section className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6">
-            <div className="flex items-center gap-2 text-[var(--text-secondary)]">
-              <NotebookPen size={18} />
-              <p className="text-xs uppercase tracking-[0.2em]">Bio</p>
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-[var(--text-primary)]">{bio}</p>
-          </section>
-
-          <section className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6">
-            <div className="flex items-center gap-2 text-[var(--text-secondary)]">
-              <Sparkles size={18} />
-              <p className="text-xs uppercase tracking-[0.2em]">Hobbies & Interests</p>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {hobbyList.length > 0 ? (
-                hobbyList.map((hobby) => (
-                  <span key={hobby} className="rounded-full border border-[var(--border-color)] px-3 py-1 text-sm text-[var(--text-primary)]">
-                    {hobby}
-                  </span>
-                ))
-              ) : (
-                <p className="text-sm text-[var(--text-tertiary)]">No hobbies added yet.</p>
-              )}
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {interestList.length > 0 ? (
-                interestList.map((interest) => (
-                  <span
-                    key={interest}
-                    className="rounded-full bg-[var(--accent-primary)]/10 px-3 py-1 text-sm font-medium text-[var(--accent-primary)]"
-                  >
-                    {interest}
-                  </span>
-                ))
-              ) : (
-                <p className="text-sm text-[var(--text-tertiary)]">No interests added yet.</p>
-              )}
-            </div>
-          </section>
         </div>
       </div>
     </div>
   );
 };
 
-const ProfileDetail: React.FC<{ label: string; value: string; icon?: React.ReactNode }> = ({ label, value, icon }) => (
-  <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 p-4">
-    <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)] flex items-center gap-1">
-      {icon ? <span className="text-[var(--text-secondary)]">{icon}</span> : null}
-      {label}
-    </p>
-    <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{value}</p>
+
+
+const ActionButton = ({ icon, label, onClick, primary = false }: { icon: React.ReactNode, label: string, onClick: () => void, primary?: boolean }) => (
+  <button
+    onClick={onClick}
+    className={`
+      flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-sm
+      ${primary 
+        ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-[var(--text-primary)]/90' 
+        : 'bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+      }
+    `}
+  >
+    {icon}
+    <span>{label}</span>
+  </button>
+);
+
+const InfoItem = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) => (
+  <div className="flex items-center gap-3">
+    <div className="text-[var(--text-muted)]">{icon}</div>
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-medium text-[var(--text-primary)] truncate">{value}</p>
+      <p className="text-xs text-[var(--text-muted)]">{label}</p>
+    </div>
   </div>
 );
+
+const Badge = ({ children, variant = 'default' }: { children: React.ReactNode, variant?: 'default' | 'accent' }) => {
+  const styles = variant === 'accent' 
+    ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/20'
+    : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-subtle)]';
+
+  return (
+    <span className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${styles}`}>
+      {children}
+    </span>
+  );
+};
 
 export default ProfilePage;

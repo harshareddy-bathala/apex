@@ -45,8 +45,8 @@ const NAV_LINKS: Array<{ id: AppShellView; label: string; icon: LucideIcon }> = 
   { id: 'community', label: 'Community', icon: UsersRound },
   { id: 'resources', label: 'Resources', icon: FolderKanban },
   { id: 'chat', label: 'AI Mentor', icon: MessageSquare },
-  { id: 'profile', label: 'Profile', icon: UserRound },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  // { id: 'profile', label: 'Profile', icon: UserRound },
+  // { id: 'settings', label: 'Settings', icon: Settings },
 ];
 const EXPANDED_SIDEBAR_WIDTH = 260;
 const COLLAPSED_SIDEBAR_WIDTH = 72;
@@ -170,7 +170,7 @@ const AppShell: React.FC<AppShellProps> = ({
         </div>
 
         <div className="flex flex-1 flex-col overflow-y-auto">
-          <nav className="flex flex-col gap-1 px-3 pb-4">
+          <nav className="flex flex-col gap-1 px-3 pb-1">
           {NAV_LINKS.map((item) => {
             const Icon = item.icon;
             const active = activeView === item.id;
@@ -179,14 +179,14 @@ const AppShell: React.FC<AppShellProps> = ({
                 key={item.id}
                 type="button"
                 onClick={() => handleNavigate(item.id)}
-                className={`group flex items-center rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
+                className={`group flex items-center rounded-2xl px-4 py-3 text-sm font-medium transition-all  ${
                   active
                     ? 'border border-[var(--accent-primary)]/30 bg-[var(--bg-card)] text-[var(--text-primary)]'
                     : 'border border-transparent text-[var(--text-secondary)] hover:border-[var(--border-color)] hover:bg-[var(--bg-card)]/70 hover:text-[var(--text-primary)]'
                 } ${isCollapsed && isDesktop ? 'justify-center' : 'gap-3'}`}
               >
                 <span
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-colors ${
+                  className={`flex h-10 w-10 px-2 items-center justify-center rounded-xl border transition-colors ${
                     active
                       ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
                       : 'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'
@@ -202,11 +202,26 @@ const AppShell: React.FC<AppShellProps> = ({
         </div>
 
         {(!isCollapsed || !isDesktop) && (
-        <div className="space-y-4 px-4 pb-6">
-          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 p-4">
+        <div className=" px-4 pb-2">
+          <div 
+            onClick={() => handleNavigate('profile')}
+           className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 p-4 cursor-pointer hover:border-[var(--border-strong)] hover:bg-[var(--bg-card)] transition">
             <p className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Signed in as</p>
-            <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{userName}</p>
-            <p className="text-xs text-[var(--text-secondary)] capitalize">{userRole}</p>
+            <div className='flex items-center gap-3'>
+              <span
+                  className={`flex h-10 w-10 px-2 items-center justify-center rounded-xl border transition-colors ${
+                  
+                       'border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  
+              <UserRound size={18} />
+                </span>
+            <div className='py-2'>
+              <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{userName}</p>
+              <p className="text-xs text-[var(--text-secondary)] capitalize">{userRole}</p>
+            </div>
+            </div>
           </div>
           <div className="space-y-1">
             {profileMenuItems.map((item) => {

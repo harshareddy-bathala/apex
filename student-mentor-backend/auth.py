@@ -23,16 +23,34 @@ def _initialize_firebase_app() -> firebase_admin.App:
     if _auth_app:
         return _auth_app
 
-    # Priority 1: Explicit file path from environment variable
-    credentials_path = os.getenv("FIREBASE_CREDENTIALS_FILE") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-    if credentials_path:
-        cred = credentials.Certificate(credentials_path)
-    # Priority 2: Application Default Credentials (fallback)
-    else:
-        cred = credentials.ApplicationDefault()
+    try:
+        # Priority 1: Explicit file path from environment variable
+        credentials_path = os.getenv("FIREBASE_CREDENTIALS_FILE") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        
+        # Priority 2: Check for firestore.json in the current directory (common location)
+        if not credentials_path:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            default_path = os.path.join(script_dir, "firestore.json")
+            if os.path.exists(default_path):
+                credentials_path = default_path
+                print(f"📁 Found firestore.json in backend directory, using it automatically")
+        
+        if credentials_path:
+            if not os.path.exists(credentials_path):
+                raise FileNotFoundError(f"Firebase credentials file not found: {credentials_path}")
+            cred = credentials.Certificate(credentials_path)
+            print(f"✅ Using Firebase credentials from: {credentials_path}")
+        # Priority 3: Application Default Credentials (fallback)
+        else:
+            print("⚠️  No FIREBASE_CREDENTIALS_FILE, GOOGLE_APPLICATION_CREDENTIALS, or firestore.json found, using Application Default Credentials")
+            cred = credentials.ApplicationDefault()
 
-    _auth_app = firebase_admin.initialize_app(cred)
-    return _auth_app
+        _auth_app = firebase_admin.initialize_app(cred)
+        print(f"✅ Firebase Admin SDK initialized successfully (Project: {_auth_app.project_id})")
+        return _auth_app
+    except Exception as e:
+        print(f"❌ Failed to initialize Firebase Admin SDK: {type(e).__name__}: {e}")
+        raise
 
 
 _initialize_firebase_app()
@@ -56,7 +74,14 @@ async def verify_firebase_token(
     try:
         decoded = firebase_auth.verify_id_token(token, app=firebase_admin.get_app())
     except Exception as exc:  # firebase_admin raises multiple subclasses
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired ID token") from exc
+        # Log the actual error for debugging
+        error_type = type(exc).__name__
+        error_msg = str(exc)
+        print(f"❌ Token verification failed: {error_type} - {error_msg}")
+        print(f"   Token preview: {token[:50]}..." if token and len(token) > 50 else f"   Token: {token}")
+        # Include more details in development, but keep it secure in production
+        detail_msg = f"Invalid or expired ID token: {error_type}"
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail_msg) from exc
 
     uid = decoded.get("uid")
     if not uid:
