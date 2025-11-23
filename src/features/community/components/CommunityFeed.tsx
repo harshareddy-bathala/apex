@@ -316,7 +316,7 @@ const CommunityFeed: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header with Post Button */}
-      <div className="sticky top-0 bg-[var(--bg-app)]/80 backdrop-blur-md border-b border-[var(--border-subtle)] z-10">
+      <div className="bg-[var(--bg-app)] border-b border-[var(--border-subtle)] mb-4">
         <div className="flex items-center justify-between p-4">
           <h1 className="text-xl font-bold text-[var(--text-primary)]">Community</h1>
           <button

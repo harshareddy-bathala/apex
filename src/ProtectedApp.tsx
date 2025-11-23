@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarCheck2, PenSquare, Target } from 'lucide-react';
+import { CalendarCheck2 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
@@ -314,18 +314,8 @@ const ProtectedApp: React.FC = () => {
         icon: CalendarCheck2,
         onClick: () => setShowCheckIn(true),
       },
-      {
-        label: 'Edit Goals',
-        icon: Target,
-        onClick: () => setShowGoalsEditor(true),
-      },
-      {
-        label: 'Update Profile',
-        icon: PenSquare,
-        onClick: () => setShowEditProfile(true),
-      },
     ],
-    [setShowCheckIn, setShowEditProfile, setShowGoalsEditor],
+    [setShowCheckIn],
   );
 
   return (

@@ -168,15 +168,6 @@ const ResourceGrid: React.FC = () => {
           <p className="text-[var(--text-secondary)] mb-4">
             {query ? 'Try a different search term' : 'Be the first to share a study resource!'}
           </p>
-          {!query && (
-            <button
-              onClick={() => setShowUploadModal(true)}
-              className="bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white px-6 py-2 rounded-full font-semibold text-sm transition-colors flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              Share Resource
-            </button>
-          )}
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

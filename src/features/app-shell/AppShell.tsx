@@ -245,7 +245,7 @@ const AppShell: React.FC<AppShellProps> = ({
       )}
 
       {/* Main content */}
-      <div className="min-h-screen" style={mainStyle}>
+      <div className="min-h-screen bg-[var(--bg-app)]" style={mainStyle}>
         <header
           className="fixed top-0 left-0 right-0 z-30 border-b border-[var(--border-subtle)] bg-[var(--bg-app)]/85 backdrop-blur-xl transition-all"
           style={headerStyle}
@@ -285,10 +285,8 @@ const AppShell: React.FC<AppShellProps> = ({
           {subHeader && <div className="border-t border-[var(--border-subtle)] px-4 py-3 lg:px-8">{subHeader}</div>}
         </header>
 
-        <main className="px-4 py-6 lg:px-8 lg:py-10 overflow-auto" style={{
-          paddingTop: isDesktop ? '120px' : '140px',
-          minHeight: 'calc(100vh - 120px)',
-          maxHeight: 'calc(100vh - 120px)'
+        <main className="px-4 py-6 lg:px-8 lg:py-10 min-h-screen" style={{
+          paddingTop: isDesktop ? '120px' : '140px'
         }}>{children}</main>
       </div>
     </div>
