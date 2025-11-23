@@ -169,7 +169,7 @@ const AppShell: React.FC<AppShellProps> = ({
           )}
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 px-3">
+        <nav className="flex flex-1 flex-col gap-1 px-3 overflow-y-auto">
           {NAV_LINKS.map((item) => {
             const Icon = item.icon;
             const active = activeView === item.id;
