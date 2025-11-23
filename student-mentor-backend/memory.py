@@ -25,10 +25,28 @@ memory_bank = MemoryBank(name="student_long_term")
 
 def summarize_checkin(data: Dict[str, str]) -> str:
     feeling = data.get("mood") or data.get("feeling") or "unknown"
-    win = data.get("win") or data.get("achievements") or "none"
-    blocker = data.get("blocker") or data.get("challenges") or "none"
+    win = data.get("win") or "none"
+    main_achievement = data.get("mainAchievement") or "none"
+    blocker = data.get("blocker") or "none"
+    main_mistake = data.get("mainMistake") or "none"
+    critical_observation = data.get("criticalObservation") or "none"
+    plan_for_tomorrow = data.get("planForTomorrow") or "none"
+    sleep_hours = data.get("sleepHours") or "unknown"
+    study_hours = data.get("studyHours") or "unknown"
+    classes_attended = data.get("classesAttended") or "unknown"
 
-    wins_text = win if isinstance(win, str) else ", ".join(win)
-    blocker_text = blocker if isinstance(blocker, str) else ", ".join(blocker)
+    # Create a comprehensive summary for AI analysis
+    summary_parts = [
+        f"Mood: {feeling}",
+        f"Sleep: {sleep_hours}h",
+        f"Study: {study_hours}h",
+        f"Classes: {classes_attended}",
+        f"Win: {win}",
+        f"Achievement: {main_achievement}",
+        f"Blocker: {blocker}",
+        f"Mistake: {main_mistake}",
+        f"Observation: {critical_observation}",
+        f"Tomorrow: {plan_for_tomorrow}"
+    ]
 
-    return f"Mood: {feeling} | Win: {wins_text} | Blocker: {blocker_text}"
+    return " | ".join(summary_parts)

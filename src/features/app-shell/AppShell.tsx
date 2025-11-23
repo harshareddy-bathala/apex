@@ -169,8 +169,9 @@ const AppShell: React.FC<AppShellProps> = ({
           )}
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 px-3">
-          {NAV_LINKS.map((item) => {
+        <div className="flex flex-1 flex-col overflow-y-auto">
+          <nav className="flex flex-col gap-1 px-3 pb-4">
+            {NAV_LINKS.map((item) => {
             const Icon = item.icon;
             const active = activeView === item.id;
             return (
@@ -197,7 +198,8 @@ const AppShell: React.FC<AppShellProps> = ({
               </button>
             );
           })}
-        </nav>
+          </nav>
+        </div>
 
         {(!isCollapsed || !isDesktop) && (
           <div className="space-y-4 px-4 pb-6">

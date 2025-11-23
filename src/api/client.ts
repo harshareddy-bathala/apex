@@ -307,7 +307,18 @@ export async function updateProfile(token: string, data: Record<string, unknown>
   return (await response.json()) as StudentProfileRecord;
 }
 
-export async function postCheckIn(token: string, data: Record<string, unknown>): Promise<DailyCheckIn> {
+export interface CheckInResponse {
+  checkinId: string;
+  analysis: {
+    insights: string[];
+    recommendations: string[];
+    mood_trend: string;
+    sleep_quality: string;
+    study_consistency: string;
+  };
+}
+
+export async function postCheckIn(token: string, data: Record<string, unknown>): Promise<CheckInResponse> {
   const response = await fetch(apiUrl('/checkin'), {
     method: 'POST',
     headers: {
@@ -322,7 +333,7 @@ export async function postCheckIn(token: string, data: Record<string, unknown>):
     throw new Error(`Failed to submit check-in (${response.status}): ${errorText}`);
   }
 
-  return (await response.json()) as DailyCheckIn;
+  return (await response.json()) as CheckInResponse;
 }
 
 export async function getTodayCheckIn(token: string): Promise<DailyCheckIn | null> {

@@ -136,10 +136,19 @@ class CheckIn(Document):
     """Daily check-in model"""
     id: str = Field(default_factory=lambda: str(ObjectId()))
     studentId: str
+    date: str  # ISO date string (YYYY-MM-DD)
     mood: str
     stressLevel: int
     sleepHours: float
-    notes: Optional[str] = None
+    energyLevel: int
+    studyHours: float
+    classesAttended: int
+    win: Optional[str] = None
+    blocker: Optional[str] = None
+    mainMistake: Optional[str] = None
+    criticalObservation: Optional[str] = None
+    mainAchievement: Optional[str] = None
+    planForTomorrow: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     class Settings:

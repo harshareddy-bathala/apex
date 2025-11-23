@@ -79,7 +79,11 @@ export interface DailyCheckIn {
   achievements?: string[];
   win?: string;
   blocker?: string;
-  
+  mainMistake?: string;
+  criticalObservation?: string;
+  mainAchievement?: string;
+  planForTomorrow?: string;
+
   timestamp: string;
 }
 

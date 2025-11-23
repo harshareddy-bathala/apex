@@ -74,6 +74,14 @@ class CheckInPayload(BaseModel):
     mood: str
     stressLevel: int
     sleepHours: float
+    studyHours: Optional[float] = None
+    classesAttended: Optional[int] = None
+    win: Optional[str] = None
+    blocker: Optional[str] = None
+    mainMistake: Optional[str] = None
+    criticalObservation: Optional[str] = None
+    mainAchievement: Optional[str] = None
+    planForTomorrow: Optional[str] = None
     notes: Optional[str] = None
 
 class ChatRequest(BaseModel):
@@ -246,8 +254,10 @@ async def get_profile(user: FirebaseUser = Depends(verify_firebase_token)) -> Di
     user_doc = await User.find_one(User.id == user.uid)
     if not user_doc or not user_doc.profile:
         # Return default/empty profile structure if not found
-        return {"onboardingComplete": False}
-    return user_doc.profile.model_dump()
+        return {"onboardingComplete": False, "role": user.role}
+    profile_data = user_doc.profile.model_dump()
+    profile_data["role"] = user.role  # Add role to profile response
+    return profile_data
 
 @app.post("/profile/update")
 async def update_profile(payload: ProfileUpdatePayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
@@ -273,15 +283,24 @@ async def update_profile(payload: ProfileUpdatePayload, user: FirebaseUser = Dep
 
 @app.post("/checkin")
 async def daily_checkin(payload: CheckInPayload, user: FirebaseUser = Depends(verify_firebase_token)) -> Dict[str, Any]:
-    checkin = CheckIn(
-        studentId=user.uid,
+    # Use the AI-powered check-in recording tool
+    result = await record_daily_checkin(
+        student_id=user.uid,
         mood=payload.mood,
-        stressLevel=payload.stressLevel,
-        sleepHours=payload.sleepHours,
-        notes=payload.notes,
+        win=payload.win or "",
+        blocker=payload.blocker or "",
+        sleep_hours=payload.sleepHours,
+        study_hours=payload.studyHours or 0,
+        classes_attended=payload.classesAttended or 0,
+        main_mistake=payload.mainMistake or "",
+        critical_observation=payload.criticalObservation or "",
+        main_achievement=payload.mainAchievement or "",
+        plan_for_tomorrow=payload.planForTomorrow or ""
     )
-    await checkin.insert()
-    return checkin.model_dump()
+
+    # Parse the result to return structured data
+    result_data = json.loads(result)
+    return result_data
 
 @app.post("/onboarding/chat")
 async def chat_endpoint(request: ChatRequest, user: FirebaseUser = Depends(verify_firebase_token)):

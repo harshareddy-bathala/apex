@@ -64,23 +64,8 @@ const AuthGuard: React.FC = () => {
     void fetchProfile();
   }, [fetchProfile, idToken]);
 
-  const decodedRole = useMemo(() => {
-    if (!idToken) {
-      return null;
-    }
-    try {
-      const payloadSegment = idToken.split('.')[1];
-      if (!payloadSegment) {
-        return null;
-      }
-      const payload = JSON.parse(atob(payloadSegment));
-      return payload?.role ?? null;
-    } catch {
-      return null;
-    }
-  }, [idToken]);
-
-  const profileRole = profile?.role ?? (decodedRole === 'teacher' ? 'teacher' : 'student');
+  // Get role from profile (which now includes role from backend), fallback to student
+  const profileRole = profile?.role ?? 'student';
   const needsProfileCompletion = profile?.onboardingComplete !== true;
   const requiresOnboarding = profileRole !== 'teacher' && (forceOnboarding || needsProfileCompletion);
   const providerValue = useMemo(() => ({ profile, refetchProfile: fetchProfile }), [profile, fetchProfile]);

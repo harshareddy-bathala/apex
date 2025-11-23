@@ -217,8 +217,11 @@ const ProtectedApp: React.FC = () => {
   };
 
   const handleCheckInComplete = (checkIn: DailyCheckInType) => {
-    setCheckIns((prev) => [checkIn, ...prev]);
+    // Close modal first to prevent blank screen
     setShowCheckIn(false);
+
+    // Then update state
+    setCheckIns((prev) => [checkIn, ...prev]);
     addActivity({
       studentId: checkIn.studentId,
       type: 'mental-health',

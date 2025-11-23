@@ -158,27 +158,170 @@ async def save_student_profile_data(student_id: str, data_to_save: str) -> str:
 
 
 @tool
-async def record_daily_checkin(student_id: str, mood: str, win: str, blocker: str = "") -> str:
+async def analyze_checkin_insights(
+    student_id: str,
+    mood: str,
+    sleep_hours: float,
+    study_hours: float,
+    classes_attended: int,
+    win: str = "",
+    main_achievement: str = "",
+    blocker: str = "",
+    main_mistake: str = "",
+    critical_observation: str = "",
+    plan_for_tomorrow: str = ""
+) -> str:
+    """Analyze student's daily check-in data and provide personalized insights and recommendations."""
+    try:
+        # Get recent check-ins for context
+        recent_checkins = await CheckIn.find(
+            CheckIn.studentId == student_id
+        ).sort([("timestamp", -1)]).limit(7).to_list()
+
+        # Get student profile for context
+        profile = await User.find_one(User.id == student_id)
+
+        # Analyze patterns and provide insights
+        insights = []
+
+        # Sleep analysis
+        if sleep_hours < 7:
+            insights.append("⚠️ Consider getting more sleep - you're getting less than 7 hours, which can impact academic performance.")
+        elif sleep_hours >= 8:
+            insights.append("✅ Great job prioritizing sleep! 8+ hours will help with focus and memory.")
+
+        # Study analysis
+        if study_hours < 2:
+            insights.append("💡 Consider increasing study time. Consistent daily study builds strong habits.")
+        elif study_hours > 4:
+            insights.append("⚠️ Don't forget to balance study with rest. Quality over quantity matters.")
+
+        # Classes attended
+        if classes_attended < 3:
+            insights.append("📚 Try to attend more classes. Regular attendance is key to academic success.")
+
+        # Mood and achievement analysis
+        if mood in ['excellent', 'good'] and main_achievement:
+            insights.append(f"🎉 Excellent work on '{main_achievement}'! Keep building on this success.")
+        elif mood in ['stressed', 'struggling'] and blocker:
+            insights.append(f"🤝 Let's address '{blocker}'. Consider breaking it into smaller steps.")
+
+        # Learning from mistakes
+        if main_mistake:
+            insights.append(f"📝 Learning opportunity: '{main_mistake}'. Use this to grow stronger tomorrow.")
+
+        # Critical observations
+        if critical_observation:
+            insights.append(f"🔍 Insight noted: '{critical_observation}'. This awareness is powerful for growth.")
+
+        # Tomorrow's plan
+        if plan_for_tomorrow:
+            insights.append(f"🎯 Tomorrow's focus: '{plan_for_tomorrow}'. Clear goals lead to clear results.")
+
+        # Pattern analysis if we have recent data
+        if len(recent_checkins) >= 3:
+            avg_sleep = sum(c.sleepHours for c in recent_checkins) / len(recent_checkins)
+            avg_study = sum(c.studyHours for c in recent_checkins) / len(recent_checkins)
+
+            if avg_sleep < 7:
+                insights.append("📊 Pattern: Your average sleep over the past week is below 7 hours. Prioritize sleep for better performance.")
+
+            if avg_study < 1.5:
+                insights.append("📊 Pattern: Your study average is low. Consider creating a consistent study routine.")
+
+        # Personalized recommendations
+        recommendations = [
+            "💡 Daily Check-in Tip: Reflect on both successes and challenges - this builds self-awareness.",
+            "🎯 Focus on progress, not perfection. Small daily improvements compound over time.",
+            "🤝 Remember: Every expert was once a beginner. You're on the right path!",
+        ]
+
+        result = {
+            "insights": insights,
+            "recommendations": recommendations[:2],  # Limit to 2 recommendations
+            "mood_trend": mood,
+            "sleep_quality": "good" if sleep_hours >= 7 else "needs_improvement",
+            "study_consistency": "good" if study_hours >= 1.5 else "needs_improvement"
+        }
+
+        return json.dumps(result, indent=2)
+
+    except Exception as e:
+        return json.dumps({
+            "error": f"Failed to analyze check-in: {str(e)}",
+            "insights": ["Unable to provide detailed analysis at this time."]
+        })
+
+async def record_daily_checkin(
+    student_id: str,
+    mood: str,
+    win: str = "",
+    blocker: str = "",
+    sleep_hours: int = 7,
+    study_hours: float = 0,
+    classes_attended: int = 0,
+    main_mistake: str = "",
+    critical_observation: str = "",
+    main_achievement: str = "",
+    plan_for_tomorrow: str = ""
+) -> str:
     """Persist the new check-in model and log a memory summary."""
 
     checkin = CheckIn(
         studentId=student_id,
+        date=datetime.now().strftime('%Y-%m-%d'),
         mood=mood,
-        stressLevel=5,  # Default stress level since it's not provided
-        sleepHours=8,    # Default sleep hours since it's not provided
-        notes=f"Win: {win}" + (f" | Blocker: {blocker}" if blocker else ""),
+        stressLevel=5,  # Default stress level, could be calculated from mood
+        sleepHours=float(sleep_hours),
+        energyLevel=7,  # Default energy level
+        studyHours=float(study_hours),
+        classesAttended=classes_attended,
+        win=win if win else None,
+        blocker=blocker if blocker else None,
+        mainMistake=main_mistake if main_mistake else None,
+        criticalObservation=critical_observation if critical_observation else None,
+        mainAchievement=main_achievement if main_achievement else None,
+        planForTomorrow=plan_for_tomorrow if plan_for_tomorrow else None,
     )
 
     await checkin.insert()
 
+    # Generate AI analysis of the check-in
+    analysis = await analyze_checkin_insights(
+        student_id=student_id,
+        mood=mood,
+        sleep_hours=float(sleep_hours),
+        study_hours=float(study_hours),
+        classes_attended=classes_attended,
+        win=win,
+        main_achievement=main_achievement,
+        blocker=blocker,
+        main_mistake=main_mistake,
+        critical_observation=critical_observation,
+        plan_for_tomorrow=plan_for_tomorrow
+    )
+
     stored_data = {
         "studentId": student_id,
         "mood": mood,
+        "sleepHours": str(sleep_hours),
+        "studyHours": str(study_hours),
+        "classesAttended": str(classes_attended),
         "win": win,
+        "mainAchievement": main_achievement,
         "blocker": blocker,
+        "mainMistake": main_mistake,
+        "criticalObservation": critical_observation,
+        "planForTomorrow": plan_for_tomorrow,
+        "analysis": analysis
     }
+
     memory_bank.add_memory(student_id, summarize_checkin(stored_data))
-    return json.dumps({"checkinId": checkin.id})
+
+    return json.dumps({
+        "checkinId": checkin.id,
+        "analysis": analysis
+    })
 
 
 @tool

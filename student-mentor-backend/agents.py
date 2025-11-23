@@ -27,6 +27,7 @@ except ImportError:
 
 from memory import memory_bank, session_service
 from tools import (
+    analyze_checkin_insights,
     create_assignment,
     generate_teacher_report,
     get_assignments_for_student,
@@ -125,6 +126,18 @@ analytics_agent = make_llm_agent(
         "Quietly analyze longitudinal submissions, check-ins, and attendance to detect emerging patterns "
         "such as multi-day mood drops or repeated missed work. Only output concise summaries or structured insights."
     ),
+    memory_enabled=True,
+)
+
+checkin_analyst_agent = make_llm_agent(
+    name="checkin_analyst_agent",
+    instruction=(
+        "You are a compassionate and insightful check-in analyst. Analyze daily check-in data including mood, "
+        "sleep, study hours, achievements, mistakes, and future plans. Provide personalized insights, "
+        "encouragement, and actionable recommendations. Focus on patterns, growth opportunities, and "
+        "positive reinforcement while being honest about areas needing improvement."
+    ),
+    tools=[analyze_checkin_insights, get_student_profile],
     memory_enabled=True,
 )
 
