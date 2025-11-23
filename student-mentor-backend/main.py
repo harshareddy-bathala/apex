@@ -693,6 +693,7 @@ async def list_habits(user: FirebaseUser = Depends(verify_firebase_token)) -> Di
             "studentId": habit.user_email,
             "name": habit.title,
             "timeOfDay": habit.timeOfDay,
+            "targetTimeMinutes": habit.targetTimeMinutes,
             "createdAt": habit.createdAt.isoformat(),
             "archived": habit.archived,
             "completedToday": habit.id in completed_ids,
