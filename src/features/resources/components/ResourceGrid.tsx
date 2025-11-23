@@ -366,7 +366,7 @@ const ResourceGrid: React.FC = () => {
           </div>
         </div>
       )}
-    </section>
+    </div>
   );
 };
 
