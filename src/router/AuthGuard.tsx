@@ -22,6 +22,7 @@ const AuthGuard: React.FC = () => {
   const [forceOnboarding, setForceOnboarding] = useState(() =>
     Boolean((location.state as { forceOnboarding?: boolean } | null)?.forceOnboarding),
   );
+  const [lastUserId, setLastUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const locationState = location.state as { forceOnboarding?: boolean } | null;
@@ -40,11 +41,7 @@ const AuthGuard: React.FC = () => {
   const fetchProfile = useCallback(async () => {
     if (!idToken) {
       setProfile(null);
-      return;
-    }
-
-    // Prevent duplicate requests
-    if (isProfileLoading) {
+      setIsProfileLoading(false);
       return;
     }
 
@@ -60,15 +57,21 @@ const AuthGuard: React.FC = () => {
     } finally {
       setIsProfileLoading(false);
     }
-  }, [idToken, isProfileLoading]);
+  }, [idToken]);
 
   useEffect(() => {
-    if (!idToken) {
+    if (!user || !idToken) {
       setProfile(null);
+      setLastUserId(null);
       return;
     }
-    void fetchProfile();
-  }, [idToken]); // Remove fetchProfile from dependencies to prevent unnecessary re-fetches
+
+    // Only fetch profile if this is a different user than last time
+    if (user.uid !== lastUserId) {
+      setLastUserId(user.uid);
+      void fetchProfile();
+    }
+  }, [user, idToken, lastUserId, fetchProfile]);
 
   // Get role from profile (which now includes role from backend), fallback to student
   const profileRole = profile?.role ?? 'student';

@@ -35,7 +35,7 @@ const useProvideAuth = (): AuthContextValue => {
   useEffect(() => {
     const unsubscribe = onIdTokenChanged(auth, async (currentUser) => {
       if (currentUser) {
-        // Only update token if it has actually changed
+        // Only update token if it has actually changed to prevent unnecessary re-renders
         const newToken = await currentUser.getIdToken();
         setIdToken(prevToken => prevToken !== newToken ? newToken : prevToken);
       } else {
