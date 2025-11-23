@@ -178,23 +178,24 @@ const DailyCheckIn: React.FC<DailyCheckInProps> = ({ profile, idToken, onComplet
           </div>
         ) : (
           /* Form Screen */
-        <div className="p-6 border-b border-[var(--border-subtle)]">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-[var(--text-primary)] font-display">Daily Check-In</h2>
-                  <button
-              onClick={onClose}
-              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-              aria-label="Close"
-                  >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-                  </button>
+          <>
+            <div className="p-6 border-b border-[var(--border-subtle)]">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-[var(--text-primary)] font-display">Daily Check-In</h2>
+                <button
+                  onClick={onClose}
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  aria-label="Close"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">How are you feeling today?</p>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">How are you feeling today?</p>
             </div>
 
-        <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6">
           {/* Mood Slider */}
           <div>
             <label className="block text-sm font-medium text-[var(--text-primary)] mb-3">
@@ -370,6 +371,7 @@ const DailyCheckIn: React.FC<DailyCheckInProps> = ({ profile, idToken, onComplet
             </button>
           </div>
         </div>
+          </>
         )}
       </div>
     </div>
