@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  BookOpen,
   CheckCircle,
   FolderKanban,
   LayoutDashboard,
@@ -18,7 +19,7 @@ import {
 
 import { useTheme } from '@/common/context/ThemeContext';
 
-export type AppShellView = 'dashboard' | 'community' | 'resources' | 'chat' | 'profile' | 'settings' | 'habits';
+export type AppShellView = 'dashboard' | 'community' | 'resources' | 'chat' | 'profile' | 'settings' | 'assignments' | 'habits';
 
 interface QuickAction {
   label: string;
@@ -39,6 +40,7 @@ interface AppShellProps {
 
 const NAV_LINKS: Array<{ id: AppShellView; label: string; icon: LucideIcon }> = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'assignments', label: 'Assignments', icon: BookOpen },
   { id: 'habits', label: 'Habits', icon: CheckCircle },
   { id: 'community', label: 'Community', icon: UsersRound },
   { id: 'resources', label: 'Resources', icon: FolderKanban },

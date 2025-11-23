@@ -7,6 +7,7 @@ import Dashboard from '@/features/dashboard/components/Dashboard';
 import Chat from '@/features/chat/components/Chat';
 import DailyCheckIn from '@/features/check-in/components/DailyCheckIn';
 import GoalsEditor from '@/features/goals/components/GoalsEditor';
+import AssignmentsPage from '@/features/assignments/AssignmentsPage';
 import EditProfilePage from '@/features/profile/EditProfilePage';
 import ProfilePage from '@/features/profile/ProfilePage';
 import SettingsPage from '@/features/profile/SettingsPage';
@@ -275,6 +276,9 @@ const ProtectedApp: React.FC = () => {
 
   const currentView = useMemo<AppShellView>(() => {
     const path = location.pathname || '';
+    if (path.startsWith('/assignments')) {
+      return 'assignments';
+    }
     if (path.startsWith('/community')) {
       return 'community';
     }
@@ -364,6 +368,10 @@ const ProtectedApp: React.FC = () => {
                   />
                 </>
               }
+            />
+            <Route
+              path="/assignments"
+              element={<AssignmentsPage />}
             />
             <Route
               path="/habits"
