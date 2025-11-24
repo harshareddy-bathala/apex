@@ -52,8 +52,14 @@ const AuthGuard: React.FC = () => {
       setProfile(record);
     } catch (err) {
       console.error('Profile fetch error:', err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      // Check if it's an authentication error
+      if (errorMessage.includes('401') || errorMessage.includes('Invalid or expired ID token')) {
+        setError('Authentication failed. Please try logging out and back in.');
+      } else {
+        setError('Unable to load your profile. Please try again.');
+      }
       setProfile(null);
-      setError('Unable to load your profile. Please try again.');
     } finally {
       setIsProfileLoading(false);
     }
