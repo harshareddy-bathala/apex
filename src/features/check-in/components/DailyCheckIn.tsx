@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
+import type { StudentProfile, DailyCheckIn } from '@/types';
 
 interface DailyCheckInProps {
-  profile: {
-    id: string;
-    name?: string;
-  };
+  profile: StudentProfile | null;
   idToken: string;
-  onComplete: (checkIn: any) => void;
+  onComplete: (checkIn: DailyCheckIn) => void;
   onClose: () => void;
 }
 
@@ -15,6 +13,10 @@ const DailyCheckIn: React.FC<DailyCheckInProps> = ({
   onComplete,
   onClose
 }) => {
+  // Don't render if profile is null
+  if (!profile) {
+    return null;
+  }
   const [formData, setFormData] = useState({
     mood: 5,
     sleepHours: 7,
@@ -58,7 +60,7 @@ const DailyCheckIn: React.FC<DailyCheckInProps> = ({
     setSubmitError(null);
 
     try {
-      const checkInData = {
+      const checkInData: DailyCheckIn = {
         id: `checkin-${Date.now()}`,
         studentId: profile.id,
         date: new Date().toISOString().split('T')[0],

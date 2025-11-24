@@ -203,7 +203,7 @@ const ProtectedApp: React.FC = () => {
       }
       try {
         await createHabit(idToken, { name: name.trim(), timeOfDay, targetTimeMinutes });
-        await loadHabits();
+      await loadHabits();
       } catch (error) {
         console.error('Failed to create habit:', error);
         // You could add a toast notification here
